@@ -1,0 +1,82 @@
+﻿// @ts-nocheck
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { TopicTree } from "@/components/TopicTree";
+
+export default async function TopicsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = session.user.id;
+
+  // Get all topics with their subtopics and problems
+  const topics = await prisma.topic.findMany({
+    where: {
+      parentId: null,
+    },
+    include: {
+      children: {
+        include: {
+          problems: true,
+        },
+      },
+      problems: true,
+    },
+    orderBy: {
+      order: "asc",
+    },
+  });
+
+  // Get user's progress for all problems
+  const userProblems = await prisma.userProblem.findMany({
+    where: {
+      userId,
+    },
+  });
+
+  const userProblemMap = new Map(userProblems.map((up) => [up.problemId, up]));
+
+  // Calculate progress for each topic
+  const topicsWithProgress = topics.map((topic) => {
+    const allProblems = [
+      ...topic.problems,
+      ...topic.children.flatMap((c) => c.problems),
+    ];
+
+    const masteredCount = allProblems.filter((p) => {
+      const up = userProblemMap.get(p.id);
+      return up?.status === "MASTERED";
+    }).length;
+
+    const totalCount = allProblems.length;
+
+    return {
+      ...topic,
+      progress: {
+        mastered: masteredCount,
+        total: totalCount,
+        percentage: totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0,
+      },
+    };
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Topics</h1>
+        <p className="text-muted-foreground mt-1">
+          Browse all available math topics and track your progress.
+        </p>
+      </div>
+
+      <div className="border rounded-lg p-6 bg-card">
+        <TopicTree topics={topicsWithProgress} />
+      </div>
+    </div>
+  );
+}

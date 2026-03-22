@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calqon — The AI tutor that actually teaches math</title>
+    <meta name="description" content="Calqon is a math-first AI learning environment. Upload your materials, get personalized practice, and never forget what you learned.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            --color-bg-primary: #0a0a0b;
+            --color-bg-secondary: #111113;
+            --color-bg-tertiary: #1a1a1d;
+            --color-beige: #e8e0d5;
+            --color-beige-light: #f5f0e8;
+            --color-beige-dark: #c9b8a5;
+            --color-amber: #d4a853;
+            --color-amber-glow: rgba(212, 168, 83, 0.3);
+            --color-electric-blue: #4a9eff;
+            --color-electric-blue-glow: rgba(74, 158, 255, 0.3);
+            --color-discord: #5865F2;
+            --color-discord-hover: #4752C4;
+            --color-text-primary: #f5f0e8;
+            --color-text-secondary: #a8a095;
+            --color-text-muted: #6b655d;
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== RESET & BASE ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ===== MATH BACKGROUND ===== */
+        .math-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .math-symbol {
+            position: absolute;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: var(--color-beige);
+            opacity: 0.04;
+            user-select: none;
+            white-space: nowrap;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .math-symbol:nth-child(1) { top: 10%; left: 5%; font-size: 3rem; animation-delay: 0s; }
+        .math-symbol:nth-child(2) { top: 25%; right: 8%; font-size: 2.5rem; animation-delay: -3s; }
+        .math-symbol:nth-child(3) { top: 45%; left: 12%; font-size: 2rem; animation-delay: -6s; }
+        .math-symbol:nth-child(4) { top: 60%; right: 15%; font-size: 3.5rem; animation-delay: -9s; }
+        .math-symbol:nth-child(5) { top: 75%; left: 8%; font-size: 2.2rem; animation-delay: -12s; }
+        .math-symbol:nth-child(6) { top: 15%; right: 25%; font-size: 2.8rem; animation-delay: -15s; }
+        .math-symbol:nth-child(7) { top: 35%; left: 25%; font-size: 2rem; animation-delay: -18s; }
+        .math-symbol:nth-child(8) { top: 55%; right: 5%; font-size: 3rem; animation-delay: -5s; }
+        .math-symbol:nth-child(9) { top: 85%; left: 30%; font-size: 2.5rem; animation-delay: -8s; }
+        .math-symbol:nth-child(10) { top: 5%; left: 50%; font-size: 2rem; animation-delay: -11s; }
+        .math-symbol:nth-child(11) { top: 70%; right: 30%; font-size: 2.3rem; animation-delay: -14s; }
+        .math-symbol:nth-child(12) { top: 40%; left: 3%; font-size: 2.7rem; animation-delay: -17s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.04; }
+            25% { transform: translateY(-15px) rotate(2deg); opacity: 0.06; }
+            50% { transform: translateY(-5px) rotate(-1deg); opacity: 0.03; }
+            75% { transform: translateY(-20px) rotate(1deg); opacity: 0.05; }
+        }
+
+        /* ===== GRADIENT ORBS ===== */
+        .gradient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 168, 83, 0.08) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(74, 158, 255, 0.06) 0%, transparent 70%);
+            bottom: 20%;
+            left: -150px;
+        }
+
+        .orb-3 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(212, 168, 83, 0.05) 0%, transparent 70%);
+            top: 50%;
+            right: -100px;
+        }
+
+        /* ===== LAYOUT ===== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        section {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            section {
+                padding: 60px 0;
+            }
+        }
+
+        /* ===== TYPOGRAPHY ===== */
+        h1, h2, h3, h4 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            line-height: 1.2;
+            color: var(--color-beige-light);
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-size: clamp(1.25rem, 2vw, 1.5rem);
+        }
+
+        p {
+            color: var(--color-text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .text-amber {
+            color: var(--color-amber);
+        }
+
+        .text-blue {
+            color: var(--color-electric-blue);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 32px;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-amber) 0%, #c9963d 100%);
+            color: var(--color-bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--color-amber-glow);
+        }
+
+        .btn-discord {
+            background: var(--color-discord);
+            color: white;
+        }
+
+        .btn-discord:hover {
+            background: var(--color-discord-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(88, 101, 242, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--color-beige-dark);
+            color: var(--color-beige);
+        }
+
+        .btn-outline:hover {
+            background: rgba(232, 224, 213, 0.05);
+            border-color: var(--color-beige);
+        }
+
+        /* ===== SPOT COUNTER ===== */
+        .spot-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: var(--color-bg-tertiary);
+            border: 1px solid rgba(232, 224, 213, 0.1);
+            border-radius: 100px;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+        }
+
+        .spot-counter .number {
+            font-weight: 600;
+            color: var(--color-amber);
+        }
+
+        .spot-counter .divider {
+            color: var(--color-text-muted);
+        }
+
+        .spot-counter .total {
+            color: var(--color-text-secondary);
+        }
+
+        .progress-bar {
+            width: 100px;
+            height: 6px;
+            background: var(--color-bg-primary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-amber), #e8c066);
+            border-radius: 3px;
+            transition: width 1s var(--transition-smooth);
+        }
+
+        /* ===== FORM ELEMENTS ===== */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 480px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--color-bg-tertiary);
+            border: 1px solid rgba(232, 224, 213, 0.15);
+            border-radius: 8px;
+            color: var(--color-text-primary);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            transition: all 0.3s var(--transition-smooth);
+        }
+
+        .form-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-amber);
+            box-shadow: 0 0 0 3px var(--color-amber-glow);
+        }
+
+        .form-input.error {
+            border-color: #ff4a4a;
+            box-shadow: 0 0 0 3px rgba(255, 74, 74, 0.15);
+        }
+
+        .field-error {
+            font-size: 0.8rem;
+            color: #ff6b6b;
+            margin-top: -6px;
+            display: none;
+        }
+
+        .field-error.visible {
+            display: block;
+        }
+
+        .form-submit-row {
+            margin-top: 4px;
+        }
+
+        /* Honeypot — hidden from real users */
+        .hp-field {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            opacity: 0;
+            pointer-events: none;
+            tab-index: -1;
+        }
+
+        /* ===== SUCCESS STATE ===== */
+        .success-state {
+            display: none;
+            padding: 24px;
+            background: rgba(74, 158, 255, 0.08);
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .success-state.active {
+            display: block;
+            animation: fadeInUp 0.5s var(--transition-smooth);
+        }
+
+        .success-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: var(--color-electric-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+        }
+
+        .success-state h4 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: var(--color-beige-light);
+        }
+
+        .success-state p {
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        .success-note {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-top: 16px;
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 0 80px;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(212, 168, 83, 0.1);
+            border: 1px solid rgba(212, 168, 83, 0.2);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            color: var(--color-amber);
+            margin-bottom: 32px;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--color-amber);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            margin-bottom: 24px;
+        }
+
+        .hero h1 em {
+            font-style: italic;
+            color: var(--color-amber);
+        }
+
+        .hero-description {
+            font-size: 1.25rem;
+            max-width: 640px;
+            margin-bottom: 40px;
+        }
+
+        .hero-cta {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        /* ===== PROBLEM SECTION ===== */
+        .problem {
+            background: var(--color-bg-secondary);
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+
+        .section-header h2 {
+            margin-bottom: 16px;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .problem-card {
+            padding: 32px;
+            background: var(--color-bg-tertiary);
+            border: 1px solid rgba(232, 224, 213, 0.08);
+            border-radius: 12px;
+            transition: all 0.4s var(--transition-smooth);
+        }
+
+        .problem-card:hover {
+            border-color: rgba(212, 168, 83, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .problem-card .icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 74, 74, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .problem-card .icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: #ff6b6b;
+        }
+
+        .problem-card h3 {
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+        }
+
+        .problem-card p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* ===== FEATURES SECTION ===== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+        }
+
+        .feature-card {
+            display: flex;
+            gap: 20px;
+            padding: 32px;
+            background: var(--color-bg-secondary);
+            border: 1px solid rgba(232, 224, 213, 0.06);
+            border-radius: 12px;
+            transition: all 0.4s var(--transition-smooth);
+        }
+
+        .feature-card:hover {
+            background: var(--color-bg-tertiary);
+            border-color: rgba(74, 158, 255, 0.15);
+        }
+
+        .feature-icon {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            background: rgba(74, 158, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--color-electric-blue);
+        }
+
+        .feature-content h3 {
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .feature-content p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* ===== OFFER SECTION ===== */
+        .offer {
+            background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+            text-align: center;
+        }
+
+        .offer-content {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 60px;
+            background: var(--color-bg-tertiary);
+            border: 1px solid rgba(212, 168, 83, 0.15);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .offer-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--color-amber), transparent);
+        }
+
+        .offer-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(212, 168, 83, 0.12);
+            border: 1px solid rgba(212, 168, 83, 0.25);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-amber);
+            margin-bottom: 24px;
+        }
+
+        .offer h2 {
+            margin-bottom: 20px;
+        }
+
+        .offer-description {
+            font-size: 1.15rem;
+            margin-bottom: 32px;
+        }
+
+        .offer-counter {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .offer-counter .counter-text {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .offer-counter .counter-text .current {
+            color: var(--color-amber);
+        }
+
+        .offer-counter .counter-text .separator {
+            color: var(--color-text-muted);
+            margin: 0 8px;
+        }
+
+        .offer-counter .progress-bar {
+            width: 280px;
+            height: 8px;
+        }
+
+        .offer-counter .progress-fill {
+            width: 84.67%; /* 127/150 */
+        }
+
+        @media (max-width: 600px) {
+            .offer-content {
+                padding: 40px 24px;
+            }
+        }
+
+        /* ===== WAITLIST SECTION ===== */
+        .waitlist {
+            background: var(--color-bg-secondary);
+        }
+
+        .waitlist-content {
+            max-width: 640px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .waitlist h2 {
+            margin-bottom: 16px;
+        }
+
+        .waitlist-intro {
+            font-size: 1.15rem;
+            margin-bottom: 48px;
+        }
+
+        .steps-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--color-bg-tertiary);
+            border: 2px solid rgba(232, 224, 213, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-beige);
+        }
+
+        .step.active .step-number {
+            background: var(--color-amber);
+            border-color: var(--color-amber);
+            color: var(--color-bg-primary);
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        .step-connector {
+            width: 60px;
+            height: 2px;
+            background: rgba(232, 224, 213, 0.1);
+            margin-top: 24px;
+        }
+
+        .waitlist-form-container {
+            background: var(--color-bg-tertiary);
+            border: 1px solid rgba(232, 224, 213, 0.08);
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .waitlist-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .waitlist-form .form-group {
+            max-width: 100%;
+        }
+
+        .discord-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+            background: rgba(88, 101, 242, 0.08);
+            border: 1px solid rgba(88, 101, 242, 0.15);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        .discord-note svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--color-discord);
+        }
+
+        .discord-note strong {
+            color: var(--color-beige);
+        }
+
+        @media (max-width: 480px) {
+            .steps-container {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .step-connector {
+                width: 2px;
+                height: 30px;
+                margin-top: 0;
+            }
+
+            .waitlist-form-container {
+                padding: 24px;
+            }
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid rgba(232, 224, 213, 0.06);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-beige-light);
+            letter-spacing: 0.05em;
+        }
+
+        .footer-tagline {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+
+        .footer-copyright {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s var(--transition-smooth), transform 0.8s var(--transition-smooth);
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .animate-delay-1 { transition-delay: 0.1s; }
+        .animate-delay-2 { transition-delay: 0.2s; }
+        .animate-delay-3 { transition-delay: 0.3s; }
+        .animate-delay-4 { transition-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-beige-dark);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="math-background">
+        <span class="math-symbol">∂f/∂x</span>
+        <span class="math-symbol">∑</span>
+        <span class="math-symbol">λ</span>
+        <span class="math-symbol">∇²</span>
+        <span class="math-symbol">∫₀^∞</span>
+        <span class="math-symbol">det(A)</span>
+        <span class="math-symbol">lim</span>
+        <span class="math-symbol">π</span>
+        <span class="math-symbol">∈</span>
+        <span class="math-symbol">∀</span>
+        <span class="math-symbol">∃</span>
+        <span class="math-symbol">∞</span>
+    </div>
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge animate-on-scroll">Founding Member Waitlist Open</div>
+                <h1 class="animate-on-scroll animate-delay-1">The AI tutor that <em>actually</em> teaches math.</h1>
+                <p class="hero-description animate-on-scroll animate-delay-2">
+                    Calqon is your personal math notebook, AI tutor, and practice engine — all in one. Upload your course materials, and Calqon extracts every concept, generates hundreds of targeted problems, tracks your mistakes, and uses spaced repetition to make sure nothing is forgotten.
+                </p>
+                <div class="hero-cta animate-on-scroll animate-delay-3">
+                    <div class="spot-counter">
+                        <span class="number">127</span>
+                        <span class="divider">/</span>
+                        <span class="total">150</span>
+                        <span>founding spots claimed</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 84.67%;"></div>
+                        </div>
+                    </div>
+                    <a href="#waitlist" class="btn btn-primary">Join the Waitlist</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem" id="problem">
+        <div class="container">
+            <div class="section-header animate-on-scroll">
+                <h2>Why math students struggle</h2>
+                <p>The tools we have today weren't built for actually learning mathematics.</p>
+            </div>
+            <div class="problem-grid">
+                <div class="problem-card animate-on-scroll animate-delay-1">
+                    <div class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3>ChatGPT gives answers, not understanding</h3>
+                    <p>It solves the problem for you. It doesn't teach you why the solution works, or how to recognize similar patterns on your own.</p>
+                </div>
+                <div class="problem-card animate-on-scroll animate-delay-2">
+                    <div class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <h3>Textbooks don't adapt to you</h3>
+                    <p>Static exercises. No feedback on your specific mistakes. No sense of which concepts you're about to forget.</p>
+                </div>
+                <div class="problem-card animate-on-scroll animate-delay-3">
+                    <div class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <h3>Anki cards don't know math</h3>
+                    <p>Flashcards work for memorization, not for building mathematical intuition. You need practice, not just recall.</p>
+                </div>
+                <div class="problem-card animate-on-scroll animate-delay-4">
+                    <div class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                    </div>
+                    <h3>You forget everything before the exam</h3>
+                    <p>Without spaced repetition, concepts fade. By exam time, you're relearning instead of reviewing.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How Calqon Works Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header animate-on-scroll">
+                <h2>How Calqon works</h2>
+                <p>Built from the ground up for serious math students.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card animate-on-scroll animate-delay-1">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Upload your materials</h3>
+                        <p>Lecture notes, textbooks, problem sets — Calqon extracts every concept automatically and builds your personalized knowledge map.</p>
+                    </div>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-2">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <line x1="9" y1="10" x2="14" y2="10"/>
+                            <line x1="12" y1="7" x2="12" y2="13"/>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h3>AI tutor with step-by-step reasoning</h3>
+                        <p>Ask anything. Calqon shows you the reasoning, not just the answer. It explains why each step matters.</p>
+                    </div>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-3">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9M12 20l-4-4m4 4l-4 4"/>
+                            <path d="M3 12h9M3 12l4-4m-4 4l4 4"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Infinite practice problems</h3>
+                        <p>The practice engine generates hundreds of problems at your exact level — never too easy, never impossibly hard.</p>
+                    </div>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-1">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Mistake detection & gap analysis</h3>
+                        <p>Calqon knows <em>why</em> you got it wrong — algebra error? Conceptual misunderstanding? — and drills that specific gap.</p>
+                    </div>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-2">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Spaced repetition scheduler</h3>
+                        <p>Concepts come back before you forget them. The algorithm optimizes your review schedule based on your performance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Founding Member Offer Section -->
+    <section class="offer" id="offer">
+        <div class="container">
+            <div class="offer-content animate-on-scroll">
+                <span class="offer-badge">Limited Time Offer</span>
+                <h2>First 150 members get a full year free.</h2>
+                <p class="offer-description">
+                    The first 150 people to join the waitlist and Discord will receive a full year of Calqon — every feature, no restrictions — completely free when we launch. After that, it's a paid product.
+                </p>
+                <div class="offer-counter">
+                    <div class="counter-text">
+                        <span class="current">127</span>
+                        <span class="separator">/</span>
+                        <span>150</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <p class="spot-label">spots claimed</p>
+                </div>
+                <a href="#waitlist" class="btn btn-primary">Reserve Your Spot</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Waitlist Section -->
+    <section class="waitlist" id="waitlist">
+        <div class="container">
+            <div class="waitlist-content">
+                <h2 class="animate-on-scroll">Join the waitlist</h2>
+                <p class="waitlist-intro animate-on-scroll animate-delay-1">
+                    Two simple steps to secure your founding member spot.
+                </p>
+                
+                <div class="steps-container animate-on-scroll animate-delay-2">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <span class="step-label">Enter email</span>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <span class="step-label">Join Discord</span>
+                    </div>
+                </div>
+
+                <div class="waitlist-form-container animate-on-scroll animate-delay-3">
+                    <form class="waitlist-form" id="waitlistForm" novalidate>
+                        <!-- Honeypot — bots fill this, humans don't see it -->
+                        <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off">
+
+                        <div class="form-group">
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="nameInput"
+                                placeholder="Your full name"
+                                autocomplete="name"
+                                required
+                            >
+                            <span class="field-error" id="nameError">Please enter your name.</span>
+
+                            <input
+                                type="email"
+                                class="form-input"
+                                id="emailInput"
+                                placeholder="Your email address"
+                                autocomplete="email"
+                                required
+                            >
+                            <span class="field-error" id="emailError">Please enter a valid email address.</span>
+
+                            <div class="form-submit-row">
+                                <button type="submit" class="btn btn-primary" id="submitBtn">Reserve Spot</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="success-state" id="successState">
+                        <div class="success-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <h4>Spot reserved!</h4>
+                        <p>Now join the Discord to confirm your founding member status:</p>
+                        <a href="https://discord.gg/calqon" target="_blank" rel="noopener noreferrer" class="btn btn-discord">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                            </svg>
+                            Join Calqon Discord
+                        </a>
+                        <p class="success-note">
+                            We'll email you when Calqon launches. Your spot is held for 48 hours — join Discord to make it permanent.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">CALQON</div>
+                <p class="footer-tagline">The AI tutor that actually teaches math.</p>
+                <p class="footer-copyright">© 2026 Calqon. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Waitlist form handling
+        const waitlistForm = document.getElementById('waitlistForm');
+        const nameInput    = document.getElementById('nameInput');
+        const emailInput   = document.getElementById('emailInput');
+        const nameError    = document.getElementById('nameError');
+        const emailError   = document.getElementById('emailError');
+        const submitBtn    = document.getElementById('submitBtn');
+        const successState = document.getElementById('successState');
+
+        // ── n8n webhook URL ── replace with your actual webhook URL
+        const N8N_WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/calqon-waitlist';
+
+        // Track form load time for timing-based bot detection
+        const formLoadTime = Date.now();
+
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+        function shake(el) {
+            el.style.animation = 'none';
+            el.offsetHeight; // reflow
+            el.style.animation = 'shake 0.45s ease';
+            setTimeout(() => { el.style.animation = ''; }, 450);
+        }
+
+        function setError(input, errorEl, show) {
+            if (show) {
+                input.classList.add('error');
+                errorEl.classList.add('visible');
+            } else {
+                input.classList.remove('error');
+                errorEl.classList.remove('visible');
+            }
+        }
+
+        // Inline validation on blur
+        nameInput.addEventListener('blur', () => {
+            setError(nameInput, nameError, nameInput.value.trim().length < 2);
+        });
+        nameInput.addEventListener('input', () => setError(nameInput, nameError, false));
+
+        emailInput.addEventListener('blur', () => {
+            setError(emailInput, emailError, !emailRegex.test(emailInput.value.trim()));
+        });
+        emailInput.addEventListener('input', () => setError(emailInput, emailError, false));
+
+        waitlistForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name  = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const honeypot = waitlistForm.querySelector('input[name="website"]').value;
+
+            // ── Bot checks ──
+            // 1. Honeypot filled → bot
+            if (honeypot) return;
+
+            // 2. Submitted in under 1.5 seconds → bot
+            if (Date.now() - formLoadTime < 1500) return;
+
+            // ── Field validation ──
+            let valid = true;
+
+            if (name.length < 2) {
+                setError(nameInput, nameError, true);
+                shake(nameInput);
+                valid = false;
+            }
+
+            if (!emailRegex.test(email)) {
+                setError(emailInput, emailError, true);
+                shake(emailInput);
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            // ── Submit ──
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting…';
+
+            try {
+                await fetch(N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name:      name,
+                        email:     email,
+                        timestamp: new Date().toISOString(),
+                        source:    'calqon-landing-page'
+                    })
+                });
+            } catch (err) {
+                console.error('Webhook error:', err);
+            } finally {
+                waitlistForm.style.display = 'none';
+                successState.classList.add('active');
+                document.querySelectorAll('.step')[0].classList.add('completed');
+                document.querySelectorAll('.step')[1].classList.add('active');
+            }
+        });
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

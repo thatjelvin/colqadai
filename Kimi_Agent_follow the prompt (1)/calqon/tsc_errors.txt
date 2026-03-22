@@ -1,0 +1,168 @@
+﻿.next/types/app/api/auth/[...nextauth]/route.ts(26,4): error TS2344: Type 'typeof import("C:/Users/chizy/OneDrive/Desktop/calqon/Kimi_Agent_follow the prompt (1)/calqon/src/app/api/auth/[...nextauth]/route")' does not satisfy the constraint '{ GET?: Function | undefined; HEAD?: Function | undefined; OPTIONS?: Function | undefined; POST?: Function | undefined; PUT?: Function | undefined; ... 10 more ...; maxDuration?: number | undefined; }'.
+  Types of property 'GET' are incompatible.
+    Type 'NextAuthResult' is missing the following properties from type 'Function': apply, call, bind, prototype, and 6 more.
+__tests__/sm2.test.ts(3,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(10,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(11,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(13,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(14,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(15,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(18,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(20,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(21,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(22,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(25,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(27,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(28,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(29,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(32,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(34,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(35,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(40,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(43,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(45,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(46,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(48,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(51,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(53,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(54,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(56,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(60,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(61,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(67,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(68,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(72,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(73,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(77,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(78,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(86,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(89,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(97,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(101,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(102,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(104,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(105,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(108,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(109,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(112,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(113,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(116,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(117,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(121,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(122,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(130,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(134,3): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(135,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(136,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(139,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(140,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(141,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(144,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(145,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(146,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(147,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(150,5): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+__tests__/sm2.test.ts(151,7): error TS2304: Cannot find name 'expect'.
+__tests__/sm2.test.ts(152,7): error TS2304: Cannot find name 'expect'.
+middleware.ts(1,10): error TS2305: Module '"next-auth/middleware"' has no exported member 'withAuth'.
+middleware.ts(5,23): error TS7006: Parameter 'req' implicitly has an 'any' type.
+middleware.ts(11,20): error TS7031: Binding element 'req' implicitly has an 'any' type.
+middleware.ts(11,25): error TS7031: Binding element 'token' implicitly has an 'any' type.
+prisma/seed.ts(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+prisma/seed.ts(1,24): error TS2305: Module '"@prisma/client"' has no exported member 'Difficulty'.
+src/app/(app)/dashboard/page.tsx(1,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/(app)/dashboard/page.tsx(75,6): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/(app)/dashboard/page.tsx(104,25): error TS2322: Type '{ children: (string | Element)[]; variant: string; size: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/dashboard/page.tsx(125,33): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/(app)/layout.tsx(1,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/(app)/study/[problemId]/page.tsx(129,19): error TS2322: Type '{ children: Element; variant: string; size: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/study/[problemId]/page.tsx(142,20): error TS2322: Type '{ children: string; variant: "default" | "secondary" | "destructive"; }' is not assignable to type 'IntrinsicAttributes & BadgeProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & BadgeProps'.
+src/app/(app)/study/[problemId]/page.tsx(196,21): error TS2322: Type '{ children: string; variant: string; onClick: () => Promise<void>; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/study/[problemId]/page.tsx(203,21): error TS2322: Type '{ children: string; variant: string; onClick: () => Promise<void>; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/study/[problemId]/page.tsx(210,21): error TS2322: Type '{ children: string; variant: string; onClick: () => Promise<void>; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/study/[problemId]/page.tsx(217,21): error TS2322: Type '{ children: string; variant: string; onClick: () => Promise<void>; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/topics/[slug]/page.tsx(1,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/(app)/topics/[slug]/page.tsx(47,42): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(48,51): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(49,21): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(62,52): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(66,43): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(68,21): error TS2339: Property 'nextReviewAt' does not exist on type '{}'.
+src/app/(app)/topics/[slug]/page.tsx(71,43): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(76,48): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(78,16): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/(app)/topics/[slug]/page.tsx(90,19): error TS2322: Type '{ children: Element; variant: string; size: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(app)/topics/[slug]/page.tsx(135,34): error TS7006: Parameter 'problem' implicitly has an 'any' type.
+src/app/(app)/topics/[slug]/page.tsx(142,17): error TS2322: Type '{} | null' is not assignable to type '{ status: ReviewStatus; nextReviewAt: Date; } | null | undefined'.
+  Type '{}' is missing the following properties from type '{ status: ReviewStatus; nextReviewAt: Date; }': status, nextReviewAt
+src/app/(app)/topics/[slug]/page.tsx(154,34): error TS7006: Parameter 'child' implicitly has an 'any' type.
+src/app/(app)/topics/page.tsx(1,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/(app)/topics/page.tsx(41,52): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/(app)/topics/page.tsx(44,42): error TS7006: Parameter 'topic' implicitly has an 'any' type.
+src/app/(app)/topics/page.tsx(47,34): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/(app)/topics/page.tsx(52,18): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/(auth)/login/page.tsx(64,13): error TS2322: Type '{ children: (string | Element)[]; variant: string; className: string; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/(auth)/register/page.tsx(40,21): error TS2538: Type 'symbol' cannot be used as an index type.
+src/app/(auth)/register/page.tsx(99,13): error TS2322: Type '{ children: (string | Element)[]; variant: string; className: string; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/api/chat/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/chat/route.ts(111,48): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/app/api/chat/route.ts(138,38): error TS2339: Property 'text' does not exist on type 'RawContentBlockDelta'.
+  Property 'text' does not exist on type 'InputJSONDelta'.
+src/app/api/chat/sessions/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/dashboard/stats/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/dashboard/stats/route.ts(26,8): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/api/problems/[id]/review/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/problems/[id]/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/problems/[id]/start/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/problems/due/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/topics/route.ts(2,10): error TS2614: Module '"next-auth"' has no exported member 'getServerSession'. Did you mean to use 'import getServerSession from "next-auth"' instead?
+src/app/api/topics/route.ts(40,25): error TS7006: Parameter 'up' implicitly has an 'any' type.
+src/app/api/topics/route.ts(44,44): error TS7006: Parameter 'topic' implicitly has an 'any' type.
+src/app/api/topics/route.ts(47,36): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/api/topics/route.ts(52,20): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/page.tsx(19,23): error TS2322: Type '{ children: string; variant: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/page.tsx(43,23): error TS2322: Type '{ children: string; size: string; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/page.tsx(48,23): error TS2322: Type '{ children: string; size: string; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/app/page.tsx(151,21): error TS2322: Type '{ children: string; size: string; variant: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/ChatInterface.tsx(149,11): error TS2322: Type '{ children: (string | Element)[]; variant: string; size: string; onClick: () => void; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/ChatInterface.tsx(216,13): error TS2322: Type '{ children: Element; onClick: () => Promise<void>; disabled: boolean; size: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/ProblemCard.tsx(6,10): error TS2305: Module '"@prisma/client"' has no exported member 'Difficulty'.
+src/components/ProblemCard.tsx(6,22): error TS2305: Module '"@prisma/client"' has no exported member 'ReviewStatus'.
+src/components/ProblemCard.tsx(49,18): error TS2322: Type '{ children: Difficulty; variant: "secondary" | "destructive" | "default"; }' is not assignable to type 'IntrinsicAttributes & BadgeProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & BadgeProps'.
+src/components/ProblemCard.tsx(59,24): error TS2322: Type '{ children: ReviewStatus; variant: "secondary" | "destructive" | "default" | "outline"; }' is not assignable to type 'IntrinsicAttributes & BadgeProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & BadgeProps'.
+src/components/ProblemCard.tsx(67,22): error TS2322: Type '{ children: string; variant: string; }' is not assignable to type 'IntrinsicAttributes & BadgeProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & BadgeProps'.
+src/components/ProblemCard.tsx(71,21): error TS2322: Type '{ children: string; size: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/Sidebar.tsx(91,21): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/ui/badge.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/ui/badge.tsx(30,29): error TS2339: Property 'variant' does not exist on type 'BadgeProps'.
+src/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/ui/button.tsx(43,17): error TS2339: Property 'variant' does not exist on type 'ButtonProps'.
+src/components/ui/button.tsx(43,26): error TS2339: Property 'size' does not exist on type 'ButtonProps'.
+src/components/ui/label.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/lib/auth.ts(1,10): error TS2614: Module '"next-auth"' has no exported member 'NextAuthOptions'. Did you mean to use 'import NextAuthOptions from "next-auth"' instead?
+src/lib/auth.ts(66,17): error TS7031: Binding element 'token' implicitly has an 'any' type.
+src/lib/auth.ts(66,24): error TS7031: Binding element 'user' implicitly has an 'any' type.
+src/lib/auth.ts(72,21): error TS7031: Binding element 'session' implicitly has an 'any' type.
+src/lib/auth.ts(72,30): error TS7031: Binding element 'token' implicitly has an 'any' type.
+src/lib/prisma.ts(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
