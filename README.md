@@ -1,0 +1,110 @@
+# Calqon
+
+**Calqon** is a math-first AI learning environment — a notebook, tutor, and practice engine unified into a single product. It combines spaced repetition with an AI tutor to help students truly understand mathematics.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 14 (App Router) |
+| **Language** | TypeScript |
+| **Database** | PostgreSQL via Supabase |
+| **ORM** | Prisma |
+| **Auth** | NextAuth.js (Google OAuth + Credentials) |
+| **AI** | Anthropic Claude (AI Tutor) |
+| **Email** | Resend |
+| **Payments** | Fado |
+| **Caching** | Upstash Redis |
+| **Error Monitoring** | Sentry |
+| **Styling** | Tailwind CSS |
+| **UI Components** | Radix UI + shadcn/ui |
+| **Math Rendering** | KaTeX |
+| **Deployment** | Vercel |
+
+## Features
+
+- **Spaced Repetition** — SM-2 algorithm schedules problems at optimal review intervals
+- **AI Tutor Chat** — Anthropic Claude provides step-by-step math explanations with LaTeX
+- **Practice Engine** — Problems at multiple difficulty levels with instant feedback
+- **Topic Browser** — Hierarchical topic tree covering calculus, linear algebra, and more
+- **Progress Dashboard** — Track mastery, streaks, and weak areas
+- **Math Rendering** — KaTeX for beautiful inline and display math
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (or Supabase project)
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/calqon.git
+   cd calqon
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Fill in your credentials in `.env`.
+
+4. **Generate Prisma client and push schema**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+5. **Seed the database** (optional)
+   ```bash
+   npm run db:seed
+   ```
+
+6. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+Open [http://localhost:3000](http://localhost:3000) to see Calqon.
+
+## Project Structure
+
+```
+calqon/
+├── prisma/              # Prisma schema and seed data
+├── src/
+│   ├── app/             # Next.js App Router
+│   │   ├── (app)/       # Authenticated app routes
+│   │   ├── (auth)/      # Login and registration
+│   │   └── api/         # API routes
+│   ├── components/      # React components
+│   │   └── ui/          # shadcn/ui primitives
+│   └── lib/             # Shared utilities
+│       ├── analytics/   # Analytics abstraction (PostHog/Datadog)
+│       ├── auth/        # Auth abstraction (Auth0/Clerk)
+│       ├── email/       # Resend integration
+│       ├── payments/    # Fado integration
+│       ├── redis/       # Upstash Redis client
+│       └── supabase/    # Supabase client
+├── __tests__/           # Unit tests
+├── sentry.*.config.ts   # Sentry configuration
+└── middleware.ts        # NextAuth middleware
+```
+
+## Architecture Notes
+
+- **Authentication**: Currently uses NextAuth.js. An abstraction layer (`lib/auth/AuthService.ts`) is in place to support swapping to Auth0 or Clerk.
+- **Analytics**: An abstraction layer (`lib/analytics/AnalyticsService.ts`) supports future integration with PostHog or Datadog.
+- **Payments**: All payment logic goes through Fado (`lib/payments/fado.ts`). Stripe is not used.
+- **Vector Database**: Not currently integrated. Can be added later if needed.
+
+## License
+
+See [LICENSE](./LICENSE) for details.

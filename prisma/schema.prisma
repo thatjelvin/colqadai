@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -14,14 +13,14 @@ model User {
   name          String?
   image         String?
   emailVerified DateTime?
-  passwordHash  String? // null for OAuth users
+  passwordHash  String?   // null for OAuth users
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  userProblems UserProblem[]
-  chatSessions ChatSession[]
+  accounts      Account[]
+  sessions      Session[]
+  userProblems  UserProblem[]
+  chatSessions  ChatSession[]
 }
 
 model Account {
@@ -68,37 +67,37 @@ model Topic {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
-  parent   Topic?    @relation("TopicHierarchy", fields: [parentId], references: [id])
-  children Topic[]   @relation("TopicHierarchy")
+  parent   Topic?   @relation("TopicHierarchy", fields: [parentId], references: [id])
+  children Topic[]  @relation("TopicHierarchy")
   problems Problem[]
 }
 
 model Problem {
-  id         String     @id @default(cuid())
-  topicId    String
-  title      String
-  body       String // LaTeX problem statement
-  solution   String // LaTeX solution
-  difficulty Difficulty
-  createdAt  DateTime   @default(now())
+  id          String      @id @default(cuid())
+  topicId     String
+  title       String
+  body        String      // LaTeX problem statement
+  solution    String      // LaTeX solution
+  difficulty  Difficulty
+  createdAt   DateTime    @default(now())
 
-  topic        Topic         @relation(fields: [topicId], references: [id])
+  topic       Topic       @relation(fields: [topicId], references: [id])
   userProblems UserProblem[]
   chatSessions ChatSession[]
 }
 
 model UserProblem {
-  id             String       @id @default(cuid())
-  userId         String
-  problemId      String
-  easeFactor     Float        @default(2.5)
-  interval       Int          @default(1) // days until next review
-  repetitions    Int          @default(0) // consecutive successful reviews
-  nextReviewAt   DateTime
-  lastReviewedAt DateTime?
-  status         ReviewStatus @default(NEW)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              String        @id @default(cuid())
+  userId          String
+  problemId       String
+  easeFactor      Float         @default(2.5)
+  interval        Int           @default(1)      // days until next review
+  repetitions     Int           @default(0)      // consecutive successful reviews
+  nextReviewAt    DateTime
+  lastReviewedAt  DateTime?
+  status          ReviewStatus  @default(NEW)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
@@ -109,7 +108,7 @@ model UserProblem {
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String
-  problemId String? // nullable - chat can be about a problem or freeform
+  problemId String?  // nullable - chat can be about a problem or freeform
   title     String?
   createdAt DateTime @default(now())
 
@@ -119,11 +118,11 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   sessionId String
   role      MessageRole
-  content   String      @db.Text
-  createdAt DateTime    @default(now())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

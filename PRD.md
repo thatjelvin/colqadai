@@ -1,9 +1,9 @@
-# Nexus — Product Requirements Document (PRD)
+# Calqon — Product Requirements Document (PRD)
 
 **Version:** 1.0  
 **Status:** Draft  
 **Last Updated:** March 2026  
-**Author:** Nexus Product Team
+**Author:** Calqon Product Team
 
 ---
 
@@ -25,9 +25,9 @@
 
 ## 1. Product Vision
 
-**Nexus is a math-first AI learning environment** — a notebook, tutor, and practice engine unified into a single product.
+**Calqon is a math-first AI learning environment** — a notebook, tutor, and practice engine unified into a single product.
 
-Where general-purpose AI tools surface summaries and generic explanations, Nexus is purpose-built for the specific cognitive demands of mathematics: conceptual understanding, procedural fluency, and deep long-term retention. It does this by combining a notebook-style interface with a RAG-powered AI tutor, an automated practice generation engine, mistake-aware feedback, spaced repetition scheduling, and a concept knowledge graph.
+Where general-purpose AI tools surface summaries and generic explanations, Calqon is purpose-built for the specific cognitive demands of mathematics: conceptual understanding, procedural fluency, and deep long-term retention. It does this by combining a notebook-style interface with a RAG-powered AI tutor, an automated practice generation engine, mistake-aware feedback, spaced repetition scheduling, and a concept knowledge graph.
 
 The vision is simple: every math student, regardless of institution or background, should have access to an AI system that genuinely teaches — not one that just answers.
 
@@ -56,7 +56,7 @@ Math learning has properties that make generic AI tools particularly inadequate:
 
 ### 2.3 The Opportunity
 
-Nexus occupies a defensible and underserved position: a **personalized, material-aware, practice-heavy math learning system**. It is built specifically for students who are studying from their own course materials and need a system that adapts to what they're learning, when they're learning it.
+Calqon occupies a defensible and underserved position: a **personalized, material-aware, practice-heavy math learning system**. It is built specifically for students who are studying from their own course materials and need a system that adapts to what they're learning, when they're learning it.
 
 ---
 
@@ -68,7 +68,7 @@ Nexus occupies a defensible and underserved position: a **personalized, material
 - **Context:** Second-year undergraduate studying mathematics. Taking Analysis, Linear Algebra, and Probability simultaneously.
 - **Pain points:** Lectures move too fast. Textbooks are dense. She understands concepts when explained but forgets them by exam time. Practice problems in the textbook have no worked solutions.
 - **Goals:** Understand proofs. Be able to reproduce derivations from memory. Perform well on timed exams.
-- **How Nexus helps:** She uploads her lecture notes and textbook PDFs. Nexus extracts the concepts, generates targeted practice problems at three difficulty levels, and schedules spaced reviews of the topics she struggles with most.
+- **How Calqon helps:** She uploads her lecture notes and textbook PDFs. Calqon extracts the concepts, generates targeted practice problems at three difficulty levels, and schedules spaced reviews of the topics she struggles with most.
 
 ---
 
@@ -78,7 +78,7 @@ Nexus occupies a defensible and underserved position: a **personalized, material
 - **Context:** Third-year electrical engineering student. Taking Signals and Systems, which requires heavy use of Fourier transforms, Laplace transforms, and differential equations.
 - **Pain points:** The math in his engineering courses is applied differently than in pure math courses. He needs to see worked examples, not just theory. He does not have time to search YouTube for hours per topic.
 - **Goals:** Quickly get up to speed on specific math topics. Generate practice problems tied to his lecture slides.
-- **How Nexus helps:** He uploads his lecture slides. Nexus generates a concept map of the mathematical topics covered, creates step-by-step worked examples, and generates practice problems with increasing difficulty.
+- **How Calqon helps:** He uploads his lecture slides. Calqon generates a concept map of the mathematical topics covered, creates step-by-step worked examples, and generates practice problems with increasing difficulty.
 
 ---
 
@@ -88,7 +88,7 @@ Nexus occupies a defensible and underserved position: a **personalized, material
 - **Context:** Working professional who studied computer science. Preparing for a PhD in machine learning. Needs to deeply learn real analysis and linear algebra.
 - **Pain points:** Has no professor or TA. Must self-assess. Standard textbooks are too slow; he needs to identify gaps quickly.
 - **Goals:** Identify weak areas fast. Build mastery through targeted practice. Track progress over time.
-- **How Nexus helps:** He uses Web Research Mode to build structured modules on topics without existing materials. The concept graph shows him prerequisite gaps. The spaced repetition system ensures he does not forget what he has studied.
+- **How Calqon helps:** He uses Web Research Mode to build structured modules on topics without existing materials. The concept graph shows him prerequisite gaps. The spaced repetition system ensures he does not forget what he has studied.
 
 ---
 
@@ -98,19 +98,19 @@ Nexus occupies a defensible and underserved position: a **personalized, material
 - **Context:** Preparing for A-Level Mathematics and Further Mathematics. Taking topics including calculus, statistics, and mechanics.
 - **Pain points:** School resources are limited. Past papers help but have no adaptive component. She does not know which topics to prioritize.
 - **Goals:** Pass exams with top grades. Build conceptual understanding, not just procedural ability.
-- **How Nexus helps:** She uploads her syllabi and past papers. Nexus builds a concept map from the syllabus and generates practice problems that mirror exam style. Mistake detection surfaces the specific topics where she needs more work.
+- **How Calqon helps:** She uploads her syllabi and past papers. Calqon builds a concept map from the syllabus and generates practice problems that mirror exam style. Mistake detection surfaces the specific topics where she needs more work.
 
 ---
 
 ## 4. Learning Methodology
 
-Nexus is grounded in six evidence-based learning science principles, each of which maps directly to a product feature.
+Calqon is grounded in six evidence-based learning science principles, each of which maps directly to a product feature.
 
 ### 4.1 Spaced Repetition
 
 **Principle:** Information retained through distributed review sessions over time is remembered far better than information studied in massed sessions.
 
-**Implementation in Nexus:** After a student first encounters a concept or problem type, the spaced repetition scheduler queues it for review at increasing intervals: 1 day, 3 days, 7 days, 14 days, 30 days. Interval length is adjusted based on performance. Items answered incorrectly are demoted to shorter intervals. Items answered correctly are promoted to longer intervals.
+**Implementation in Calqon:** After a student first encounters a concept or problem type, the spaced repetition scheduler queues it for review at increasing intervals: 1 day, 3 days, 7 days, 14 days, 30 days. Interval length is adjusted based on performance. Items answered incorrectly are demoted to shorter intervals. Items answered correctly are promoted to longer intervals.
 
 Cards include: formula recall, concept definitions, short computational problems, derivation steps.
 
@@ -120,7 +120,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 **Principle:** Retrieving information from memory strengthens the memory trace more than re-reading the material.
 
-**Implementation in Nexus:** The practice engine and spaced repetition system are structured around active retrieval. Students are never simply shown information and asked to confirm they have seen it. Every review session requires either solving a problem, writing a derivation, or answering a conceptual question from memory before the solution is revealed.
+**Implementation in Calqon:** The practice engine and spaced repetition system are structured around active retrieval. Students are never simply shown information and asked to confirm they have seen it. Every review session requires either solving a problem, writing a derivation, or answering a conceptual question from memory before the solution is revealed.
 
 ---
 
@@ -128,7 +128,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 **Principle:** Mastery comes from targeted practice at the edge of competence, not from repeating what is already easy.
 
-**Implementation in Nexus:** The practice engine generates problems at four difficulty levels (easy, medium, hard, challenge). The system tracks per-concept performance and automatically elevates the difficulty distribution as mastery increases. It also uses interleaving across related concepts to prevent students from relying on context to trigger the correct procedure.
+**Implementation in Calqon:** The practice engine generates problems at four difficulty levels (easy, medium, hard, challenge). The system tracks per-concept performance and automatically elevates the difficulty distribution as mastery increases. It also uses interleaving across related concepts to prevent students from relying on context to trigger the correct procedure.
 
 ---
 
@@ -136,7 +136,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 **Principle:** Mistakes are the most information-dense signal in a learning session.
 
-**Implementation in Nexus:** When a student submits an incorrect answer or incorrect step, the system classifies the error into a taxonomy of mathematical misconceptions (e.g., chain rule omission, sign error, algebraic manipulation error, domain confusion). It then generates a targeted set of problems specifically designed to address that misconception. The error history is persisted and used to influence the spaced repetition schedule and difficulty selection.
+**Implementation in Calqon:** When a student submits an incorrect answer or incorrect step, the system classifies the error into a taxonomy of mathematical misconceptions (e.g., chain rule omission, sign error, algebraic manipulation error, domain confusion). It then generates a targeted set of problems specifically designed to address that misconception. The error history is persisted and used to influence the spaced repetition schedule and difficulty selection.
 
 ---
 
@@ -144,7 +144,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 **Principle:** Seeing worked solutions with explicit reasoning steps supports the development of procedural schemas.
 
-**Implementation in Nexus:** All AI-generated solutions show the full reasoning chain. Each step is labeled with the rule or theorem being applied. Intermediate results are shown. Final answers are never returned without accompanying work. This applies to both AI tutor chat responses and generated problem solutions.
+**Implementation in Calqon:** All AI-generated solutions show the full reasoning chain. Each step is labeled with the rule or theorem being applied. Intermediate results are shown. Final answers are never returned without accompanying work. This applies to both AI tutor chat responses and generated problem solutions.
 
 ---
 
@@ -152,7 +152,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 **Principle:** Mixing problem types during practice sessions improves long-term retention and transfer compared to blocked practice on a single topic.
 
-**Implementation in Nexus:** The practice engine does not generate 20 consecutive chain rule problems. Instead, after a student has demonstrated basic competence on a topic, the engine begins mixing related concept types (e.g., chain rule, product rule, and quotient rule problems in the same session). The concept graph is used to identify which topics are close enough to interleave productively.
+**Implementation in Calqon:** The practice engine does not generate 20 consecutive chain rule problems. Instead, after a student has demonstrated basic competence on a topic, the engine begins mixing related concept types (e.g., chain rule, product rule, and quotient rule problems in the same session). The concept graph is used to identify which topics are close enough to interleave productively.
 
 ---
 
@@ -162,9 +162,9 @@ Cards include: formula recall, concept definitions, short computational problems
 
 1. User creates a new Notebook titled "Calculus II."
 2. User uploads three PDFs: lecture notes, a textbook chapter, and a past exam.
-3. Nexus ingests the materials, extracts text and math formulas, and chunks the content.
+3. Calqon ingests the materials, extracts text and math formulas, and chunks the content.
 4. The concept extraction engine identifies key topics: integration by parts, substitution, partial fractions, improper integrals, sequences and series.
-5. Nexus builds a concept map and displays it to the user.
+5. Calqon builds a concept map and displays it to the user.
 6. User sees a structured learning module for each concept.
 7. User clicks into "Integration by Parts" and immediately has access to AI chat, concept summary, and practice problems.
 
@@ -174,17 +174,17 @@ Cards include: formula recall, concept definitions, short computational problems
 
 1. User opens their "Linear Algebra" notebook.
 2. User selects "Practice" and chooses "Eigenvalues and Eigenvectors."
-3. Nexus generates 10 problems: 4 easy, 4 medium, 2 hard.
+3. Calqon generates 10 problems: 4 easy, 4 medium, 2 hard.
 4. User works through problems and submits answers.
 5. On problem 6 (finding eigenvectors), user makes an arithmetic error during row reduction.
-6. Nexus classifies the error as a row operation mistake, shows the correct step with reasoning, and adds 3 targeted row reduction practice problems to the session.
-7. At session end, Nexus updates the spaced repetition schedule: row reduction is queued for review in 1 day; eigenvalue computation (answered correctly) is scheduled for review in 3 days.
+6. Calqon classifies the error as a row operation mistake, shows the correct step with reasoning, and adds 3 targeted row reduction practice problems to the session.
+7. At session end, Calqon updates the spaced repetition schedule: row reduction is queued for review in 1 day; eigenvalue computation (answered correctly) is scheduled for review in 3 days.
 
 ---
 
 ### Journey 3 — Spaced Repetition Review
 
-1. User opens Nexus. Dashboard shows "7 items due for review."
+1. User opens Calqon. Dashboard shows "7 items due for review."
 2. User enters the review session.
 3. Session contains a mix of: a formula recall card (determinant of a 2x2 matrix), a concept card (what is the geometric meaning of eigenvalues), and two short computational problems.
 4. User completes the session in 12 minutes.
@@ -207,7 +207,7 @@ Cards include: formula recall, concept definitions, short computational problems
 
 1. User does not have materials on a topic but wants to study Fourier Series.
 2. User uses Web Research Mode and enters "Fourier Series."
-3. Nexus searches the web, retrieves relevant educational content, identifies key subtopics: periodic functions, orthogonality, Fourier coefficients, convergence.
+3. Calqon searches the web, retrieves relevant educational content, identifies key subtopics: periodic functions, orthogonality, Fourier coefficients, convergence.
 4. A structured learning module is built and saved to the user's notebook.
 5. Practice problems are generated from the module content.
 
@@ -348,7 +348,7 @@ After document processing, the system runs a concept extraction pipeline.
 
 ### 7.6 Practice Engine
 
-This is the core feature of Nexus.
+This is the core feature of Calqon.
 
 **Problem generation:**
 - For each concept, the system generates problems at 4 difficulty levels
@@ -386,7 +386,7 @@ This is the core feature of Nexus.
 
 ### 7.7 Step-by-Step Solution Engine
 
-All solutions generated by Nexus must follow this format:
+All solutions generated by Calqon must follow this format:
 
 1. **Problem restatement** — restate the problem clearly
 2. **Identify approach** — name the technique or theorem being used
