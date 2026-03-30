@@ -1,6 +1,6 @@
-# Calqon
+# Colqad
 
-**Calqon** is a math-first AI learning environment — a notebook, tutor, and practice engine unified into a single product. It combines spaced repetition with an AI tutor to help students truly understand mathematics.
+**Colqad** is a math-first AI learning environment — a notebook, tutor, and practice engine unified into a single product. It combines spaced repetition with an AI tutor to help students truly understand mathematics.
 
 ## Tech Stack
 
@@ -41,8 +41,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/calqon.git
-   cd calqon
+   git clone https://github.com/your-org/colqad.git
+   cd colqad
    ```
 
 2. **Install dependencies**
@@ -72,12 +72,12 @@
    npm run dev
    ```
 
-Open [http://localhost:3000](http://localhost:3000) to see Calqon.
+Open [http://localhost:3000](http://localhost:3000) to see Colqad.
 
 ## Project Structure
 
 ```
-calqon/
+colqad/
 ├── prisma/              # Prisma schema and seed data
 ├── src/
 │   ├── app/             # Next.js App Router
