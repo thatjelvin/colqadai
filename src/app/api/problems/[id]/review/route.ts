@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const reviewSchema = z.object({
   rating: z.number().min(0).max(5),
+  timeTaken: z.number().min(0).optional(),
 });
 
 export async function POST(
@@ -31,7 +32,7 @@ export async function POST(
       );
     }
 
-    const { rating } = parsed.data;
+    const { rating, timeTaken } = parsed.data;
 
     // Get existing UserProblem
     const userProblem = await prisma.userProblem.findUnique({
@@ -57,7 +58,8 @@ export async function POST(
         interval: userProblem.interval,
         repetitions: userProblem.repetitions,
       },
-      rating as Rating
+      rating as Rating,
+      timeTaken
     );
 
     // Update UserProblem
@@ -74,6 +76,7 @@ export async function POST(
         repetitions: sm2Result.repetitions,
         nextReviewAt: sm2Result.nextReviewAt,
         lastReviewedAt: new Date(),
+        timeTaken,
         status: getStatusFromRepetitions(sm2Result.repetitions),
       },
     });

@@ -10,11 +10,17 @@ export interface SM2Result extends SM2State {
   nextReviewAt: Date;
 }
 
-export function calculateSM2(state: SM2State, rating: Rating): SM2Result {
+export function calculateSM2(state: SM2State, rating: Rating, timeTakenSeconds?: number): SM2Result {
   const now = new Date();
+
+  // Apply time penalty: if they took over 3 minutes, treat it as harder
+  let finalRating = rating;
+  if (finalRating > 3 && timeTakenSeconds && timeTakenSeconds > 180) {
+    finalRating = (finalRating - 1) as Rating;
+  }
   
   // If rating < 3 (failed recall), reset repetitions and interval
-  if (rating < 3) {
+  if (finalRating < 3) {
     const newRepetitions = 0;
     const newInterval = 1;
     // Reduce ease factor but keep minimum of 1.3
@@ -35,7 +41,7 @@ export function calculateSM2(state: SM2State, rating: Rating): SM2Result {
   // Calculate new ease factor
   const newEaseFactor = Math.max(
     1.3,
-    state.easeFactor + (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02))
+    state.easeFactor + (0.1 - (5 - finalRating) * (0.08 + (5 - finalRating) * 0.02))
   );
   
   const newRepetitions = state.repetitions + 1;

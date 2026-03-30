@@ -33,6 +33,7 @@ export default function StudyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startTime] = useState<number>(Date.now());
 
   useEffect(() => {
     // Fetch problem details
@@ -71,11 +72,13 @@ export default function StudyPage() {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+
     try {
       const response = await fetch(`/api/problems/${problemId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating }),
+        body: JSON.stringify({ rating, timeTaken }),
       });
 
       if (!response.ok) throw new Error("Failed to submit review");

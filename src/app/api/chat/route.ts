@@ -84,6 +84,19 @@ export async function POST(req: NextRequest) {
         where: { id: problemId },
       });
       
+      const userProblem = await prisma.userProblem.findUnique({
+        where: {
+          userId_problemId: {
+            userId,
+            problemId,
+          },
+        },
+      });
+
+      if (!userProblem) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+
       if (problem) {
         systemPrompt = `You are a math tutor helping a university student understand a problem.
 

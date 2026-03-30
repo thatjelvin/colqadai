@@ -17,6 +17,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  grade         String?
+  course        String?
+  age           Int?
+  source        String?
+  tier          Tier      @default(FREE)
+
   accounts      Account[]
   sessions      Session[]
   userProblems  UserProblem[]
@@ -95,6 +101,7 @@ model UserProblem {
   repetitions     Int           @default(0)      // consecutive successful reviews
   nextReviewAt    DateTime
   lastReviewedAt  DateTime?
+  timeTaken       Int?          // time taken in seconds
   status          ReviewStatus  @default(NEW)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -143,4 +150,9 @@ enum ReviewStatus {
 enum MessageRole {
   USER
   ASSISTANT
+}
+
+enum Tier {
+  FREE
+  PRO
 }
