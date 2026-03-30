@@ -56,7 +56,7 @@ export function Sidebar({ user }: SidebarProps) {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">C</span>
           </div>
-          <span className="font-semibold text-xl">Calqon</span>
+          <span className="font-semibold text-xl">Colqad</span>
         </Link>
       </div>
 

@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Calqon - Master Mathematics Through Problems",
-  description: "Calqon combines spaced repetition with an AI tutor to help you truly understand math concepts.",
+  title: "Colqad - Master Mathematics Through Problems",
+  description: "Colqad combines spaced repetition with an AI tutor to help you truly understand math concepts.",
 };
 
 export default function RootLayout({

@@ -12,7 +12,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">C</span>
             </div>
-            <span className="font-semibold text-xl">Calqon</span>
+            <span className="font-semibold text-xl">Colqad</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login">
@@ -34,7 +34,7 @@ export default function LandingPage() {
             <span className="text-primary">Through Problems</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Calqon combines spaced repetition with an AI tutor to help you truly
+            Colqad combines spaced repetition with an AI tutor to help you truly
             understand math concepts. Practice problems surface at the right time,
             and when you&apos;re stuck, our AI explains rather than just giving answers.
           </p>
@@ -57,7 +57,7 @@ export default function LandingPage() {
       <section className="py-20 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">How Calqon Works</h2>
+            <h2 className="text-3xl font-bold mb-4">How Colqad Works</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Built on proven learning science principles to maximize retention and understanding.
             </p>
@@ -158,7 +158,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-8 border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-muted-foreground">
-          <p>&copy; 2026 Calqon. All rights reserved.</p>
+          <p>&copy; 2026 Colqad. All rights reserved.</p>
         </div>
       </footer>
     </div>
