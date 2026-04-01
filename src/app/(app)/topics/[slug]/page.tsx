@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, BookOpen } from "lucide-react";
 
 interface TopicPageProps {
   params: {
@@ -84,22 +85,30 @@ export default async function TopicPage({ params }: TopicPageProps) {
       : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/app/topics">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{topic.name}</h1>
-          {topic.description && (
-            <p className="text-muted-foreground mt-1">{topic.description}</p>
-          )}
+    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/topics">
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <BookOpen className="h-4 w-4" />
+              <span>Topics</span>
+              <span>/</span>
+              <span className="text-foreground">{topic.name}</span>
+            </div>
+            <h1 className="text-3xl font-bold">{topic.name}</h1>
+            {topic.description && (
+              <p className="text-muted-foreground mt-1 max-w-2xl">{topic.description}</p>
+            )}
+          </div>
         </div>
         {nextProblemId && (
-          <Link href={`/app/study/${nextProblemId}`}>
-            <Button>
+          <Link href={`/study/${nextProblemId}`}>
+            <Button className="w-full md:w-auto">
               <Play className="mr-2 h-4 w-4" />
               Start Studying
             </Button>
@@ -108,67 +117,68 @@ export default async function TopicPage({ params }: TopicPageProps) {
       </div>
 
       {/* Progress */}
-      <div className="bg-card border rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-medium">Your Progress</span>
-          <span className="text-muted-foreground">
-            {masteredCount} / {topic.problems.length} mastered
-          </span>
+      <div className="bg-card border rounded-lg p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">Your Progress</h3>
+            <p className="text-sm text-muted-foreground">Keep studying to master this topic</p>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-bold">{progressPercentage}%</span>
+            <p className="text-sm text-muted-foreground">{masteredCount} of {topic.problems.length} mastered</p>
+          </div>
         </div>
-        <div className="w-full bg-secondary rounded-full h-2">
-          <div
-            className="bg-primary rounded-full h-2 transition-all"
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
+        <Progress value={progressPercentage} className="h-2" />
       </div>
 
-      {/* Problems */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Problems</h2>
-        {topic.problems.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No problems available in this topic yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {topic.problems.map((problem) => (
-              <ProblemCard
-                key={problem.id}
-                problem={{
-                  ...problem,
-                  topic: { name: topic.name, slug: topic.slug },
-                }}
-                userProblem={userProblemMap.get(problem.id) || null}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Problems Main Content */}
+        <div className="lg:col-span-2 space-y-4">
+          <h2 className="text-xl font-semibold">Problems</h2>
+          {topic.problems.length === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-card text-muted-foreground">
+              No problems available in this topic yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topic.problems.map((problem) => (
+                <ProblemCard
+                  key={problem.id}
+                  problem={{
+                    ...problem,
+                    topic: { name: topic.name, slug: topic.slug },
+                  }}
+                  userProblem={userProblemMap.get(problem.id) || null}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-      {/* Subtopics */}
-      {topic.children.length > 0 && (
+        {/* Subtopics Sidebar */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Subtopics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {topic.children.map((child) => (
-              <Link key={child.id} href={`/app/topics/${child.slug}`}>
-                <div className="border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer">
-                  <h3 className="font-medium">{child.name}</h3>
-                  {child.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {child.description}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {child.problems.length} problems
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {topic.children.length > 0 && (
+            <>
+              <h2 className="text-xl font-semibold">Subtopics</h2>
+              <div className="space-y-3">
+                {topic.children.map((child) => (
+                  <Link key={child.id} href={`/topics/${child.slug}`}>
+                    <div className="border rounded-lg p-4 bg-card hover:bg-accent/50 transition-colors cursor-pointer shadow-sm">
+                      <h3 className="font-medium text-sm">{child.name}</h3>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          {child.problems.length} problems
+                        </span>
+                        <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

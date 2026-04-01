@@ -66,15 +66,15 @@ export default async function TopicsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Topics</h1>
-        <p className="text-muted-foreground mt-1">
-          Browse all available math topics and track your progress.
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="mb-2 text-3xl font-bold">Topics</h1>
+        <p className="text-muted-foreground">
+          Browse all mathematical concepts and track your progress
         </p>
       </div>
 
-      <div className="border rounded-lg p-6 bg-card">
+      <div>
         <TopicTree topics={topicsWithProgress} />
       </div>
     </div>

@@ -5,10 +5,10 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StatsRow } from "@/components/StatsRow";
 import { ProblemCard } from "@/components/ProblemCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Brain, BookOpen, Clock } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -82,87 +82,100 @@ export default async function DashboardPage() {
   const streak = calculateStreak(userProblems);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Welcome back, {session.user.name || "Student"}!</h1>
-        <p className="text-muted-foreground mt-1">
-          Continue your math learning journey.
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      {/* Welcome Header */}
+      <div className="mb-8">
+        <h1 className="mb-2 text-3xl font-bold">Welcome back{session.user.name ? `, ${session.user.name}` : ""}</h1>
+        <p className="text-muted-foreground">
+          {dueProblems.length > 0
+            ? `You have ${dueProblems.length} items due for review`
+            : "All caught up! Great work."}
         </p>
       </div>
 
       <StatsRow
-        totalSeen={totalSeen}
+        dueProblemsCount={dueProblems.length}
         streak={streak}
-        masteryPercentage={masteryPercentage}
+        totalMastered={masteredCount}
+        accuracy={masteryPercentage}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Due for Review</h2>
-            {dueProblems.length > 0 && (
-              <Link href={`/app/study/${dueProblems[0].problem.id}`}>
-                <Button variant="outline" size="sm">
-                  Start Review Session
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          {dueProblems.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">
-                  No problems due for review! Great job keeping up.
-                </p>
-                <Link href="/app/topics" className="mt-4 inline-block">
-                  <Button>Browse Topics</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {dueProblems.map((up) => (
-                <ProblemCard
-                  key={up.id}
-                  problem={up.problem}
-                  userProblem={up}
-                />
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Due for Review</CardTitle>
+                  <CardDescription>Items scheduled for today</CardDescription>
+                </div>
+                {dueProblems.length > 0 && (
+                  <Link href={`/study/${dueProblems[0].problem.id}`}>
+                    <Button>Start Review</Button>
+                  </Link>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dueProblems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No items due. You're all caught up!</p>
+                  <Link href="/topics" className="mt-4 inline-block">
+                    <Button variant="outline">Browse Topics</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dueProblems.map((up) => (
+                    <ProblemCard
+                      key={up.id}
+                      problem={up.problem}
+                      userProblem={up}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Recent Topics</h2>
-          
-          {recentTopics.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">
-                  Start studying to see your recent topics here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {recentTopics.map((topic) => (
-                <Link key={topic.id} href={`/app/topics/${topic.slug}`}>
-                  <Card className="hover:bg-accent transition-colors cursor-pointer">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">{topic.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {topic.description || "No description available."}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Topics</CardTitle>
+              <CardDescription>Continue where you left off</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentTopics.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p className="text-sm">Start studying to see your recent topics here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentTopics.map((topic) => (
+                    <Link key={topic.id} href={`/topics/${topic.slug}`}>
+                      <div className="space-y-2 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-sm">{topic.name}</h4>
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="line-clamp-1">{topic.description || "No description available."}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  
+                  <Link href="/topics">
+                    <Button variant="outline" className="w-full mt-4">
+                      View All Topics
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

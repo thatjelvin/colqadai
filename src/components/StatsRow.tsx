@@ -1,53 +1,67 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Flame, Target } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Brain, Target, Flame } from "lucide-react";
 
 interface StatsRowProps {
-  totalSeen: number;
+  dueProblemsCount: number;
+  totalMastered: number;
   streak: number;
-  masteryPercentage: number;
+  accuracy?: number; // Optional until backend supports it
 }
 
-export function StatsRow({ totalSeen, streak, masteryPercentage }: StatsRowProps) {
+export function StatsRow({ dueProblemsCount, totalMastered, streak, accuracy = 0 }: StatsRowProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Problems Seen</CardTitle>
-          <BookOpen className="h-4 w-4 text-muted-foreground" />
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardDescription>Due Today</CardDescription>
+            <Brain className="h-4 w-4 text-muted-foreground" />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalSeen}</div>
-          <p className="text-xs text-muted-foreground">
-            Total problems you&apos;ve studied
-          </p>
+          <div className="text-3xl font-semibold">{dueProblemsCount}</div>
+          <p className="text-xs text-muted-foreground mt-1">Items ready for review</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-          <Flame className="h-4 w-4 text-orange-500" />
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardDescription>Mastered</CardDescription>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{streak} days</div>
-          <p className="text-xs text-muted-foreground">
-            Keep it up! Review daily to maintain.
-          </p>
+          <div className="text-3xl font-semibold">{totalMastered}</div>
+          <p className="text-xs text-muted-foreground mt-1">Concepts mastered</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Mastery</CardTitle>
-          <Target className="h-4 w-4 text-muted-foreground" />
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardDescription>Streak</CardDescription>
+            <Flame className="h-4 w-4 text-muted-foreground" />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{masteryPercentage}%</div>
-          <p className="text-xs text-muted-foreground">
-            Problems you&apos;ve mastered
-          </p>
+          <div className="text-3xl font-semibold">{streak}</div>
+          <p className="text-xs text-muted-foreground mt-1">Days in a row</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardDescription>Accuracy</CardDescription>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-semibold">{accuracy}%</div>
+          <p className="text-xs text-muted-foreground mt-1">This week</p>
         </CardContent>
       </Card>
     </div>

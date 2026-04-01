@@ -119,119 +119,141 @@ export default function StudyPage() {
   }
 
   const difficultyColor: Record<string, "default" | "secondary" | "destructive"> = {
-    EASY: "default",
-    MEDIUM: "secondary",
+    EASY: "secondary",
+    MEDIUM: "default",
     HARD: "destructive",
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const [timeElapsed, setTimeElapsed] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/app/topics">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/app/topics/${problem.topic.slug}`}
-              className="text-sm text-muted-foreground hover:underline"
-            >
-              {problem.topic.name}
+    <div className="min-h-screen bg-background -m-6 flex flex-col">
+      {/* Practice Header */}
+      <div className="border-b border-border bg-card">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-4">
+            <Link href="/topics">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Exit Practice
+              </Button>
             </Link>
-            <span className="text-muted-foreground">/</span>
-            <Badge variant={difficultyColor[problem.difficulty]}>
-              {problem.difficulty}
-            </Badge>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground w-full sm:w-auto">
+              <div className="flex items-center">
+                <span className="font-mono">{formatTime(timeElapsed)}</span>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold">{problem.title}</h1>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-0">
-        {/* Problem Panel */}
-        <div className="lg:col-span-3 space-y-6 overflow-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Problem</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MathRenderer content={problem.body} />
-            </CardContent>
-          </Card>
+      {/* Main Practice Area */}
+      <div className="max-w-6xl mx-auto px-6 py-8 w-full flex-1 flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+          {/* Problem Area */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground hover:underline cursor-pointer">
+                    <Link href={`/topics/${problem.topic.slug}`}>
+                      {problem.topic.name}
+                    </Link>
+                  </span>
+                  <Badge variant={difficultyColor[problem.difficulty]}>
+                    {problem.difficulty}
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl">{problem.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/30 rounded-lg p-6 mb-6">
+                  <MathRenderer content={problem.body} />
+                </div>
 
-          {/* Solution Toggle */}
-          <div className="flex items-center gap-4">
-            <Switch
-              id="show-solution"
-              checked={showSolution}
-              onCheckedChange={setShowSolution}
-            />
-            <label htmlFor="show-solution" className="font-medium cursor-pointer">
-              Show Solution
-            </label>
+                {!showSolution ? (
+                  <div className="flex justify-center mt-6">
+                    <Button onClick={() => setShowSolution(true)} className="w-full max-w-sm">
+                      Show Solution
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="border-t pt-6 mt-6">
+                      <h3 className="text-lg font-semibold mb-4">Solution</h3>
+                      <div className="prose prose-sm sm:prose max-w-none dark:prose-invert mb-6">
+                        <MathRenderer content={problem.solution} />
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/30 rounded-xl p-6 text-center mt-8 border">
+                      <h3 className="text-lg font-semibold mb-2">How well did you know this?</h3>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        Your rating helps schedule future reviews
+                      </p>
+                      
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <Button
+                          variant="outline"
+                          className="h-auto py-4 flex-col hover:bg-destructive hover:text-white transition-colors"
+                          onClick={() => handleRating(0)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="text-lg mb-1">Again</span>
+                          <span className="text-xs opacity-70">Review very soon</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-auto py-4 flex-col transition-colors"
+                          onClick={() => handleRating(1)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="text-lg mb-1">Hard</span>
+                          <span className="text-xs text-muted-foreground">Struggled a bit</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-auto py-4 flex-col transition-colors"
+                          onClick={() => handleRating(3)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="text-lg mb-1">Good</span>
+                          <span className="text-xs text-muted-foreground">Knew the steps</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-auto py-4 flex-col hover:bg-success hover:text-white hover:border-success transition-colors"
+                          onClick={() => handleRating(5)}
+                          disabled={isSubmitting}
+                        >
+                          <span className="text-lg mb-1">Easy</span>
+                          <span className="text-xs opacity-70">Perfect recall</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Solution */}
-          {showSolution && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Solution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MathRenderer content={problem.solution} />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Rating Buttons */}
-          {showSolution && (
-            <Card>
-              <CardHeader>
-                <CardTitle>How well did you know this?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleRating(0)}
-                    disabled={isSubmitting}
-                  >
-                    Again (0)
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleRating(1)}
-                    disabled={isSubmitting}
-                  >
-                    Hard (1)
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => handleRating(3)}
-                    disabled={isSubmitting}
-                  >
-                    Good (3)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleRating(5)}
-                    disabled={isSubmitting}
-                  >
-                    Easy (5)
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Chat Panel */}
-        <div className="lg:col-span-2 h-full min-h-[400px]">
-          <ChatInterface problemId={problemId} />
+          {/* Chat Panel Placeholder */}
+          <div className="lg:col-span-1 h-[500px] lg:h-auto">
+            <ChatInterface problemId={problemId} />
+          </div>
         </div>
       </div>
     </div>
