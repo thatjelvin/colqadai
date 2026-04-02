@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { BillingLimitError, buildUpgradeErrorPayload, ensureFeatureAccess } from "@/lib/billing/usage";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,6 +14,8 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = session.user.id;
+
+    await ensureFeatureAccess(userId, "analytics");
 
     // Get all user problems
     const userProblems = await prisma.userProblem.findMany({
@@ -64,6 +67,10 @@ export async function GET(req: NextRequest) {
       recentTopics,
     });
   } catch (error) {
+    if (error instanceof BillingLimitError) {
+      return NextResponse.json(buildUpgradeErrorPayload(error), { status: error.status });
+    }
+
     console.error("Error fetching dashboard stats:", error);
     return NextResponse.json(
       { error: "Failed to fetch dashboard stats" },

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { UsageFeature } from "@prisma/client";
+import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage } from "@/lib/billing/usage";
 
 export async function POST(
   req: NextRequest,
@@ -30,6 +32,8 @@ export async function POST(
       return NextResponse.json(existing);
     }
 
+    await consumeUsage(session.user.id, UsageFeature.PROBLEM_START, 1);
+
     // Create new UserProblem record
     const now = new Date();
     const tomorrow = new Date(now);
@@ -49,6 +53,10 @@ export async function POST(
 
     return NextResponse.json(userProblem);
   } catch (error) {
+    if (error instanceof BillingLimitError) {
+      return NextResponse.json(buildUpgradeErrorPayload(error), { status: error.status });
+    }
+
     console.error("Error starting problem:", error);
     return NextResponse.json(
       { error: "Failed to start problem" },

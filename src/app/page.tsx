@@ -15,6 +15,9 @@ export default function LandingPage() {
             <span className="font-semibold text-xl">Colqad</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/pricing">
+              <Button variant="ghost">Pricing</Button>
+            </Link>
             <Link href="/login">
               <Button variant="ghost">Sign in</Button>
             </Link>

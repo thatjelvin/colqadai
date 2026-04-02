@@ -25,7 +25,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar user={session.user} />
+      <Sidebar user={session.user} plan={dbUser.plan} />
       <main className="lg:pl-64">
         <div className="min-h-screen">
           {children}

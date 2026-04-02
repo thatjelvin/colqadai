@@ -14,9 +14,12 @@ import {
   LogOut,
   Menu,
   X,
+  Lock,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plan } from "@prisma/client";
 
 interface SidebarProps {
   user: {
@@ -24,6 +27,7 @@ interface SidebarProps {
     email?: string | null;
     image?: string | null;
   };
+  plan: Plan;
 }
 
 const navItems = [
@@ -36,6 +40,7 @@ const navItems = [
     title: "Notebooks",
     href: "/notebooks",
     icon: BookOpen,
+    premium: true,
   },
   {
     title: "Topics",
@@ -51,6 +56,7 @@ const navItems = [
     title: "Analytics",
     href: "/analytics",
     icon: BarChart3,
+    premium: true,
   },
   {
     title: "Settings",
@@ -59,9 +65,10 @@ const navItems = [
   },
 ];
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, plan }: SidebarProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
 
   return (
     <>
@@ -100,11 +107,13 @@ export function Sidebar({ user }: SidebarProps) {
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}`));
               const Icon = item.icon;
+              const isLocked = item.premium && plan === "FREE";
+              const href = isLocked ? "/pricing" : item.href;
 
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
@@ -115,6 +124,7 @@ export function Sidebar({ user }: SidebarProps) {
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.title}
+                  {isLocked && <Lock className="ml-auto h-3.5 w-3.5 opacity-70" />}
                 </Link>
               );
             })}
@@ -130,6 +140,14 @@ export function Sidebar({ user }: SidebarProps) {
                 <p className="text-sm font-medium text-foreground truncate">{user.name || "User"}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email || ""}</p>
               </div>
+            </div>
+            <div className="mb-3 flex items-center justify-between">
+              <Badge variant={plan === "FREE" ? "outline" : "default"}>{planLabel}</Badge>
+              {plan === "FREE" && (
+                <Link href="/pricing" className="text-xs text-primary hover:underline">
+                  Upgrade
+                </Link>
+              )}
             </div>
             <Button
               variant="ghost"

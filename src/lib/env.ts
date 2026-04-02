@@ -26,6 +26,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
   FADO_API_KEY: z.string().optional(),
+
+  // Paddle billing
+  PADDLE_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
+  PADDLE_API_KEY: z.string().optional(),
+  PADDLE_WEBHOOK_SECRET: z.string().optional(),
+  PADDLE_PRO_PRICE_ID: z.string().optional(),
+  PADDLE_MAX_PRICE_ID: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

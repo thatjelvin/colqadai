@@ -6,6 +6,7 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./prisma";
+import { Plan, SubscriptionStatus } from "@prisma/client";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -68,11 +69,25 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
       }
+
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { plan: true, subscriptionStatus: true },
+        });
+
+        token.plan = dbUser?.plan ?? Plan.FREE;
+        token.subscriptionStatus = dbUser?.subscriptionStatus ?? SubscriptionStatus.INACTIVE;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.plan = (token.plan as Plan | undefined) ?? Plan.FREE;
+        session.user.subscriptionStatus =
+          (token.subscriptionStatus as SubscriptionStatus | undefined) ?? SubscriptionStatus.INACTIVE;
       }
       return session;
     },

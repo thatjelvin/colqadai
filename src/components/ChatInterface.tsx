@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Plus } from "lucide-react";
 import { MathRenderer } from "./MathRenderer";
+import Link from "next/link";
 
 interface Message {
   id: string;
@@ -32,6 +33,8 @@ export function ChatInterface({
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(
     initialSessionId || null
   );
+  const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +56,8 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setBillingMessage(null);
+    setUpgradeUrl(null);
 
     try {
       const response = await fetch("/api/chat", {
@@ -66,7 +71,12 @@ export function ChatInterface({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        const payload = await response.json().catch(() => null);
+        if (payload?.upgradeUrl) {
+          setBillingMessage(payload.error || "Your current plan limit was reached.");
+          setUpgradeUrl(payload.upgradeUrl);
+        }
+        throw new Error(payload?.error || "Failed to send message");
       }
 
       // Get session ID from header
@@ -200,6 +210,16 @@ export function ChatInterface({
 
       {/* Input */}
       <div className="p-3 border-t">
+        {billingMessage && (
+          <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+            {billingMessage}
+            {upgradeUrl && (
+              <Link href={upgradeUrl} className="ml-2 font-medium underline">
+                Upgrade
+              </Link>
+            )}
+          </div>
+        )}
         <div className="flex gap-2">
           <Input
             ref={inputRef}

@@ -5,6 +5,8 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 interface ChatSession {
   id: string;
@@ -16,10 +18,26 @@ export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [usage, setUsage] = useState<{
+    plan: string;
+    usage: { chatMessages: { used: number; limit: number } };
+  } | null>(null);
 
   useEffect(() => {
     fetchSessions();
+    fetchUsage();
   }, []);
+
+  const fetchUsage = async () => {
+    try {
+      const response = await fetch("/api/billing/usage");
+      if (response.ok) {
+        setUsage(await response.json());
+      }
+    } catch (error) {
+      console.error("Error fetching usage:", error);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -48,6 +66,24 @@ export default function ChatPage() {
       {/* Sidebar with chat history */}
       <div className="w-64 border-r bg-card flex flex-col">
         <div className="p-4 border-b">
+          {usage && (
+            <div className="mb-3 rounded-md border p-2 text-xs">
+              <div className="mb-1 flex items-center justify-between">
+                <span>Plan</span>
+                <Badge variant={usage.plan === "free" ? "outline" : "default"}>
+                  {usage.plan.toUpperCase()}
+                </Badge>
+              </div>
+              <div className="text-muted-foreground">
+                Chat usage: {usage.usage.chatMessages.used}/{usage.usage.chatMessages.limit}
+              </div>
+              {usage.plan === "free" && (
+                <Link href="/pricing" className="mt-1 inline-block text-primary hover:underline">
+                  Unlock higher limits
+                </Link>
+              )}
+            </div>
+          )}
           <Button onClick={handleNewChat} className="w-full">
             <Plus className="mr-2 h-4 w-4" />
             New Chat

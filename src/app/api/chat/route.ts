@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { anthropic } from "@/lib/anthropic";
 import { z } from "zod";
+import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
+import { UsageFeature } from "@prisma/client";
 
 const chatSchema = z.object({
   message: z.string().min(1),
@@ -33,6 +35,9 @@ export async function POST(req: NextRequest) {
     const { message, sessionId, problemId } = parsed.data;
     const userId = session.user.id;
 
+    await consumeUsage(userId, UsageFeature.CHAT_MESSAGE, 1);
+    const billingProfile = await getBillingProfile(userId);
+
     // Get or create chat session
     let chatSession;
     
@@ -51,6 +56,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (!chatSession) {
+      await consumeUsage(userId, UsageFeature.NEW_CHAT_SESSION, 1);
+
       // Generate title from first message
       const title = await generateTitle(message);
       
@@ -136,7 +143,7 @@ Be clear, rigorous, and concise.`;
     // Create streaming response
     const stream = await anthropic.messages.create({
       model: "claude-sonnet-4-5-20251101",
-      max_tokens: 4096,
+      max_tokens: billingProfile.plan === "max" ? 4096 : 3000,
       system: systemPrompt,
       messages: messages as any,
       stream: true,
@@ -175,6 +182,10 @@ Be clear, rigorous, and concise.`;
       },
     });
   } catch (error) {
+    if (error instanceof BillingLimitError) {
+      return NextResponse.json(buildUpgradeErrorPayload(error), { status: error.status });
+    }
+
     console.error("Error in chat:", error);
     return NextResponse.json(
       { error: "Failed to process chat" },
