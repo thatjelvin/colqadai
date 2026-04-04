@@ -32,6 +32,10 @@ model User {
   accounts      Account[]
   sessions      Session[]
   userProblems  UserProblem[]
+  attempts      ProblemAttempt[]
+  reflections   Reflection[]
+  workedExampleSessions WorkedExampleSession[]
+  learningAnalytics LearningAnalytics[]
   chatSessions  ChatSession[]
   usageEvents   UsageEvent[]
 }
@@ -91,11 +95,15 @@ model Problem {
   title       String
   body        String      // LaTeX problem statement
   solution    String      // LaTeX solution
+  topicTag    String?     @map("topic_tag")
   difficulty  Difficulty
   createdAt   DateTime    @default(now())
 
   topic       Topic       @relation(fields: [topicId], references: [id])
   userProblems UserProblem[]
+  attempts    ProblemAttempt[]
+  reflections Reflection[]
+  workedExampleSessions WorkedExampleSession[]
   chatSessions ChatSession[]
 }
 
@@ -109,14 +117,100 @@ model UserProblem {
   nextReviewAt    DateTime
   lastReviewedAt  DateTime?
   timeTaken       Int?          // time taken in seconds
+  attemptsBeforeCorrect Int     @default(0) @map("attempts_before_correct")
   status          ReviewStatus  @default(NEW)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  attempts ProblemAttempt[]
+  workedExampleSessions WorkedExampleSession[]
 
   @@unique([userId, problemId])
+}
+
+model ProblemAttempt {
+  id                    String     @id @default(cuid())
+  userId                String
+  problemId             String
+  userProblemId         String?
+  userAnswer            String     @db.Text
+  isCorrect             Boolean    @default(false)
+  attemptNumber         Int        @default(1)
+  attemptsBeforeCorrect Int        @default(0) @map("attempts_before_correct")
+  selfQuizMode          Boolean    @default(false) @map("self_quiz_mode")
+  errorType             ErrorType? @map("error_type")
+  errorExplanation      String?    @map("error_explanation")
+  createdAt             DateTime   @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem     Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  userProblem UserProblem? @relation(fields: [userProblemId], references: [id], onDelete: SetNull)
+  reflections Reflection[]
+
+  @@index([userId, createdAt])
+  @@index([problemId, createdAt])
+}
+
+model Reflection {
+  id         String   @id @default(cuid())
+  userId     String
+  problemId  String
+  attemptId  String?
+  prompt     String   @db.Text
+  response   String   @db.Text
+  createdAt  DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  attempt ProblemAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model WorkedExampleSession {
+  id                   String   @id @default(cuid())
+  userId               String
+  problemId            String
+  userProblemId        String?
+  studyDurationSeconds Int      @default(0) @map("study_duration_seconds")
+  generateAttempt      String?  @db.Text @map("generate_attempt")
+  selfAssessedMatch    Boolean? @map("self_assessed_match")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem     Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  userProblem UserProblem? @relation(fields: [userProblemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  featureName String   @unique @map("feature_name")
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+model LearningAnalytics {
+  id         String         @id @default(cuid())
+  userId     String
+  sessionKey String         @map("session_key")
+  method     LearningMethod
+  aggregate  Json
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionKey, method])
+  @@index([userId, createdAt])
+  @@map("learning_analytics")
 }
 
 model ChatSession {
@@ -197,4 +291,21 @@ enum UsageFeature {
   CHAT_MESSAGE
   NEW_CHAT_SESSION
   PROBLEM_START
+}
+
+enum ErrorType {
+  CONCEPTUAL_GAP
+  ALGEBRAIC_SLIP
+  MISREAD_QUESTION
+  FORMULA_RECALL_FAILURE
+  WRONG_METHOD_CHOSEN
+}
+
+enum LearningMethod {
+  SPACED_REPETITION
+  RETRIEVAL_PRACTICE
+  INTERLEAVED_PRACTICE
+  ELABORATIVE_INTERROGATION
+  WORKED_EXAMPLE_STUDY
+  ERROR_ANALYSIS
 }
