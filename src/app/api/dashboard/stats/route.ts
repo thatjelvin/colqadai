@@ -60,11 +60,51 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const [attemptCount, firstTryCorrect, topErrorRows] = await Promise.all([
+      prisma.problemAttempt.count({
+        where: {
+          userId,
+          createdAt: { gte: oneWeekAgo },
+        },
+      }),
+      prisma.problemAttempt.count({
+        where: {
+          userId,
+          createdAt: { gte: oneWeekAgo },
+          isCorrect: true,
+          attemptNumber: 1,
+        },
+      }),
+      prisma.problemAttempt.groupBy({
+        by: ["errorType"],
+        where: {
+          userId,
+          isCorrect: false,
+          createdAt: { gte: oneWeekAgo },
+        },
+        _count: { _all: true },
+        orderBy: {
+          _count: {
+            errorType: "desc",
+          },
+        },
+      }),
+    ]);
+
+    const recallScore = attemptCount > 0 ? Math.round((firstTryCorrect / attemptCount) * 100) : 0;
+    const topError = topErrorRows.find((row) => row.errorType);
+
     return NextResponse.json({
       totalSeen,
       masteryPercentage,
       streak,
       recentTopics,
+      recallScore,
+      topErrorType: topError?.errorType || null,
+      topErrorCount: topError?._count._all || 0,
     });
   } catch (error) {
     if (error instanceof BillingLimitError) {

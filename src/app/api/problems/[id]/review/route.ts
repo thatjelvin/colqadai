@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateSM2, Rating, getStatusFromRepetitions } from "@/lib/sm2";
+import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
+import { upsertLearningAnalytics } from "@/lib/learning/analytics";
+import { LearningMethod } from "@prisma/client";
 import { z } from "zod";
 
 const reviewSchema = z.object({
@@ -19,6 +22,10 @@ export async function POST(
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!(await isFeatureEnabled(LEARNING_FEATURES.SPACED_REPETITION))) {
+      return NextResponse.json({ error: "Spaced repetition is disabled" }, { status: 403 });
     }
 
     const problemId = params.id;
@@ -81,7 +88,24 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updated);
+    await upsertLearningAnalytics(
+      session.user.id,
+      `${new Date().toISOString().slice(0, 10)}:${problemId}`,
+      LearningMethod.SPACED_REPETITION,
+      {
+        problemId,
+        rating,
+        interval: sm2Result.interval,
+        easeFactor: sm2Result.easeFactor,
+        repetitions: sm2Result.repetitions,
+      }
+    );
+
+    return NextResponse.json({
+      ...updated,
+      nextReviewAt: sm2Result.nextReviewAt,
+      nextReviewDateLabel: sm2Result.nextReviewAt.toLocaleDateString(),
+    });
   } catch (error) {
     console.error("Error submitting review:", error);
     return NextResponse.json(

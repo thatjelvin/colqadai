@@ -33,7 +33,19 @@ export async function GET(req: NextRequest) {
       take: 10,
     });
 
-    return NextResponse.json(dueProblems);
+    const withUrgency = dueProblems.map((item) => {
+      const overdueDays = Math.max(
+        0,
+        Math.floor((now.getTime() - new Date(item.nextReviewAt).getTime()) / (1000 * 60 * 60 * 24))
+      );
+
+      return {
+        ...item,
+        urgencyScore: 1 + overdueDays,
+      };
+    });
+
+    return NextResponse.json(withUrgency);
   } catch (error) {
     console.error("Error fetching due problems:", error);
     return NextResponse.json(

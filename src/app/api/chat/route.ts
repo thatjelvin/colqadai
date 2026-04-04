@@ -105,6 +105,20 @@ export async function POST(req: NextRequest) {
       }
 
       if (problem) {
+        const hasAttempt = await prisma.problemAttempt.findFirst({
+          where: {
+            userId,
+            problemId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const revealRule = hasAttempt
+          ? "- The student has attempted this problem. You may discuss the full solution if explicitly requested."
+          : "- The student has not attempted this problem yet. Do not provide the full worked solution; guide with hints and strategy first.";
+
         systemPrompt = `You are a math tutor helping a university student understand a problem.
 
 Problem:
@@ -118,8 +132,8 @@ Your role:
 - Ask Socratic questions when they're stuck
 - Explain the underlying concept when needed
 - Use LaTeX for all mathematical notation, wrapped in $...$ for inline and $$...$$ for display
-- Be concise â€” this is a chat interface, not an essay
-- If the student asks to just see the solution, you may show it`;
+- Be concise - this is a chat interface, not an essay
+${revealRule}`;
       }
     } else {
       // Freeform chat
