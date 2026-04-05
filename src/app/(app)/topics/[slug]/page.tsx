@@ -6,7 +6,7 @@ import { ProblemCard } from "@/components/ProblemCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { ArrowLeft, Play, BookOpen } from "lucide-react";
+import { ArrowLeft, Shuffle, BookOpen } from "lucide-react";
 
 interface TopicPageProps {
   params: {
@@ -62,17 +62,6 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
   const userProblemMap = new Map(userProblems.map((up) => [up.problemId, up]));
 
-  // Find next problem to study (first due, or first new)
-  const now = new Date();
-  const dueProblem = topic.problems.find((p) => {
-    const up = userProblemMap.get(p.id);
-    return up && up.nextReviewAt <= now;
-  });
-
-  const newProblem = topic.problems.find((p) => !userProblemMap.has(p.id));
-
-  const nextProblemId = dueProblem?.id || newProblem?.id;
-
   // Calculate progress
   const masteredCount = topic.problems.filter((p) => {
     const up = userProblemMap.get(p.id);
@@ -106,14 +95,12 @@ export default async function TopicPage({ params }: TopicPageProps) {
             )}
           </div>
         </div>
-        {nextProblemId && (
-          <Link href={`/study/${nextProblemId}`}>
-            <Button className="w-full md:w-auto">
-              <Play className="mr-2 h-4 w-4" />
-              Start Studying
-            </Button>
-          </Link>
-        )}
+        <Link href="/study">
+          <Button className="w-full md:w-auto">
+            <Shuffle className="mr-2 h-4 w-4" />
+            Start Interleaved Session
+          </Button>
+        </Link>
       </div>
 
       {/* Progress */}

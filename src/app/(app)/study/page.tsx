@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { buildInterleavedQueue } from "@/lib/learning/interleaving";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,18 @@ export default async function ReviewPage() {
     },
     orderBy: { nextReviewAt: "asc" },
   });
+
+  const interleavedQueue = buildInterleavedQueue(
+    dueProblems.map((up) => ({
+      id: up.id,
+      nextReviewAt: up.nextReviewAt,
+      topicTag: up.problem.topicTag,
+      topicSlug: up.problem.topic.slug,
+      problem: up.problem,
+    }))
+  );
+
+  const topicsPracticed = new Set(interleavedQueue.map((item) => item.topicTag || item.topicSlug));
 
   // Calculate stats
   const todayCount = dueProblems.filter(up => {
@@ -122,10 +135,10 @@ export default async function ReviewPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Review Queue</CardTitle>
-                  <CardDescription>{dueProblems.length} items ready for review</CardDescription>
+                    <CardDescription>{interleavedQueue.length} items ready for review</CardDescription>
                 </div>
-                {dueProblems.length > 0 && (
-                  <Link href={`/study/${dueProblems[0].problem.id}`}>
+                  {interleavedQueue.length > 0 && (
+                    <Link href={`/study/${interleavedQueue[0].problem.id}`}>
                     <Button>
                       <Play className="h-4 w-4 mr-2" />
                       Start Review
@@ -135,9 +148,9 @@ export default async function ReviewPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {dueProblems.length > 0 ? (
+                {interleavedQueue.length > 0 ? (
                 <div className="space-y-3">
-                  {dueProblems.map((up) => {
+                    {interleavedQueue.map((up) => {
                     const isOverdue = (now.getTime() - new Date(up.nextReviewAt).getTime()) >= 24 * 60 * 60 * 1000;
                     const daysOverdue = Math.floor((now.getTime() - new Date(up.nextReviewAt).getTime()) / (24 * 60 * 60 * 1000));
                     return (
@@ -182,6 +195,19 @@ export default async function ReviewPage() {
 
         {/* Sidebar / Static info */}
         <div>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-base">Interleaved Session Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {topicsPracticed.size > 1
+                    ? `You practiced ${topicsPracticed.size} different topics - great for long-term retention.`
+                    : "Mixing topics improves long-term retention. Keep building variety."}
+                </p>
+              </CardContent>
+            </Card>
+
           <Card className="mb-4 bg-muted/30">
             <CardHeader>
               <CardTitle className="text-base">Review Tips</CardTitle>

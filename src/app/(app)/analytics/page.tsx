@@ -1,33 +1,45 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Brain, Target, Flame, TrendingUp, Calendar, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Mock data
-const overallStats = {
-  accuracy: 84,
-  totalReviews: 1245,
-  masteredConcepts: 23,
-  learningConcepts: 45,
-  currentStreak: 5,
-  longestStreak: 12,
-  timeSpent: "24h 15m",
+type DashboardStats = {
+  masteryPercentage: number;
+  totalSeen: number;
+  streak: number;
+  recallScore: number;
+  topErrorType: string | null;
+  topErrorCount: number;
 };
 
-const weakAreas = [
-  { topic: "Integration Techniques", accuracy: 45, problems: 12 },
-  { topic: "Series Convergence", accuracy: 52, problems: 8 },
-  { topic: "Eigenvalues", accuracy: 58, problems: 15 },
-];
-
-const strongAreas = [
-  { topic: "Derivatives", accuracy: 95, problems: 34 },
-  { topic: "Matrix Operations", accuracy: 92, problems: 28 },
-  { topic: "Basic Algebra", accuracy: 98, problems: 45 },
-];
-
 export default function AnalyticsPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await fetch("/api/dashboard/stats");
+        if (!response.ok) throw new Error("Failed to load stats");
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error("Failed to load analytics:", error);
+      }
+    };
+
+    load();
+  }, []);
+
+  if (!stats) {
+    return (
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        <p className="text-muted-foreground">Loading analytics...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -46,8 +58,8 @@ export default function AnalyticsPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">{overallStats.accuracy}%</div>
-            <Progress value={overallStats.accuracy} className="h-1.5 mt-3" />
+            <div className="text-3xl font-semibold">{stats.recallScore}%</div>
+            <Progress value={stats.recallScore} className="h-1.5 mt-3" />
           </CardContent>
         </Card>
 
@@ -57,8 +69,8 @@ export default function AnalyticsPage() {
             <Brain className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-success">{overallStats.masteredConcepts}</div>
-            <p className="text-xs text-muted-foreground mt-1">Concepts fully learned</p>
+            <div className="text-3xl font-semibold text-success">{stats.masteryPercentage}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Mastery percentage</p>
           </CardContent>
         </Card>
 
@@ -69,12 +81,10 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline space-x-2">
-              <span className="text-3xl font-semibold">{overallStats.currentStreak}</span>
+              <span className="text-3xl font-semibold">{stats.streak}</span>
               <span className="text-sm text-muted-foreground">days</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Best: {overallStats.longestStreak} days
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Keep your daily review streak active</p>
           </CardContent>
         </Card>
 
@@ -84,8 +94,8 @@ export default function AnalyticsPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">{overallStats.timeSpent}</div>
-            <p className="text-xs text-muted-foreground mt-1">Over {overallStats.totalReviews} reviews</p>
+            <div className="text-3xl font-semibold">{stats.totalSeen}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total tracked problems</p>
           </CardContent>
         </Card>
       </div>
@@ -99,19 +109,15 @@ export default function AnalyticsPage() {
             </div>
             <CardDescription>Topics that need more attention</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {weakAreas.map((area, i) => (
-              <div key={i} className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{area.topic}</span>
-                  <span className="text-error font-medium">{area.accuracy}%</span>
-                </div>
-                <Progress value={area.accuracy} className="h-1.5 [&>div]:bg-error" />
-                <span className="text-xs text-muted-foreground">
-                  Based on {area.problems} recent problems
-                </span>
-              </div>
-            ))}
+          <CardContent className="space-y-2">
+            <p className="text-sm">
+              {stats.topErrorType
+                ? `Most common error this week: ${stats.topErrorType.replaceAll("_", " ").toLowerCase()}`
+                : "No dominant error pattern detected this week."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {stats.topErrorType ? `${stats.topErrorCount} attempts were tagged in this category.` : "Keep practicing mixed sessions for stable gains."}
+            </p>
           </CardContent>
         </Card>
 
@@ -123,19 +129,10 @@ export default function AnalyticsPage() {
             </div>
             <CardDescription>Topics you process very well</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {strongAreas.map((area, i) => (
-              <div key={i} className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{area.topic}</span>
-                  <span className="text-success font-medium">{area.accuracy}%</span>
-                </div>
-                <Progress value={area.accuracy} className="h-1.5 [&>div]:bg-success" />
-                <span className="text-xs text-muted-foreground">
-                  Based on {area.problems} established answers
-                </span>
-              </div>
-            ))}
+          <CardContent className="space-y-3">
+            <p className="text-sm">Spaced-repetition mastery: {stats.masteryPercentage}%</p>
+            <Progress value={stats.masteryPercentage} className="h-1.5 [&>div]:bg-success" />
+            <p className="text-xs text-muted-foreground">Retrieval-first practice and interleaving are active for long-term retention.</p>
           </CardContent>
         </Card>
       </div>

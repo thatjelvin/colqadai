@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 interface Problem {
   id: string;
@@ -31,9 +31,27 @@ export default function StudyPage() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasStarted, setHasStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState<number>(Date.now());
+  const [userAnswer, setUserAnswer] = useState("");
+  const [attemptResult, setAttemptResult] = useState<{
+    attemptId: string;
+    isCorrect: boolean;
+    rationale: string;
+    attemptNumber: number;
+    errorAnalysis?: { errorType: string; explanation: string } | null;
+    elaborationPrompt?: string | null;
+  } | null>(null);
+  const [selfQuizMode, setSelfQuizMode] = useState(true);
+  const [reflectionResponse, setReflectionResponse] = useState("");
+  const [reflectionSaved, setReflectionSaved] = useState(false);
+  const [nextReviewDateText, setNextReviewDateText] = useState<string | null>(null);
+
+  const [workedExampleMode, setWorkedExampleMode] = useState(false);
+  const [workedExamplePhase, setWorkedExamplePhase] = useState<"study" | "cover" | "generate">("study");
+  const [workedExampleTimer, setWorkedExampleTimer] = useState(0);
+  const [workedGenerateAttempt, setWorkedGenerateAttempt] = useState("");
+  const [workedMatch, setWorkedMatch] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Fetch problem details
@@ -56,9 +74,7 @@ export default function StudyPage() {
         const response = await fetch(`/api/problems/${problemId}/start`, {
           method: "POST",
         });
-        if (response.ok) {
-          setHasStarted(true);
-        }
+        if (!response.ok) throw new Error("Failed to start problem");
       } catch (error) {
         console.error("Error starting problem:", error);
       }
@@ -82,6 +98,12 @@ export default function StudyPage() {
       });
 
       if (!response.ok) throw new Error("Failed to submit review");
+      const reviewData = await response.json();
+
+      if (reviewData?.nextReviewAt) {
+        const formatted = new Date(reviewData.nextReviewAt).toLocaleDateString();
+        setNextReviewDateText(`Next review scheduled for ${formatted}.`);
+      }
 
       // Navigate to next due problem or dashboard
       const dueResponse = await fetch("/api/problems/due");
@@ -95,6 +117,85 @@ export default function StudyPage() {
       }
     } catch (error) {
       console.error("Error submitting review:", error);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitAttempt = async () => {
+    if (!userAnswer.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/problems/${problemId}/attempt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          answer: userAnswer,
+          selfQuizMode,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to submit attempt");
+
+      const data = await response.json();
+      setAttemptResult(data);
+      setShowSolution(true);
+      setReflectionSaved(false);
+    } catch (error) {
+      console.error("Error submitting attempt:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveReflection = async () => {
+    if (!attemptResult?.elaborationPrompt || !reflectionResponse.trim()) return;
+
+    try {
+      const response = await fetch("/api/reflections", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          problemId,
+          attemptId: attemptResult.attemptId,
+          prompt: attemptResult.elaborationPrompt,
+          response: reflectionResponse,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save reflection");
+      setReflectionSaved(true);
+    } catch (error) {
+      console.error("Error saving reflection:", error);
+    }
+  };
+
+  const submitWorkedExample = async () => {
+    if (workedExampleTimer < 60 || !workedGenerateAttempt.trim() || workedMatch === null) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/problems/${problemId}/worked-example`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studyDurationSeconds: workedExampleTimer,
+          generateAttempt: workedGenerateAttempt,
+          selfAssessedMatch: workedMatch,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to submit worked example");
+
+      setShowSolution(true);
+      setWorkedExampleMode(false);
+    } catch (error) {
+      console.error("Error submitting worked example:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -138,6 +239,16 @@ export default function StudyPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [startTime]);
+
+  useEffect(() => {
+    if (!workedExampleMode || workedExamplePhase !== "study") return;
+
+    const timer = setInterval(() => {
+      setWorkedExampleTimer((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [workedExampleMode, workedExamplePhase]);
 
   return (
     <div className="min-h-screen bg-background -m-6 flex flex-col">
@@ -184,10 +295,94 @@ export default function StudyPage() {
                   <MathRenderer content={problem.body} />
                 </div>
 
+                <div className="mb-6 rounded-lg border p-4 bg-card">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold">Self-Quiz Mode</h3>
+                      <p className="text-sm text-muted-foreground">Hide worked guidance until after submission.</p>
+                    </div>
+                    <Switch checked={selfQuizMode} onCheckedChange={setSelfQuizMode} />
+                  </div>
+                </div>
+
+                <div className="mb-6 rounded-lg border p-4 bg-card">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold">Worked Example Mode</h3>
+                      <p className="text-sm text-muted-foreground">Study for at least 60 seconds, then regenerate from memory.</p>
+                    </div>
+                    <Switch
+                      checked={workedExampleMode}
+                      onCheckedChange={(checked) => {
+                        setWorkedExampleMode(checked);
+                        setWorkedExamplePhase("study");
+                        setWorkedExampleTimer(0);
+                      }}
+                    />
+                  </div>
+
+                  {workedExampleMode && (
+                    <div className="mt-4 space-y-4">
+                      {workedExamplePhase === "study" && (
+                        <div className="space-y-3">
+                          <p className="text-sm">Phase 1 - Study the full solution for at least 60s.</p>
+                          <div className="rounded-lg bg-muted/40 p-4">
+                            <MathRenderer content={problem.solution} />
+                          </div>
+                          <p className="text-sm text-muted-foreground">Study timer: {formatTime(workedExampleTimer)}</p>
+                          <Button
+                            disabled={workedExampleTimer < 60}
+                            onClick={() => setWorkedExamplePhase("cover")}
+                          >
+                            I've studied this
+                          </Button>
+                        </div>
+                      )}
+
+                      {workedExamplePhase === "cover" && (
+                        <div className="space-y-3">
+                          <p className="text-sm">Phase 2 - Cover and recall the method, then continue.</p>
+                          <Button onClick={() => setWorkedExamplePhase("generate")}>Continue to Generate</Button>
+                        </div>
+                      )}
+
+                      {workedExamplePhase === "generate" && (
+                        <div className="space-y-3">
+                          <p className="text-sm">Phase 3 - Solve from memory, then self-assess your match.</p>
+                          <textarea
+                            className="w-full min-h-[120px] rounded-md border bg-background p-3 text-sm"
+                            value={workedGenerateAttempt}
+                            onChange={(e) => setWorkedGenerateAttempt(e.target.value)}
+                            placeholder="Write your regenerated solution from memory"
+                          />
+                          <div className="flex gap-2">
+                            <Button variant={workedMatch === true ? "default" : "outline"} onClick={() => setWorkedMatch(true)}>
+                              Close Match
+                            </Button>
+                            <Button variant={workedMatch === false ? "default" : "outline"} onClick={() => setWorkedMatch(false)}>
+                              Needs Work
+                            </Button>
+                          </div>
+                          <Button onClick={submitWorkedExample} disabled={isSubmitting || workedMatch === null}>
+                            Submit Worked Example Session
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {!showSolution ? (
-                  <div className="flex justify-center mt-6">
-                    <Button onClick={() => setShowSolution(true)} className="w-full max-w-sm">
-                      Show Solution
+                  <div className="space-y-4 mt-6">
+                    <h3 className="text-lg font-semibold">Your Attempt</h3>
+                    <textarea
+                      className="w-full min-h-[140px] rounded-md border bg-background p-3 text-sm"
+                      value={userAnswer}
+                      onChange={(e) => setUserAnswer(e.target.value)}
+                      placeholder="Type your solution approach before reveal"
+                    />
+                    <Button onClick={handleSubmitAttempt} disabled={isSubmitting || !userAnswer.trim()} className="w-full max-w-sm">
+                      Submit Attempt to Reveal
                     </Button>
                   </div>
                 ) : (
@@ -198,6 +393,45 @@ export default function StudyPage() {
                         <MathRenderer content={problem.solution} />
                       </div>
                     </div>
+
+                    {attemptResult && (
+                      <div className="rounded-xl border p-4 bg-card space-y-3">
+                        <h3 className="font-semibold">Attempt Feedback</h3>
+                        <p className="text-sm">
+                          Result: <span className={attemptResult.isCorrect ? "text-green-600" : "text-red-600"}>{attemptResult.isCorrect ? "Correct" : "Incorrect"}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground">{attemptResult.rationale}</p>
+                        {!attemptResult.isCorrect && attemptResult.errorAnalysis && (
+                          <div className="text-sm rounded-md bg-muted p-3">
+                            <p className="font-medium">Error type: {attemptResult.errorAnalysis.errorType}</p>
+                            <p className="text-muted-foreground">{attemptResult.errorAnalysis.explanation}</p>
+                          </div>
+                        )}
+
+                        {attemptResult.elaborationPrompt && (
+                          <div className="space-y-2">
+                            <p className="font-medium">Elaboration prompt</p>
+                            <p className="text-sm text-muted-foreground">{attemptResult.elaborationPrompt}</p>
+                            <textarea
+                              className="w-full min-h-[100px] rounded-md border bg-background p-3 text-sm"
+                              value={reflectionResponse}
+                              onChange={(e) => setReflectionResponse(e.target.value)}
+                              placeholder="Optional: write your reflection"
+                            />
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={() => setReflectionResponse("")}>Skip</Button>
+                              <Button onClick={handleSaveReflection} disabled={!reflectionResponse.trim() || reflectionSaved}>
+                                {reflectionSaved ? "Reflection Saved" : "Save Reflection"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {nextReviewDateText && (
+                      <p className="text-sm text-muted-foreground">{nextReviewDateText}</p>
+                    )}
 
                     <div className="bg-muted/30 rounded-xl p-6 text-center mt-8 border">
                       <h3 className="text-lg font-semibold mb-2">How well did you know this?</h3>

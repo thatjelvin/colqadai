@@ -9,6 +9,8 @@ import {
   BookOpen,
   Grid3x3,
   Brain,
+  MessageSquare,
+  AlertTriangle,
   BarChart3,
   Settings,
   LogOut,
@@ -51,6 +53,16 @@ const navItems = [
     title: "Review",
     href: "/study",
     icon: Brain,
+  },
+  {
+    title: "Reflections",
+    href: "/reflections",
+    icon: MessageSquare,
+  },
+  {
+    title: "Error Log",
+    href: "/error-log",
+    icon: AlertTriangle,
   },
   {
     title: "Analytics",

@@ -8,7 +8,7 @@ import { ProblemCard } from "@/components/ProblemCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Brain, BookOpen, Clock } from "lucide-react";
+import { ArrowRight, Brain, BookOpen, Clock, AlertTriangle } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -81,6 +81,51 @@ export default async function DashboardPage() {
   // Calculate streak
   const streak = calculateStreak(userProblems);
 
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const [attemptsThisWeek, firstAttemptCorrectCount, weeklyErrorGroups] = await Promise.all([
+    prisma.problemAttempt.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: weekAgo,
+        },
+      },
+    }),
+    prisma.problemAttempt.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: weekAgo,
+        },
+        isCorrect: true,
+        attemptNumber: 1,
+      },
+    }),
+    prisma.problemAttempt.groupBy({
+      by: ["errorType"],
+      where: {
+        userId,
+        isCorrect: false,
+        createdAt: {
+          gte: weekAgo,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        _count: {
+          errorType: "desc",
+        },
+      },
+    }),
+  ]);
+
+  const recallScore = attemptsThisWeek > 0 ? Math.round((firstAttemptCorrectCount / attemptsThisWeek) * 100) : 0;
+  const topError = weeklyErrorGroups.find((group) => group.errorType);
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome Header */}
@@ -110,7 +155,7 @@ export default async function DashboardPage() {
                   <CardDescription>Items scheduled for today</CardDescription>
                 </div>
                 {dueProblems.length > 0 && (
-                  <Link href={`/study/${dueProblems[0].problem.id}`}>
+                  <Link href="/study">
                     <Button>Start Review</Button>
                   </Link>
                 )}
@@ -141,6 +186,36 @@ export default async function DashboardPage() {
         </div>
 
         <div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Recall Score</CardTitle>
+              <CardDescription>First-attempt correctness this week</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold">{recallScore}%</p>
+              <p className="text-xs text-muted-foreground mt-1">{firstAttemptCorrectCount} first-attempt solves out of {attemptsThisWeek} attempts</p>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Weekly Error Trend</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <CardDescription>
+                {topError
+                  ? `Most common error: ${topError.errorType?.replaceAll("_", " ").toLowerCase()}`
+                  : "No recurring errors detected this week"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/error-log">
+                <Button variant="outline" className="w-full">Open Error Log</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Recent Topics</CardTitle>
