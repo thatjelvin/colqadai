@@ -77,6 +77,16 @@ Open [http://localhost:3000](http://localhost:3000) to see Colqad.
 ## Project Structure
 
 ```
+
+## Learning Science Feature Map
+
+- Spaced repetition: `src/lib/sm2.ts`, `src/app/api/problems/[id]/review/route.ts`, `src/app/api/problems/due/route.ts`
+- Retrieval practice: `src/app/(app)/study/[problemId]/page.tsx`, `src/app/api/problems/[id]/attempt/route.ts`
+- Interleaving: `src/lib/learning/interleaving.ts`, `src/app/api/study/session/route.ts`, `src/app/(app)/study/page.tsx`
+- Elaborative interrogation: `src/lib/learning/aiClassifiers.ts`, `src/app/api/reflections/route.ts`, `src/app/(app)/reflections/page.tsx`
+- Worked-example mode: `src/app/(app)/study/[problemId]/page.tsx`, `src/app/api/problems/[id]/worked-example/route.ts`
+- Error analysis: `src/app/api/errors/log/route.ts`, `src/app/(app)/error-log/page.tsx`, `src/app/(app)/dashboard/page.tsx`
+
 colqad/
 ├── prisma/              # Prisma schema and seed data
 ├── src/
