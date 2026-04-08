@@ -1,4 +1,3 @@
-﻿// @ts-nocheck
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis/upstash";
@@ -77,7 +76,15 @@ export default withAuth(
   {
     callbacks: {
       authorized({ req, token }) {
-        if (req.nextUrl.pathname.startsWith("/app")) {
+        if (
+          req.nextUrl.pathname.startsWith("/dashboard") ||
+          req.nextUrl.pathname.startsWith("/topics") ||
+          req.nextUrl.pathname.startsWith("/study") ||
+          req.nextUrl.pathname.startsWith("/chat") ||
+          req.nextUrl.pathname.startsWith("/reflections") ||
+          req.nextUrl.pathname.startsWith("/error-log") ||
+          req.nextUrl.pathname.startsWith("/notebooks")
+        ) {
           return token !== null;
         }
         if (req.nextUrl.pathname.startsWith("/api/chat")) {
@@ -90,5 +97,15 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/app/:path*", "/api/chat/:path*", "/analytics", "/notebooks"],
+  matcher: [
+    "/dashboard/:path*",
+    "/topics/:path*",
+    "/study/:path*",
+    "/chat/:path*",
+    "/reflections/:path*",
+    "/error-log/:path*",
+    "/notebooks/:path*",
+    "/analytics/:path*",
+    "/api/chat/:path*",
+  ],
 };

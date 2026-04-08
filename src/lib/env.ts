@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -25,8 +26,6 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
-  FADO_API_KEY: z.string().optional(),
-
   // Paddle billing
   PADDLE_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
   PADDLE_API_KEY: z.string().optional(),

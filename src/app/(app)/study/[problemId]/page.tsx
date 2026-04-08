@@ -52,6 +52,7 @@ export default function StudyPage() {
   const [workedExampleTimer, setWorkedExampleTimer] = useState(0);
   const [workedGenerateAttempt, setWorkedGenerateAttempt] = useState("");
   const [workedMatch, setWorkedMatch] = useState<boolean | null>(null);
+  const [timeElapsed, setTimeElapsed] = useState(0);
 
   useEffect(() => {
     // Fetch problem details
@@ -84,6 +85,23 @@ export default function StudyPage() {
     startProblem();
   }, [problemId]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
+
+  useEffect(() => {
+    if (!workedExampleMode || workedExamplePhase !== "study") return;
+
+    const timer = setInterval(() => {
+      setWorkedExampleTimer((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [workedExampleMode, workedExamplePhase]);
+
   const handleRating = async (rating: number) => {
     if (isSubmitting) return;
 
@@ -110,9 +128,9 @@ export default function StudyPage() {
       if (dueResponse.ok) {
         const dueProblems = await dueResponse.json();
         if (dueProblems.length > 0 && dueProblems[0].problem.id !== problemId) {
-          router.push(`/app/study/${dueProblems[0].problem.id}`);
+          router.push(`/study/${dueProblems[0].problem.id}`);
         } else {
-          router.push("/app/dashboard");
+          router.push("/dashboard");
         }
       }
     } catch (error) {
@@ -212,7 +230,7 @@ export default function StudyPage() {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Problem not found.</p>
-        <Link href="/app/topics">
+        <Link href="/topics">
           <Button className="mt-4">Browse Topics</Button>
         </Link>
       </div>
@@ -230,25 +248,6 @@ export default function StudyPage() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
-
-  const [timeElapsed, setTimeElapsed] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [startTime]);
-
-  useEffect(() => {
-    if (!workedExampleMode || workedExamplePhase !== "study") return;
-
-    const timer = setInterval(() => {
-      setWorkedExampleTimer((prev) => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [workedExampleMode, workedExamplePhase]);
 
   return (
     <div className="min-h-screen bg-background -m-6 flex flex-col">
@@ -334,7 +333,7 @@ export default function StudyPage() {
                             disabled={workedExampleTimer < 60}
                             onClick={() => setWorkedExamplePhase("cover")}
                           >
-                            I've studied this
+                            I&apos;ve studied this
                           </Button>
                         </div>
                       )}

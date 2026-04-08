@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { env } from "@/lib/env";
 
 export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "dummy_key_to_allow_build",
+  apiKey: env.ANTHROPIC_API_KEY,
 });

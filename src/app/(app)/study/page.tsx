@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -8,7 +7,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Clock, Target, Play, Calendar } from "lucide-react";
+import { Brain, Clock, Target, Play } from "lucide-react";
 
 export default async function ReviewPage() {
   const session = await getServerSession(authOptions);
@@ -58,19 +57,6 @@ export default async function ReviewPage() {
 
   // Assuming average of 1.5 mins per review
   const estimatedMins = Math.ceil(dueProblems.length * 1.5);
-
-  const getDifficultyBadge = (difficulty: string) => {
-    switch (difficulty) {
-      case "EASY":
-        return "secondary";
-      case "MEDIUM":
-        return "default";
-      case "HARD":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">

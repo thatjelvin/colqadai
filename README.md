@@ -13,7 +13,7 @@
 | **Auth** | NextAuth.js (Google OAuth + Credentials) |
 | **AI** | Anthropic Claude (AI Tutor) |
 | **Email** | Resend |
-| **Payments** | Fado |
+| **Payments** | Paddle |
 | **Caching** | Upstash Redis |
 | **Error Monitoring** | Sentry |
 | **Styling** | Tailwind CSS |
@@ -29,6 +29,7 @@
 - **Topic Browser** — Hierarchical topic tree covering calculus, linear algebra, and more
 - **Progress Dashboard** — Track mastery, streaks, and weak areas
 - **Math Rendering** — KaTeX for beautiful inline and display math
+- **Source Pipeline Notebooks** — Upload text/PDF sources, ingest chunks, generate grounded summaries, and extract concepts
 
 ## Getting Started
 
@@ -100,7 +101,7 @@ colqad/
 │       ├── analytics/   # Analytics abstraction (PostHog/Datadog)
 │       ├── auth/        # Auth abstraction (Auth0/Clerk)
 │       ├── email/       # Resend integration
-│       ├── payments/    # Fado integration
+│       ├── payments/    # Paddle integration
 │       ├── redis/       # Upstash Redis client
 │       └── supabase/    # Supabase client
 ├── __tests__/           # Unit tests
@@ -112,7 +113,7 @@ colqad/
 
 - **Authentication**: Currently uses NextAuth.js. An abstraction layer (`lib/auth/AuthService.ts`) is in place to support swapping to Auth0 or Clerk.
 - **Analytics**: An abstraction layer (`lib/analytics/AnalyticsService.ts`) supports future integration with PostHog or Datadog.
-- **Payments**: All payment logic goes through Fado (`lib/payments/fado.ts`). Stripe is not used.
+- **Payments**: All payment logic goes through Paddle (`lib/payments/paddle.ts`).
 - **Vector Database**: Not currently integrated. Can be added later if needed.
 
 ## License

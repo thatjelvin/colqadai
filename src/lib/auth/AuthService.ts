@@ -23,7 +23,7 @@ export class AuthService {
   /**
    * Initiates the sign-in flow.
    */
-  static async signIn(provider?: string): Promise<void> {
+  static async signIn(): Promise<void> {
     // TODO: Initiate Auth0 or Clerk login.
   }
 

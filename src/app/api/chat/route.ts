@@ -1,4 +1,3 @@
-﻿// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { anthropic } from "@/lib/anthropic";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@prisma/client";
+import type Anthropic from "@anthropic-ai/sdk";
 
 const chatSchema = z.object({
   message: z.string().min(1),
@@ -143,7 +143,7 @@ Be clear, rigorous, and concise.`;
     }
 
     // Build message history
-    const messages = chatSession.messages.map((m) => ({
+    const messages: Anthropic.MessageParam[] = chatSession.messages.map((m) => ({
       role: m.role === "USER" ? "user" : "assistant",
       content: m.content,
     }));
@@ -159,7 +159,7 @@ Be clear, rigorous, and concise.`;
       model: "claude-sonnet-4-5-20251101",
       max_tokens: billingProfile.plan === "max" ? 4096 : 3000,
       system: systemPrompt,
-      messages: messages as any,
+      messages,
       stream: true,
     });
 
@@ -170,7 +170,7 @@ Be clear, rigorous, and concise.`;
         
         for await (const chunk of stream) {
           if (chunk.type === "content_block_delta") {
-            const text = chunk.delta.text || "";
+            const text = "text" in chunk.delta ? (chunk.delta.text ?? "") : "";
             fullResponse += text;
             controller.enqueue(new TextEncoder().encode(text));
           }

@@ -1,11 +1,10 @@
-﻿// @ts-nocheck
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BillingLimitError, buildUpgradeErrorPayload, ensureFeatureAccess } from "@/lib/billing/usage";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -49,8 +48,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const recentTopicIds = new Set();
-    const recentTopics = [];
+    const recentTopicIds = new Set<string>();
+    const recentTopics: Array<{ id: string; name: string; slug: string; description: string | null }> = [];
 
     for (const up of recentUserProblems) {
       const topicId = up.problem.topic.id;
