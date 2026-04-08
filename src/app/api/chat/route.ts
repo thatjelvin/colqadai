@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { anthropic } from "@/lib/anthropic";
+import { gemini } from "@/lib/gemini";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@prisma/client";
-import type Anthropic from "@anthropic-ai/sdk";
 
 const chatSchema = z.object({
   message: z.string().min(1),
@@ -143,39 +142,38 @@ Be clear, rigorous, and concise.`;
     }
 
     // Build message history
-    const messages: Anthropic.MessageParam[] = chatSession.messages.map((m) => ({
-      role: m.role === "USER" ? "user" : "assistant",
-      content: m.content,
+    const contents: any[] = chatSession.messages.map((m) => ({
+      role: m.role === "USER" ? "user" : "model",
+      parts: [{ text: m.content }],
     }));
 
     // Add current message
-    messages.push({
+    contents.push({
       role: "user",
-      content: message,
+      parts: [{ text: message }],
     });
 
     // Create streaming response
-    const stream = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20251101",
-      max_tokens: billingProfile.plan === "max" ? 4096 : 3000,
-      system: systemPrompt,
-      messages,
-      stream: true,
+    const stream = await gemini.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        maxOutputTokens: billingProfile.plan === "max" ? 4096 : 3000,
+      }
     });
 
     // Create a ReadableStream
     const readableStream = new ReadableStream({
       async start(controller) {
         let fullResponse = "";
-        
+
         for await (const chunk of stream) {
-          if (chunk.type === "content_block_delta") {
-            const text = "text" in chunk.delta ? (chunk.delta.text ?? "") : "";
-            fullResponse += text;
-            controller.enqueue(new TextEncoder().encode(text));
-          }
+          const text = chunk.text ?? "";
+          fullResponse += text;
+          controller.enqueue(new TextEncoder().encode(text));
         }
-        
+
         // Save assistant message to database
         await prisma.chatMessage.create({
           data: {
@@ -210,19 +208,17 @@ Be clear, rigorous, and concise.`;
 
 async function generateTitle(message: string): Promise<string> {
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20251101",
-      max_tokens: 20,
-      messages: [
-        {
-          role: "user",
-          content: `Generate a short title (max 10 words, plain text, no quotes) for a chat that starts with this message: "${message}"`,
-        },
-      ],
+    const response = await gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: message,
+      config: {
+        maxOutputTokens: 20,
+        systemInstruction: "Generate a short title (max 10 words, plain text, no quotes) for a chat that starts with the given message."
+      }
     });
 
-    return response.content[0].type === "text" 
-      ? response.content[0].text.trim().slice(0, 50)
+    return response.text
+      ? response.text.trim().slice(0, 50)
       : "New Chat";
   } catch (error) {
     console.error("Error generating title:", error);

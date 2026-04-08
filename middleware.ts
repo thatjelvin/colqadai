@@ -44,6 +44,27 @@ export default withAuth(
       return NextResponse.redirect(url);
     }
     
+    // Rate limit user registration to prevent abuse
+    if (req.nextUrl.pathname.startsWith("/api/auth/register") && req.method === "POST" && redis) {
+      const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+      if (ip !== "unknown") {
+        const key = `ratelimit:register:${ip}`;
+        try {
+          const count = await redis.incr(key);
+          if (count === 1) await redis.expire(key, 3600); // 1 hour window
+          
+          if (count > 5) {
+            return NextResponse.json(
+              { error: "Too many registration attempts. Please try again later." },
+              { status: 429 }
+            );
+          }
+        } catch (e) {
+          console.error("Registration rate limit error:", e);
+        }
+      }
+    }
+
     // Rate limit API routes for AI interactions
     if (req.nextUrl.pathname.startsWith("/api/chat") && userId && redis) {
       const today = new Date().toISOString().split("T")[0];
@@ -107,5 +128,6 @@ export const config = {
     "/notebooks/:path*",
     "/analytics/:path*",
     "/api/chat/:path*",
+    "/api/auth/register",
   ],
 };

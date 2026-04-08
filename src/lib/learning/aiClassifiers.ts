@@ -1,7 +1,7 @@
 import { ErrorType } from "@prisma/client";
-import { anthropic } from "@/lib/anthropic";
+import { gemini } from "@/lib/gemini";
 
-const MODEL = "claude-sonnet-4-5-20251101";
+const MODEL = "gemini-2.5-flash";
 
 type GradeResult = {
   isCorrect: boolean;
@@ -41,13 +41,16 @@ export async function gradeAnswer(
   ].join("\n");
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await gemini.models.generateContent({
       model: MODEL,
-      max_tokens: 200,
-      messages: [{ role: "user", content: prompt }],
+      contents: prompt,
+      config: {
+        maxOutputTokens: 200,
+        responseMimeType: "application/json",
+      }
     });
 
-    const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+    const text = response.text || "";
     const parsed = JSON.parse(extractJson(text));
 
     return {
@@ -77,13 +80,16 @@ export async function classifyError(
   ].join("\n");
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await gemini.models.generateContent({
       model: MODEL,
-      max_tokens: 180,
-      messages: [{ role: "user", content: prompt }],
+      contents: prompt,
+      config: {
+        maxOutputTokens: 180,
+        responseMimeType: "application/json",
+      }
     });
 
-    const text = response.content[0]?.type === "text" ? response.content[0].text : "";
+    const text = response.text || "";
     const parsed = JSON.parse(extractJson(text));
 
     if (!Object.values(ErrorType).includes(parsed.errorType)) {
@@ -118,13 +124,15 @@ export async function generateElaborationPrompt(
   ].join("\n");
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await gemini.models.generateContent({
       model: MODEL,
-      max_tokens: 80,
-      messages: [{ role: "user", content: prompt }],
+      contents: prompt,
+      config: {
+        maxOutputTokens: 80,
+      }
     });
 
-    const text = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
+    const text = response.text ? response.text.trim() : "";
     return text || "Why does this method work in this problem setting?";
   } catch {
     return "What would change if one key assumption in this problem changed?";

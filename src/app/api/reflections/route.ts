@@ -44,13 +44,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid reflection payload" }, { status: 400 });
   }
 
+  const { problemId, attemptId, prompt, response } = parsed.data;
+
+  // Verify the problem belongs to the user
+  const userProblem = await prisma.userProblem.findUnique({
+    where: { userId_problemId: { userId: session.user.id, problemId } },
+  });
+
+  if (!userProblem) {
+    return NextResponse.json({ error: "Unauthorized access to problem" }, { status: 403 });
+  }
+
+  // If linking to an attempt, verify it belongs to the user
+  if (attemptId) {
+    const defaultAttempt = await prisma.problemAttempt.findUnique({
+      where: { id: attemptId },
+      select: { userId: true },
+    });
+    if (!defaultAttempt || defaultAttempt.userId !== session.user.id) {
+      return NextResponse.json({ error: "Unauthorized access to attempt" }, { status: 403 });
+    }
+  }
+
   const reflection = await prisma.reflection.create({
     data: {
       userId: session.user.id,
-      problemId: parsed.data.problemId,
-      attemptId: parsed.data.attemptId,
-      prompt: parsed.data.prompt,
-      response: parsed.data.response,
+      problemId,
+      attemptId,
+      prompt,
+      response,
     },
   });
 

@@ -90,6 +90,12 @@ export function verifyPaddleWebhookSignature(rawBody: string, signatureHeader: s
   const timestamp = timestampPart.slice(3);
   const expectedHash = hashPart.slice(3);
 
+  // Prevent replay attacks (allow 5 min drift)
+  const timestampMs = parseInt(timestamp, 10) * 1000;
+  if (Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
+    return false;
+  }
+
   const signedPayload = `${timestamp}:${rawBody}`;
   const digest = crypto.createHmac("sha256", secret).update(signedPayload).digest("hex");
 
