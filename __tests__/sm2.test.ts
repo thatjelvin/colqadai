@@ -112,9 +112,10 @@ describe("SM-2 Algorithm", () => {
       expect(state.repetitions).toBe(3);
       expect(state.interval).toBeGreaterThan(6);
       
+      const previousInterval = state.interval;
       state = calculateSM2(state, 3); // rep=4
       expect(state.repetitions).toBe(4);
-      expect(state.interval).toBeGreaterThan(state.interval);
+      expect(state.interval).toBeGreaterThan(previousInterval);
     });
   });
 

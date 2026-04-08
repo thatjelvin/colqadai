@@ -1,4 +1,3 @@
-﻿// @ts-nocheck
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -57,6 +56,10 @@ export default async function TopicsPage() {
 
     return {
       ...topic,
+      children: topic.children.map((child) => ({
+        ...child,
+        children: [],
+      })),
       progress: {
         mastered: masteredCount,
         total: totalCount,

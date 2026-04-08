@@ -16,6 +16,10 @@
     "UPSTASH_REDIS_REST_TOKEN": "@upstash_redis_rest_token",
     "NEXT_PUBLIC_SENTRY_DSN": "@sentry_dsn",
     "SENTRY_AUTH_TOKEN": "@sentry_auth_token",
-    "FADO_API_KEY": "@fado_api_key"
+    "PADDLE_ENVIRONMENT": "@paddle_environment",
+    "PADDLE_API_KEY": "@paddle_api_key",
+    "PADDLE_WEBHOOK_SECRET": "@paddle_webhook_secret",
+    "PADDLE_PRO_PRICE_ID": "@paddle_pro_price_id",
+    "PADDLE_MAX_PRICE_ID": "@paddle_max_price_id"
   }
 }

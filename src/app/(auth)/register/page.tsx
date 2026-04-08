@@ -1,4 +1,3 @@
-﻿// @ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Chrome, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -38,7 +37,10 @@ export default function RegisterPage() {
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
-        fieldErrors[issue.path[0]] = issue.message;
+        const field = issue.path[0];
+        if (typeof field === "string") {
+          fieldErrors[field] = issue.message;
+        }
       });
       setErrors(fieldErrors);
       return;
@@ -68,11 +70,11 @@ export default function RegisterPage() {
         if (signInResult?.error) {
           setServerError("Account created but failed to sign in");
         } else {
-          router.push("/app/dashboard");
+          router.push("/dashboard");
           router.refresh();
         }
       }
-    } catch (error) {
+    } catch {
       setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -80,7 +82,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/app/dashboard" });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (

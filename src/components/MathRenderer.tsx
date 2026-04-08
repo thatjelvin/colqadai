@@ -36,7 +36,7 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
               throwOnError: false,
               displayMode: false,
             });
-          } catch (error) {
+          } catch {
             span.textContent = `$${part.content}$`;
           }
           container.appendChild(span);
@@ -48,7 +48,7 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
               throwOnError: false,
               displayMode: true,
             });
-          } catch (error) {
+          } catch {
             div.textContent = `$$${part.content}$$`;
           }
           container.appendChild(div);
@@ -74,8 +74,6 @@ type Part =
 
 function parseContent(content: string): Part[] {
   const parts: Part[] = [];
-  let remaining = content;
-
   // Regular expressions for LaTeX delimiters
   const displayMathRegex = /\$\$([\s\S]*?)\$\$/g;
   const inlineMathRegex = /\$([^$\n]+?)\$/g;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, ChevronDown, BookOpen } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -52,7 +52,7 @@ function TopicItem({ topic, depth = 0 }: { topic: Topic; depth?: number }) {
                 ) : (
                   <span className="w-6" />
                 )}
-                <Link href={`/app/topics/${topic.slug}`}>
+                <Link href={`/topics/${topic.slug}`}>
                   <CardTitle className="hover:underline cursor-pointer">
                     {topic.name}
                   </CardTitle>
@@ -94,7 +94,7 @@ function TopicItem({ topic, depth = 0 }: { topic: Topic; depth?: number }) {
 
   return (
     <div className="space-y-3">
-      <Link href={`/app/topics/${topic.slug}`} className="block">
+      <Link href={`/topics/${topic.slug}`} className="block">
         <div className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">

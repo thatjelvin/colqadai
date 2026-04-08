@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Difficulty, ReviewStatus } from "@prisma/client";
 import Link from "next/link";
-import { CheckCircle2, Clock, Circle, Play } from "lucide-react";
+import { CheckCircle2, Clock, Circle } from "lucide-react";
 
 interface ProblemCardProps {
   problem: {
@@ -87,7 +87,7 @@ export function ProblemCard({ problem, userProblem }: ProblemCardProps) {
       </div>
       
       <div className="ml-4">
-        <Link href={`/app/study/${problem.id}`}>
+        <Link href={`/study/${problem.id}`}>
           <Button variant="ghost" size="sm">
             {userProblem ? "Practice" : "Start"}
           </Button>

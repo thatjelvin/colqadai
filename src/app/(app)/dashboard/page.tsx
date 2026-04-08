@@ -1,4 +1,3 @@
-﻿// @ts-nocheck
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -8,7 +7,7 @@ import { ProblemCard } from "@/components/ProblemCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Brain, BookOpen, Clock, AlertTriangle } from "lucide-react";
+import { Brain, BookOpen, AlertTriangle } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -165,7 +164,7 @@ export default async function DashboardPage() {
               {dueProblems.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Brain className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No items due. You're all caught up!</p>
+                  <p>No items due. You&apos;re all caught up!</p>
                   <Link href="/topics" className="mt-4 inline-block">
                     <Button variant="outline">Browse Topics</Button>
                   </Link>

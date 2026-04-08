@@ -10,7 +10,7 @@ export class AnalyticsService {
    * @param userId The unique user ID
    * @param traits Additional user traits
    */
-  static identifyUser(userId: string, traits?: Record<string, any>) {
+  static identifyUser(userId: string, traits?: Record<string, unknown>) {
     // TODO: Implement PostHog/Datadog identify logic
     console.log(`Analytics Identify: ${userId}`, traits);
   }
@@ -20,7 +20,7 @@ export class AnalyticsService {
    * @param eventName The name of the event
    * @param properties Additional properties for the event
    */
-  static trackEvent(eventName: string, properties?: Record<string, any>) {
+  static trackEvent(eventName: string, properties?: Record<string, unknown>) {
     // TODO: Implement PostHog/Datadog track event logic
     console.log(`Analytics Track: ${eventName}`, properties);
   }

@@ -47,7 +47,7 @@ export default function OnboardingPage() {
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle className="text-2xl">Welcome to Colqad!</CardTitle>
-            <CardDescription>Let's personalize your learning experience.</CardDescription>
+            <CardDescription>Let&apos;s personalize your learning experience.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

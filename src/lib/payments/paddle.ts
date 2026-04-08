@@ -1,13 +1,14 @@
 import crypto from "crypto";
 import { PlanCode } from "@/lib/billing/plans";
+import { env } from "@/lib/env";
 
-const PADDLE_BASE_URL = process.env.PADDLE_ENVIRONMENT === "sandbox"
+const PADDLE_BASE_URL = env.PADDLE_ENVIRONMENT === "sandbox"
   ? "https://sandbox-api.paddle.com"
   : "https://api.paddle.com";
 
-const API_KEY = process.env.PADDLE_API_KEY;
-const PRO_PRICE_ID = process.env.PADDLE_PRO_PRICE_ID;
-const MAX_PRICE_ID = process.env.PADDLE_MAX_PRICE_ID;
+const API_KEY = env.PADDLE_API_KEY;
+const PRO_PRICE_ID = env.PADDLE_PRO_PRICE_ID;
+const MAX_PRICE_ID = env.PADDLE_MAX_PRICE_ID;
 
 export const PADDLE_PRICE_MAP: Record<string, PlanCode> = {
   ...(PRO_PRICE_ID ? { [PRO_PRICE_ID]: "pro" } : {}),
@@ -73,7 +74,7 @@ export async function createPaddleCheckout(params: {
 }
 
 export function verifyPaddleWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
-  const secret = process.env.PADDLE_WEBHOOK_SECRET;
+  const secret = env.PADDLE_WEBHOOK_SECRET;
   if (!secret || !signatureHeader) {
     return false;
   }
