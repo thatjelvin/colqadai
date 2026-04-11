@@ -7,14 +7,14 @@ export const GOOGLE_PROVIDER_DISABLED_MESSAGE =
   "Google sign-in is not enabled right now. Continue with email and password or enable the Google provider in Supabase Auth settings.";
 
 const EMAIL_PROVIDER_DISABLED_MESSAGE =
-  "Email/password sign-up is not enabled right now. Enable the Email provider in Supabase Auth settings.";
+  "Email/password authentication is not enabled right now. Enable the Email provider in Supabase Auth settings.";
 
 function isProviderDisabledError(error: AuthError | null) {
-  const message = error?.message?.toLowerCase() ?? "";
+  const message = error?.message ?? "";
   return (
     error?.code === "validation_failed" &&
     error?.status === 400 &&
-    (message.includes("unsupported provider") || message.includes("provider is not enabled"))
+    /unsupported provider|provider is not enabled/i.test(message)
   );
 }
 
@@ -56,7 +56,13 @@ export async function signUp(email: string, password: string, name?: string) {
 
 export async function signIn(email: string, password: string) {
   const supabase = getSupabaseBrowserClient();
-  return supabase.auth.signInWithPassword({ email, password });
+  const result = await supabase.auth.signInWithPassword({ email, password });
+
+  if (isProviderDisabledError(result.error)) {
+    return { ...result, error: toAuthError(EMAIL_PROVIDER_DISABLED_MESSAGE) };
+  }
+
+  return result;
 }
 
 export async function signInWithGoogle() {
