@@ -37,14 +37,14 @@ function LoginPageContent() {
 
   useEffect(() => {
     const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
-    const registered = searchParams.get("registered");
+    const checkEmail = searchParams.get("checkEmail");
 
-    if (registered === "1") {
+    if (checkEmail === "1") {
       const registeredEmail = searchParams.get("email");
       if (registeredEmail) {
         setEmail(registeredEmail);
       }
-      setError("Account created. Please sign in to continue.");
+      setError("Account created. Check your email to confirm your account before signing in.");
       return;
     }
 

@@ -87,7 +87,7 @@ function RegisterPageContent() {
           router.push("/dashboard");
           router.refresh();
         } else {
-          router.push(`/login?registered=1&email=${encodeURIComponent(email)}`);
+          router.push(`/login?checkEmail=1&email=${encodeURIComponent(email)}`);
         }
       }
     } catch {
