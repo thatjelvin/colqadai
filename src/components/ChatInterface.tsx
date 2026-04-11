@@ -86,10 +86,11 @@ export function ChatInterface({
       }
 
       // Read streaming response
-      const reader = response.body?.getReader();
-      if (!reader) {
+      if (!response.body) {
         throw new Error("No response body");
       }
+
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 
       const assistantMessageId = (Date.now() + 1).toString();
       setMessages((prev) => [
@@ -101,23 +102,25 @@ export function ChatInterface({
         },
       ]);
 
-      const decoder = new TextDecoder();
       let fullContent = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        fullContent += chunk;
+          fullContent += value;
 
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: fullContent }
-              : msg
-          )
-        );
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullContent }
+                : msg
+            )
+          );
+        }
+      } finally {
+        reader.releaseLock();
       }
     } catch (error) {
       console.error("Error sending message:", error);
