@@ -9,7 +9,7 @@ export default async function ReflectionsPage() {
   const session = await getServerSession();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const reflections = await prisma.reflection.findMany({

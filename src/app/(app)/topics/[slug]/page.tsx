@@ -17,7 +17,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
   const session = await getServerSession();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const userId = session.user.id;

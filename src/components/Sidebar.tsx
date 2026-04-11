@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plan } from "@prisma/client";
-import { signOut } from "@/lib/supabase/auth";
+import { useClerk } from "@clerk/nextjs";
 
 interface SidebarProps {
   user: {
@@ -80,16 +80,12 @@ const navItems = [
 export function Sidebar({ user, plan }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { signOut } = useClerk();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      console.error("Sign out failed", error);
-      return;
-    }
-    router.push("/login");
+    await signOut({ redirectUrl: "/sign-in" });
     router.refresh();
   };
 

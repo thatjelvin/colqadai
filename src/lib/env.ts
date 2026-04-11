@@ -8,10 +8,13 @@ const envSchema = z.object({
   // Gemini
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
   
-  // Supabase
+  // Clerk
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required"),
+  CLERK_SECRET_KEY: z.string().min(1, "CLERK_SECRET_KEY is required"),
+
+  // Supabase — database only (auth has been migrated to Clerk)
   NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
-  NEXT_PUBLIC_SUPABASE_GOOGLE_AUTH_ENABLED: z.enum(["true", "false"]).optional(),
 
   // Optional services — app works without these configured
   RESEND_API_KEY: z.string().optional(),
