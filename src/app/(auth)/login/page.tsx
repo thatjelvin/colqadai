@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import { signIn, signInWithGoogle } from "@/lib/supabase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { status } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,11 +28,12 @@ export default function LoginPage() {
   }, [status, router]);
 
   useEffect(() => {
-    const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
-    const registered = searchParams.get("registered");
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error_description") ?? params.get("error");
+    const registered = params.get("registered");
 
     if (registered === "1") {
-      const registeredEmail = searchParams.get("email");
+      const registeredEmail = params.get("email");
       if (registeredEmail) {
         setEmail(registeredEmail);
       }
@@ -49,7 +49,7 @@ export default function LoginPage() {
     };
 
     setError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
-  }, [searchParams]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -141,7 +141,7 @@ Be clear, rigorous, and concise.`;
     }
 
     // Build message history
-    const contents: any[] = chatSession.messages.map((m) => ({
+    const contents = chatSession.messages.map((m) => ({
       role: m.role === "USER" ? "user" : "model",
       parts: [{ text: m.content }],
     }));
