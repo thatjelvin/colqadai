@@ -41,8 +41,12 @@ export default clerkMiddleware(async (auth, request) => {
           await redis.expire(key, 86400);
         }
 
-        // Default to FREE limits in middleware; plan-based enforcement
-        // happens at the API route level where DB access is available.
+        // NOTE: The user's plan cannot be fetched from the database in middleware
+        // without adding latency to every request. We therefore apply the FREE
+        // tier limit here as a hard cap. Per-plan enforcement (PRO/MAX higher
+        // limits) is applied inside the /api/chat route handler, which has full
+        // DB access. This means PRO/MAX users will see a lower cap at the
+        // middleware layer but the actual plan-based limit is enforced in the route.
         const maxPerDay = getChatMessageLimit("FREE");
         if (count > maxPerDay) {
           return NextResponse.json(

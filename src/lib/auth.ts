@@ -67,9 +67,11 @@ export async function getServerSession(): Promise<AppSession | null> {
     return null;
   }
 
-  const primaryEmail =
-    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
-      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
+  const primaryEmailObj = clerkUser.emailAddresses.find(
+    (e) => e.id === clerkUser.primaryEmailAddressId
+  ) ?? clerkUser.emailAddresses[0];
+
+  const primaryEmail = primaryEmailObj?.emailAddress;
 
   if (!primaryEmail) {
     return null;
@@ -79,12 +81,16 @@ export async function getServerSession(): Promise<AppSession | null> {
     [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() || null;
   const image = clerkUser.imageUrl || null;
 
+  // Only treat the email as verified when Clerk has confirmed it.
+  // Require email verification to be enabled in Clerk Dashboard settings.
+  const emailVerified =
+    primaryEmailObj?.verification?.status === "verified" ? new Date() : null;
+
   const appUser = await ensureAppUserByEmail({
     email: primaryEmail,
     name,
     image,
-    // Clerk verifies email addresses before allowing sign-in
-    emailVerified: new Date(),
+    emailVerified,
   });
 
   return {
