@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import {
@@ -78,13 +78,15 @@ const navItems = [
 ];
 
 export function Sidebar({ user, plan }: SidebarProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = "/login";
+    router.push("/login");
+    router.refresh();
   };
 
   return (

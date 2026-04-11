@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { redis } from "@/lib/redis/upstash";
 import { copyResponseCookies, updateSession } from "@/lib/supabase/middleware";
 
-function getChatMessageLimit(): number {
+function getChatMessageLimit(plan: string): number {
+  if (plan === "MAX") return 600;
+  if (plan === "PRO") return 120;
   return 10;
 }
 
@@ -34,6 +36,7 @@ function makeJsonWithCookies(baseResponse: NextResponse, body: unknown, status: 
 export default async function middleware(req: NextRequest) {
   const { response, user } = await updateSession(req);
   const isAuthenticated = Boolean(user);
+  const userPlan = String(user?.app_metadata?.plan ?? user?.user_metadata?.plan ?? "FREE").toUpperCase();
 
   if (protectedPrefixes.some((prefix) => req.nextUrl.pathname.startsWith(prefix)) && !isAuthenticated) {
     return makeRedirectWithCookies(response, req, "/login");
@@ -44,9 +47,10 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Rate limit API routes for AI interactions
-  if (req.nextUrl.pathname.startsWith("/api/chat") && user?.id && redis) {
+  if (req.nextUrl.pathname.startsWith("/api/chat") && isAuthenticated && redis) {
+    const userId = user!.id;
     const today = new Date().toISOString().split("T")[0];
-    const key = `ratelimit:${user.id}:${today}`;
+    const key = `ratelimit:${userId}:${today}`;
 
     try {
       const count = await redis.incr(key);
@@ -54,7 +58,7 @@ export default async function middleware(req: NextRequest) {
         await redis.expire(key, 86400);
       }
 
-      const maxPerDay = getChatMessageLimit();
+      const maxPerDay = getChatMessageLimit(userPlan);
       if (count > maxPerDay) {
         return makeJsonWithCookies(
           response,

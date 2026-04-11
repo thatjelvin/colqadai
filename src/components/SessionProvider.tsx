@@ -29,11 +29,23 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) return;
-      setSession(data.session);
-      setStatus(data.session ? "authenticated" : "unauthenticated");
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!isMounted) return;
+        if (error) {
+          setSession(null);
+          setStatus("unauthenticated");
+          return;
+        }
+        setSession(data.session);
+        setStatus(data.session ? "authenticated" : "unauthenticated");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSession(null);
+        setStatus("unauthenticated");
+      });
 
     const {
       data: { subscription },

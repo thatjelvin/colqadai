@@ -43,9 +43,11 @@ async function ensureAppUserByEmail(params: {
   });
 
   if (existing) {
+    const nextName = params.name ?? existing.name;
+    const nextImage = params.image ?? existing.image;
     const needsUpdate =
-      (params.name && !existing.name) ||
-      (params.image && !existing.image);
+      nextName !== existing.name ||
+      nextImage !== existing.image;
 
     if (!needsUpdate) {
       return existing;
@@ -54,8 +56,8 @@ async function ensureAppUserByEmail(params: {
     return prisma.user.update({
       where: { id: existing.id },
       data: {
-        name: existing.name ?? params.name,
-        image: existing.image ?? params.image,
+        name: nextName,
+        image: nextImage,
       },
     });
   }
