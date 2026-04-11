@@ -33,6 +33,16 @@ function pickAvatar(user: { user_metadata?: Record<string, unknown> }) {
   return null;
 }
 
+function toComparableTimestamp(value: Date | null | undefined) {
+  return value ? value.getTime() : null;
+}
+
+function parseEmailVerifiedAt(value: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 async function ensureAppUserByEmail(params: {
   email: string;
   name: string | null;
@@ -50,7 +60,7 @@ async function ensureAppUserByEmail(params: {
     const needsUpdate =
       nextName !== existing.name ||
       nextImage !== existing.image ||
-      nextEmailVerified?.getTime() !== existing.emailVerified?.getTime();
+      toComparableTimestamp(nextEmailVerified) !== toComparableTimestamp(existing.emailVerified);
 
     if (!needsUpdate) {
       return existing;
@@ -91,9 +101,7 @@ export async function getServerSession(): Promise<AppSession | null> {
     email: supabaseUser.email,
     name: pickDisplayName(supabaseUser),
     image: pickAvatar(supabaseUser),
-    emailVerified: supabaseUser.email_confirmed_at
-      ? new Date(supabaseUser.email_confirmed_at)
-      : null,
+    emailVerified: parseEmailVerifiedAt(supabaseUser.email_confirmed_at),
   });
 
   return {

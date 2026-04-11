@@ -8,6 +8,11 @@ function getChatMessageLimit(plan: string): number {
   return 10;
 }
 
+function normalizePlan(plan: string) {
+  if (plan === "MAX" || plan === "PRO") return plan;
+  return "FREE";
+}
+
 const protectedPrefixes = [
   "/dashboard",
   "/topics",
@@ -37,7 +42,9 @@ export default async function middleware(req: NextRequest) {
   const { response, user } = await updateSession(req);
   const isAuthenticated = Boolean(user);
   // plan is expected in app_metadata; user_metadata is fallback for legacy identities
-  const userPlan = String(user?.app_metadata?.plan ?? user?.user_metadata?.plan ?? "FREE").toUpperCase();
+  const userPlan = normalizePlan(
+    String(user?.app_metadata?.plan ?? user?.user_metadata?.plan ?? "FREE").toUpperCase()
+  );
 
   if (protectedPrefixes.some((prefix) => req.nextUrl.pathname.startsWith(prefix)) && !isAuthenticated) {
     return makeRedirectWithCookies(response, req, "/login");
