@@ -97,6 +97,8 @@ export default withAuth(
   {
     callbacks: {
       authorized({ req, token }) {
+        const hasValidUserId = typeof token?.id === "string" && token.id.length > 0;
+
         if (
           req.nextUrl.pathname.startsWith("/dashboard") ||
           req.nextUrl.pathname.startsWith("/topics") ||
@@ -106,10 +108,10 @@ export default withAuth(
           req.nextUrl.pathname.startsWith("/error-log") ||
           req.nextUrl.pathname.startsWith("/notebooks")
         ) {
-          return token !== null;
+          return hasValidUserId;
         }
         if (req.nextUrl.pathname.startsWith("/api/chat")) {
-          return token !== null;
+          return hasValidUserId;
         }
         return true;
       },

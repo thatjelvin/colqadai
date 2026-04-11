@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,46 @@ import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+      router.refresh();
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error");
+    const registered = searchParams.get("registered");
+
+    if (registered === "1") {
+      const registeredEmail = searchParams.get("email");
+      if (registeredEmail) {
+        setEmail(registeredEmail);
+      }
+      setError("Account created. Please sign in to continue.");
+      return;
+    }
+
+    if (!oauthError) return;
+
+    const oauthErrorMap: Record<string, string> = {
+      OAuthSignin: "Could not start Google sign-in. Please try again.",
+      OAuthCallback: "Google sign-in callback failed. Please try again.",
+      OAuthCreateAccount: "Unable to create account from Google profile.",
+      OAuthAccountNotLinked: "This email is already linked to a password account. Sign in with email and password.",
+      AccessDenied: "Access denied during Google sign-in.",
+      Callback: "Authentication callback failed. Please try again.",
+    };
+
+    setError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +79,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" });
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch {
+      setError("Google sign-in could not be started. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (

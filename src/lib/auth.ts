@@ -16,12 +16,13 @@ const credentialsSchema = z.object({
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
+  trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === "production",
   session: {
     strategy: "jwt",
   },
   pages: {
     signIn: "/login",
-    newUser: "/register",
   },
   providers: [
     GoogleProvider({
@@ -35,33 +36,43 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = credentialsSchema.safeParse(credentials);
-        if (!parsed.success) {
+        try {
+          const parsed = credentialsSchema.safeParse(credentials);
+          if (!parsed.success) {
+            console.warn("[auth][credentials] validation failed");
+            return null;
+          }
+
+          const { email, password } = parsed.data;
+
+          const user = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (!user || !user.passwordHash) {
+            console.warn("[auth][credentials] user not found or missing password hash", {
+              email,
+            });
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(password, user.passwordHash);
+
+          if (!isValid) {
+            console.warn("[auth][credentials] invalid password", { email });
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("[auth][credentials] authorize error", error);
           return null;
         }
-
-        const { email, password } = parsed.data;
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
-
-        if (!user || !user.passwordHash) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
       },
     }),
   ],
@@ -72,23 +83,31 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { plan: true, subscriptionStatus: true },
-        });
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { plan: true, subscriptionStatus: true },
+          });
 
-        token.plan = dbUser?.plan ?? Plan.FREE;
-        token.subscriptionStatus = dbUser?.subscriptionStatus ?? SubscriptionStatus.INACTIVE;
+          token.plan = dbUser?.plan ?? Plan.FREE;
+          token.subscriptionStatus = dbUser?.subscriptionStatus ?? SubscriptionStatus.INACTIVE;
+        } catch (error) {
+          console.error("[auth][jwt] failed to hydrate token from database", error);
+          token.plan = Plan.FREE;
+          token.subscriptionStatus = SubscriptionStatus.INACTIVE;
+        }
       }
 
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
+      if (token && session.user && typeof token.id === "string") {
         session.user.id = token.id as string;
         session.user.plan = (token.plan as Plan | undefined) ?? Plan.FREE;
         session.user.subscriptionStatus =
           (token.subscriptionStatus as SubscriptionStatus | undefined) ?? SubscriptionStatus.INACTIVE;
+      } else {
+        console.warn("[auth][session] token missing id; returning unauthenticated session shape");
       }
       return session;
     },

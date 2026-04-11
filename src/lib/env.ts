@@ -26,6 +26,7 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
   // Paddle billing
   PADDLE_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
   PADDLE_API_KEY: z.string().optional(),
@@ -44,4 +45,27 @@ if (!parsedEnv.success) {
   throw new Error("Invalid environment variables");
 }
 
-export const env = parsedEnv.data;
+const validated = parsedEnv.data;
+
+if (validated.PADDLE_ENVIRONMENT === "production") {
+  const missingProdBillingVars = [
+    "PADDLE_API_KEY",
+    "PADDLE_WEBHOOK_SECRET",
+    "PADDLE_PRO_PRICE_ID",
+    "PADDLE_MAX_PRICE_ID",
+  ].filter((key) => !validated[key as keyof typeof validated]);
+
+  if (missingProdBillingVars.length > 0) {
+    throw new Error(
+      `Missing Paddle production configuration: ${missingProdBillingVars.join(", ")}`
+    );
+  }
+}
+
+if (validated.PADDLE_ENVIRONMENT === "sandbox" && validated.PADDLE_API_KEY?.startsWith("pdl_live_")) {
+  console.warn(
+    "PADDLE_ENVIRONMENT is sandbox but PADDLE_API_KEY appears to be a live key. Checkout may fail."
+  );
+}
+
+export const env = validated;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,37 @@ const registerSchema = z.object({
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status } = useSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+      router.refresh();
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (!oauthError) return;
+
+    const oauthErrorMap: Record<string, string> = {
+      OAuthSignin: "Could not start Google sign-in. Please try again.",
+      OAuthCallback: "Google sign-in callback failed. Please try again.",
+      OAuthCreateAccount: "Unable to create account from Google profile.",
+      OAuthAccountNotLinked: "This email is already linked to a password account. Sign in with email and password.",
+      AccessDenied: "Access denied during Google sign-in.",
+      Callback: "Authentication callback failed. Please try again.",
+    };
+
+    setServerError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,17 +83,27 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setServerError(data.error || "Failed to create account");
+        const detail = data.requestId ? ` (request ${data.requestId})` : "";
+        setServerError(`${data.error || "Failed to create account"}${detail}`);
       } else {
-        // Sign in automatically after registration
-        const signInResult = await signIn("credentials", {
+        let signInResult = await signIn("credentials", {
           email,
           password,
           redirect: false,
         });
 
+        // One retry helps with transient propagation/race after account creation.
         if (signInResult?.error) {
-          setServerError("Account created but failed to sign in");
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          signInResult = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+          });
+        }
+
+        if (signInResult?.error) {
+          router.push(`/login?registered=1&email=${encodeURIComponent(email)}`);
         } else {
           router.push("/dashboard");
           router.refresh();
@@ -81,8 +116,16 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" });
+  const handleGoogleSignIn = async () => {
+    setServerError("");
+    setIsLoading(true);
+
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch {
+      setServerError("Google sign-in could not be started. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
