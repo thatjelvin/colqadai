@@ -1,5 +1,5 @@
 import { Plan, SubscriptionStatus, type User } from "@prisma/client";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export type AppSession = {
@@ -13,34 +13,8 @@ export type AppSession = {
   };
 };
 
-function pickDisplayName(user: { user_metadata?: Record<string, unknown> }) {
-  const fullName = user.user_metadata?.full_name;
-  if (typeof fullName === "string" && fullName.trim()) return fullName.trim();
-
-  const name = user.user_metadata?.name;
-  if (typeof name === "string" && name.trim()) return name.trim();
-
-  return null;
-}
-
-function pickAvatar(user: { user_metadata?: Record<string, unknown> }) {
-  const avatar = user.user_metadata?.avatar_url;
-  if (typeof avatar === "string" && avatar.trim()) return avatar;
-
-  const picture = user.user_metadata?.picture;
-  if (typeof picture === "string" && picture.trim()) return picture;
-
-  return null;
-}
-
 function toComparableTimestamp(value: Date | null | undefined) {
   return value ? value.getTime() : null;
-}
-
-function parseEmailVerifiedAt(value: string | null): Date | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 async function ensureAppUserByEmail(params: {
@@ -87,21 +61,36 @@ async function ensureAppUserByEmail(params: {
 }
 
 export async function getServerSession(): Promise<AppSession | null> {
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user: supabaseUser },
-    error,
-  } = await supabase.auth.getUser();
+  const clerkUser = await currentUser();
 
-  if (error || !supabaseUser?.email) {
+  if (!clerkUser) {
     return null;
   }
 
+  const primaryEmailObj = clerkUser.emailAddresses.find(
+    (e) => e.id === clerkUser.primaryEmailAddressId
+  ) ?? clerkUser.emailAddresses[0];
+
+  const primaryEmail = primaryEmailObj?.emailAddress;
+
+  if (!primaryEmail) {
+    return null;
+  }
+
+  const name =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() || null;
+  const image = clerkUser.imageUrl || null;
+
+  // Only treat the email as verified when Clerk has confirmed it.
+  // Require email verification to be enabled in Clerk Dashboard settings.
+  const emailVerified =
+    primaryEmailObj?.verification?.status === "verified" ? new Date() : null;
+
   const appUser = await ensureAppUserByEmail({
-    email: supabaseUser.email,
-    name: pickDisplayName(supabaseUser),
-    image: pickAvatar(supabaseUser),
-    emailVerified: parseEmailVerifiedAt(supabaseUser.email_confirmed_at),
+    email: primaryEmail,
+    name,
+    image,
+    emailVerified,
   });
 
   return {
@@ -115,3 +104,4 @@ export async function getServerSession(): Promise<AppSession | null> {
     },
   };
 }
+

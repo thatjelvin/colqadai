@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   const session = await getServerSession();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const userId = session.user.id;

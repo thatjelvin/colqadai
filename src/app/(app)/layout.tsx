@@ -12,7 +12,7 @@ export default async function AppLayout({
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      redirect("/login");
+      redirect("/sign-in");
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -23,7 +23,7 @@ export default async function AppLayout({
       console.warn("[auth][layout] session user not found in database", {
         userId: session.user.id,
       });
-      redirect("/login");
+      redirect("/sign-in");
     }
 
     if (!dbUser.grade) {
@@ -42,6 +42,6 @@ export default async function AppLayout({
     );
   } catch (error) {
     console.error("[auth][layout] failed to resolve authenticated layout", error);
-    redirect("/login");
+    redirect("/sign-in");
   }
 }
