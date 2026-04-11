@@ -87,14 +87,6 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/topics/:path*",
-    "/study/:path*",
-    "/chat/:path*",
-    "/reflections/:path*",
-    "/error-log/:path*",
-    "/notebooks/:path*",
-    "/analytics/:path*",
-    "/api/chat/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
