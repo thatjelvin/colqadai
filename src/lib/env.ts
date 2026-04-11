@@ -11,6 +11,7 @@ const envSchema = z.object({
   // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+  NEXT_PUBLIC_SUPABASE_GOOGLE_AUTH_ENABLED: z.enum(["true", "false"]).optional(),
 
   // Optional services — app works without these configured
   RESEND_API_KEY: z.string().optional(),
