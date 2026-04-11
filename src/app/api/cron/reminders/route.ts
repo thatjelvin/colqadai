@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const emailsToSend = dueUsers
       .filter((user) => user.email && resend)
       .map((user) => ({
-        from: "Colqad <noreply@colqad.com>",
+        from: "Colqad <noreply@colqad.tech>",
         to: user.email,
         subject: `You have ${user.userProblems.length} problems due for review!`,
         html: `
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
             <p>Hi ${user.name || "Student"},</p>
             <p>You have <strong>${user.userProblems.length}</strong> math problems waiting for you in your spaced repetition deck.</p>
             <p>Topics include: ${user.userProblems.map((up) => up.problem.topic.name).slice(0, 3).join(", ")}${user.userProblems.length > 3 ? " and more" : ""}.</p>
-            <a href="https://colqad.com/dashboard" style="display: inline-block; background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review Now</a>
+            <a href="https://colqad.tech/dashboard" style="display: inline-block; background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review Now</a>
           </div>
         `,
       }));
