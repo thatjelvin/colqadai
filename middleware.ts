@@ -36,6 +36,7 @@ function makeJsonWithCookies(baseResponse: NextResponse, body: unknown, status: 
 export default async function middleware(req: NextRequest) {
   const { response, user } = await updateSession(req);
   const isAuthenticated = Boolean(user);
+  // plan is expected in app_metadata; user_metadata is fallback for legacy identities
   const userPlan = String(user?.app_metadata?.plan ?? user?.user_metadata?.plan ?? "FREE").toUpperCase();
 
   if (protectedPrefixes.some((prefix) => req.nextUrl.pathname.startsWith(prefix)) && !isAuthenticated) {

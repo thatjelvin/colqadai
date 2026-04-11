@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,9 @@ import { Loader2 } from "lucide-react";
 import { useAuthSession } from "@/components/SessionProvider";
 import { signIn, signInWithGoogle } from "@/lib/supabase/auth";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,12 +29,11 @@ export default function LoginPage() {
   }, [status, router]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get("error_description") ?? params.get("error");
-    const registered = params.get("registered");
+    const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
+    const registered = searchParams.get("registered");
 
     if (registered === "1") {
-      const registeredEmail = params.get("email");
+      const registeredEmail = searchParams.get("email");
       if (registeredEmail) {
         setEmail(registeredEmail);
       }
@@ -49,7 +49,7 @@ export default function LoginPage() {
     };
 
     setError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,5 +198,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

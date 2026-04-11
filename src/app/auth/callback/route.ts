@@ -16,6 +16,10 @@ export async function GET(request: Request) {
     }
   }
 
-  const safeNext = /^\/(?!\/)/.test(next) ? next : "/dashboard";
+  const nextUrl = new URL(next, url.origin);
+  const safeNext =
+    nextUrl.origin === url.origin && nextUrl.pathname.startsWith("/")
+      ? `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+      : "/dashboard";
   return NextResponse.redirect(new URL(safeNext, url.origin));
 }

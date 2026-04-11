@@ -84,7 +84,11 @@ export function Sidebar({ user, plan }: SidebarProps) {
   const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
 
   const handleSignOut = async () => {
-    await signOut();
+    const { error } = await signOut();
+    if (error) {
+      console.error("Sign out failed", error);
+      return;
+    }
     router.push("/login");
     router.refresh();
   };

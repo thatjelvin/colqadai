@@ -37,6 +37,7 @@ async function ensureAppUserByEmail(params: {
   email: string;
   name: string | null;
   image: string | null;
+  emailVerified: Date | null;
 }): Promise<User> {
   const existing = await prisma.user.findUnique({
     where: { email: params.email },
@@ -45,9 +46,11 @@ async function ensureAppUserByEmail(params: {
   if (existing) {
     const nextName = params.name ?? existing.name;
     const nextImage = params.image ?? existing.image;
+    const nextEmailVerified = params.emailVerified ?? existing.emailVerified;
     const needsUpdate =
       nextName !== existing.name ||
-      nextImage !== existing.image;
+      nextImage !== existing.image ||
+      nextEmailVerified?.getTime() !== existing.emailVerified?.getTime();
 
     if (!needsUpdate) {
       return existing;
@@ -58,6 +61,7 @@ async function ensureAppUserByEmail(params: {
       data: {
         name: nextName,
         image: nextImage,
+        emailVerified: nextEmailVerified,
       },
     });
   }
@@ -67,6 +71,7 @@ async function ensureAppUserByEmail(params: {
       email: params.email,
       name: params.name,
       image: params.image,
+      emailVerified: params.emailVerified,
     },
   });
 }
@@ -86,6 +91,9 @@ export async function getServerSession(): Promise<AppSession | null> {
     email: supabaseUser.email,
     name: pickDisplayName(supabaseUser),
     image: pickAvatar(supabaseUser),
+    emailVerified: supabaseUser.email_confirmed_at
+      ? new Date(supabaseUser.email_confirmed_at)
+      : null,
   });
 
   return {

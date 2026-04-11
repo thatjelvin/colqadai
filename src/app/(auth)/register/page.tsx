@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,9 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status } = useAuthSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -37,8 +38,7 @@ export default function RegisterPage() {
   }, [status, router]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get("error_description") ?? params.get("error");
+    const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
     if (!oauthError) return;
 
     const oauthErrorMap: Record<string, string> = {
@@ -47,7 +47,7 @@ export default function RegisterPage() {
     };
 
     setServerError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,5 +235,13 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }
