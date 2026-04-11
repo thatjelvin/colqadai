@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
 import Link from "next/link";
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, Clock, Target, Play } from "lucide-react";
 
 export default async function ReviewPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
 
   if (!session?.user?.id) {
     redirect("/login");

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { gemini } from "@/lib/gemini";
 import { z } from "zod";
@@ -15,7 +14,7 @@ const chatSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -142,7 +141,7 @@ Be clear, rigorous, and concise.`;
     }
 
     // Build message history
-    const contents: any[] = chatSession.messages.map((m) => ({
+    const contents = chatSession.messages.map((m) => ({
       role: m.role === "USER" ? "user" : "model",
       parts: [{ text: m.content }],
     }));

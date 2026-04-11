@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { useAuthSession } from "@/components/SessionProvider";
+import { signInWithGoogle, signUp } from "@/lib/supabase/auth";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -18,10 +19,10 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { status } = useAuthSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,16 +38,12 @@ export default function RegisterPage() {
   }, [status, router]);
 
   useEffect(() => {
-    const oauthError = searchParams.get("error");
+    const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
     if (!oauthError) return;
 
     const oauthErrorMap: Record<string, string> = {
-      OAuthSignin: "Could not start Google sign-in. Please try again.",
-      OAuthCallback: "Google sign-in callback failed. Please try again.",
-      OAuthCreateAccount: "Unable to create account from Google profile.",
-      OAuthAccountNotLinked: "This email is already linked to a password account. Sign in with email and password.",
-      AccessDenied: "Access denied during Google sign-in.",
-      Callback: "Authentication callback failed. Please try again.",
+      access_denied: "Access denied during Google sign-in.",
+      server_error: "Google sign-in callback failed. Please try again.",
     };
 
     setServerError(oauthErrorMap[oauthError] ?? "Google sign-in failed. Please try again.");
@@ -74,39 +71,16 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
+      const { data, error } = await signUp(email.trim(), password, name.trim());
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        const detail = data.requestId ? ` (request ${data.requestId})` : "";
-        setServerError(`${data.error || "Failed to create account"}${detail}`);
+      if (error) {
+        setServerError(error.message || "Failed to create account");
       } else {
-        let signInResult = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
-
-        // One retry helps with transient propagation/race after account creation.
-        if (signInResult?.error) {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          signInResult = await signIn("credentials", {
-            email,
-            password,
-            redirect: false,
-          });
-        }
-
-        if (signInResult?.error) {
-          router.push(`/login?registered=1&email=${encodeURIComponent(email)}`);
-        } else {
+        if (data.session) {
           router.push("/dashboard");
           router.refresh();
+        } else {
+          router.push(`/login?registered=1&email=${encodeURIComponent(email)}`);
         }
       }
     } catch {
@@ -121,7 +95,11 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await signIn("google", { callbackUrl: "/dashboard" });
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setServerError(error.message || "Google sign-in could not be started. Please try again.");
+        setIsLoading(false);
+      }
     } catch {
       setServerError("Google sign-in could not be started. Please try again.");
       setIsLoading(false);
@@ -257,5 +235,13 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

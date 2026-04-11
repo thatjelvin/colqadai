@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/auth";
 import { z } from "zod";
 import { LearningMethod } from "@prisma/client";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { gradeAnswer, classifyError, generateElaborationPrompt } from "@/lib/learning/aiClassifiers";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
@@ -19,7 +18,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

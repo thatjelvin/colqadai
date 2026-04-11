@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import {
@@ -18,10 +18,10 @@ import {
   X,
   Lock,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plan } from "@prisma/client";
+import { signOut } from "@/lib/supabase/auth";
 
 interface SidebarProps {
   user: {
@@ -78,9 +78,20 @@ const navItems = [
 ];
 
 export function Sidebar({ user, plan }: SidebarProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      console.error("Sign out failed", error);
+      return;
+    }
+    router.push("/login");
+    router.refresh();
+  };
 
   return (
     <>
@@ -164,7 +175,7 @@ export function Sidebar({ user, plan }: SidebarProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={handleSignOut}
               className="w-full justify-start text-muted-foreground hover:text-foreground"
             >
               <LogOut className="mr-2 h-4 w-4" />

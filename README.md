@@ -10,7 +10,7 @@
 | **Language** | TypeScript |
 | **Database** | PostgreSQL via Supabase |
 | **ORM** | Prisma |
-| **Auth** | NextAuth.js (Google OAuth + Credentials) |
+| **Auth** | Supabase Auth (Google OAuth + Email/Password) |
 | **AI** | Anthropic Claude (AI Tutor) |
 | **Email** | Resend |
 | **Payments** | Paddle |
@@ -106,12 +106,12 @@ colqad/
 │       └── supabase/    # Supabase client
 ├── __tests__/           # Unit tests
 ├── sentry.*.config.ts   # Sentry configuration
-└── middleware.ts        # NextAuth middleware
+└── middleware.ts        # Supabase auth middleware
 ```
 
 ## Architecture Notes
 
-- **Authentication**: Currently uses NextAuth.js. An abstraction layer (`lib/auth/AuthService.ts`) is in place to support swapping to Auth0 or Clerk.
+- **Authentication**: Uses Supabase Auth for Google OAuth and email/password sessions.
 - **Analytics**: An abstraction layer (`lib/analytics/AnalyticsService.ts`) supports future integration with PostHog or Datadog.
 - **Payments**: All payment logic goes through Paddle (`lib/payments/paddle.ts`).
 - **Vector Database**: Not currently integrated. Can be added later if needed.

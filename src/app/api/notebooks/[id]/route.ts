@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type Context = { params: { id: string } };
 
 async function getUserId() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   return session?.user?.id ?? null;
 }
 
