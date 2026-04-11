@@ -11,7 +11,13 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useAuthSession } from "@/components/SessionProvider";
-import { signInWithGoogle, signUp } from "@/lib/supabase/auth";
+import {
+  GOOGLE_PROVIDER_DISABLED_MESSAGE,
+  getAuthErrorMessage,
+  isGoogleOAuthEnabled,
+  signInWithGoogle,
+  signUp,
+} from "@/lib/supabase/auth";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -29,6 +35,7 @@ function RegisterPageContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const isGoogleEnabled = isGoogleOAuthEnabled();
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -74,7 +81,7 @@ function RegisterPageContent() {
       const { data, error } = await signUp(email.trim(), password, name.trim());
 
       if (error) {
-        setServerError(error.message || "Failed to create account");
+        setServerError(getAuthErrorMessage(error, "Failed to create account"));
       } else {
         if (data.session) {
           router.push("/dashboard");
@@ -91,13 +98,18 @@ function RegisterPageContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isGoogleEnabled) {
+      setServerError(GOOGLE_PROVIDER_DISABLED_MESSAGE);
+      return;
+    }
+
     setServerError("");
     setIsLoading(true);
 
     try {
       const { error } = await signInWithGoogle();
       if (error) {
-        setServerError(error.message || "Google sign-in could not be started. Please try again.");
+        setServerError(getAuthErrorMessage(error, "Google sign-in could not be started. Please try again."));
         setIsLoading(false);
       }
     } catch {
@@ -129,7 +141,7 @@ function RegisterPageContent() {
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={isLoading || !isGoogleEnabled}
             >
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -151,6 +163,11 @@ function RegisterPageContent() {
               </svg>
               Continue with Google
             </Button>
+            {!isGoogleEnabled && (
+              <p className="text-xs text-muted-foreground text-center">
+                {GOOGLE_PROVIDER_DISABLED_MESSAGE}
+              </p>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

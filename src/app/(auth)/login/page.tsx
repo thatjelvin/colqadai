@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { useAuthSession } from "@/components/SessionProvider";
-import { signIn, signInWithGoogle } from "@/lib/supabase/auth";
+import {
+  GOOGLE_PROVIDER_DISABLED_MESSAGE,
+  getAuthErrorMessage,
+  isGoogleOAuthEnabled,
+  signIn,
+  signInWithGoogle,
+} from "@/lib/supabase/auth";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -20,6 +26,7 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const isGoogleEnabled = isGoogleOAuthEnabled();
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -73,13 +80,18 @@ function LoginPageContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isGoogleEnabled) {
+      setError(GOOGLE_PROVIDER_DISABLED_MESSAGE);
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
       const { error: oauthError } = await signInWithGoogle();
       if (oauthError) {
-        setError(oauthError.message || "Google sign-in could not be started. Please try again.");
+        setError(getAuthErrorMessage(oauthError, "Google sign-in could not be started. Please try again."));
         setIsLoading(false);
       }
     } catch {
@@ -111,7 +123,7 @@ function LoginPageContent() {
               variant="outline"
               className="w-full"
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={isLoading || !isGoogleEnabled}
             >
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -133,6 +145,11 @@ function LoginPageContent() {
               </svg>
               Continue with Google
             </Button>
+            {!isGoogleEnabled && (
+              <p className="text-xs text-muted-foreground text-center">
+                {GOOGLE_PROVIDER_DISABLED_MESSAGE}
+              </p>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
