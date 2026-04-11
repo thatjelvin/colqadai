@@ -13,36 +13,42 @@ model User {
   name          String?
   image         String?
   emailVerified DateTime?
-  passwordHash  String?   // null for OAuth users
+  passwordHash  String? // null for OAuth users
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  grade         String?
-  course        String?
-  age           Int?
-  source        String?
-  plan          Plan      @default(FREE)
-  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  grade                        String?
+  course                       String?
+  age                          Int?
+  source                       String?
+  plan                         Plan               @default(FREE)
+  subscriptionStatus           SubscriptionStatus @default(INACTIVE)
   subscriptionCurrentPeriodEnd DateTime?
-  paddleCustomerId String?
-  paddleSubscriptionId String?
-  paddlePriceId  String?
-  tier          Tier      @default(FREE)
+  paddleCustomerId             String?
+  paddleSubscriptionId         String?
+  paddlePriceId                String?
+  tier                         Tier               @default(FREE)
+  referralCode                 String?            @unique
+  referralPromptedAt           DateTime?
+  proUntil                     DateTime?
+  referredById                 String?
+  referredBy                   User?              @relation("Referral", fields: [referredById], references: [id])
+  referrals                    User[]             @relation("Referral")
 
-  accounts      Account[]
-  sessions      Session[]
-  userProblems  UserProblem[]
-  attempts      ProblemAttempt[]
-  reflections   Reflection[]
+  accounts              Account[]
+  sessions              Session[]
+  userProblems          UserProblem[]
+  attempts              ProblemAttempt[]
+  reflections           Reflection[]
   workedExampleSessions WorkedExampleSession[]
-  learningAnalytics LearningAnalytics[]
-  chatSessions  ChatSession[]
-  usageEvents   UsageEvent[]
-  notebooks    Notebook[]
-  notebookDocuments NotebookDocument[]
-  notebookChunks NotebookChunk[]
-  notebookSummaries NotebookSummary[]
-  notebookConcepts NotebookConcept[]
+  learningAnalytics     LearningAnalytics[]
+  chatSessions          ChatSession[]
+  usageEvents           UsageEvent[]
+  notebooks             Notebook[]
+  notebookDocuments     NotebookDocument[]
+  notebookChunks        NotebookChunk[]
+  notebookSummaries     NotebookSummary[]
+  notebookConcepts      NotebookConcept[]
 }
 
 model Account {
@@ -89,47 +95,47 @@ model Topic {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
-  parent   Topic?   @relation("TopicHierarchy", fields: [parentId], references: [id])
-  children Topic[]  @relation("TopicHierarchy")
+  parent   Topic?    @relation("TopicHierarchy", fields: [parentId], references: [id])
+  children Topic[]   @relation("TopicHierarchy")
   problems Problem[]
 }
 
 model Problem {
-  id          String      @id @default(cuid())
-  topicId     String
-  title       String
-  body        String      // LaTeX problem statement
-  solution    String      // LaTeX solution
-  topicTag    String?     @map("topic_tag")
-  difficulty  Difficulty
-  createdAt   DateTime    @default(now())
+  id         String     @id @default(cuid())
+  topicId    String
+  title      String
+  body       String // LaTeX problem statement
+  solution   String // LaTeX solution
+  topicTag   String?    @map("topic_tag")
+  difficulty Difficulty
+  createdAt  DateTime   @default(now())
 
-  topic       Topic       @relation(fields: [topicId], references: [id])
-  userProblems UserProblem[]
-  attempts    ProblemAttempt[]
-  reflections Reflection[]
+  topic                 Topic                  @relation(fields: [topicId], references: [id])
+  userProblems          UserProblem[]
+  attempts              ProblemAttempt[]
+  reflections           Reflection[]
   workedExampleSessions WorkedExampleSession[]
-  chatSessions ChatSession[]
+  chatSessions          ChatSession[]
 }
 
 model UserProblem {
-  id              String        @id @default(cuid())
-  userId          String
-  problemId       String
-  easeFactor      Float         @default(2.5)
-  interval        Int           @default(1)      // days until next review
-  repetitions     Int           @default(0)      // consecutive successful reviews
-  nextReviewAt    DateTime
-  lastReviewedAt  DateTime?
-  timeTaken       Int?          // time taken in seconds
-  attemptsBeforeCorrect Int     @default(0) @map("attempts_before_correct")
-  status          ReviewStatus  @default(NEW)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                    String       @id @default(cuid())
+  userId                String
+  problemId             String
+  easeFactor            Float        @default(2.5)
+  interval              Int          @default(1) // days until next review
+  repetitions           Int          @default(0) // consecutive successful reviews
+  nextReviewAt          DateTime
+  lastReviewedAt        DateTime?
+  timeTaken             Int? // time taken in seconds
+  attemptsBeforeCorrect Int          @default(0) @map("attempts_before_correct")
+  status                ReviewStatus @default(NEW)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  attempts ProblemAttempt[]
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem               Problem                @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  attempts              ProblemAttempt[]
   workedExampleSessions WorkedExampleSession[]
 
   @@unique([userId, problemId])
@@ -159,16 +165,16 @@ model ProblemAttempt {
 }
 
 model Reflection {
-  id         String   @id @default(cuid())
-  userId     String
-  problemId  String
-  attemptId  String?
-  prompt     String   @db.Text
-  response   String   @db.Text
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  problemId String
+  attemptId String?
+  prompt    String   @db.Text
+  response  String   @db.Text
+  createdAt DateTime @default(now())
 
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem Problem        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem         @relation(fields: [problemId], references: [id], onDelete: Cascade)
   attempt ProblemAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
@@ -180,7 +186,7 @@ model WorkedExampleSession {
   problemId            String
   userProblemId        String?
   studyDurationSeconds Int      @default(0) @map("study_duration_seconds")
-  generateAttempt      String?  @db.Text @map("generate_attempt")
+  generateAttempt      String?  @map("generate_attempt") @db.Text
   selfAssessedMatch    Boolean? @map("self_assessed_match")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -221,7 +227,7 @@ model LearningAnalytics {
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String
-  problemId String?  // nullable - chat can be about a problem or freeform
+  problemId String? // nullable - chat can be about a problem or freeform
   title     String?
   createdAt DateTime @default(now())
 
@@ -231,23 +237,23 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   sessionId String
   role      MessageRole
-  content   String   @db.Text
-  createdAt DateTime @default(now())
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model UsageEvent {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   userId    String
   feature   UsageFeature
   bucket    DateTime // UTC start-of-day bucket
-  count     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  count     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -288,8 +294,8 @@ model NotebookDocument {
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
-  notebook Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook Notebook        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   chunks   NotebookChunk[]
 
   @@index([notebookId, createdAt])
@@ -297,15 +303,15 @@ model NotebookDocument {
 }
 
 model NotebookChunk {
-  id         String   @id @default(cuid())
-  notebookId String
-  documentId String
-  userId     String
-  chunkIndex Int
-  content    String   @db.Text
+  id          String   @id @default(cuid())
+  notebookId  String
+  documentId  String
+  userId      String
+  chunkIndex  Int
+  content     String   @db.Text
   contentHash String
-  charCount  Int      @default(0)
-  createdAt  DateTime @default(now())
+  charCount   Int      @default(0)
+  createdAt   DateTime @default(now())
 
   notebook Notebook         @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   document NotebookDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
@@ -317,14 +323,14 @@ model NotebookChunk {
 }
 
 model NotebookSummary {
-  id            String   @id @default(cuid())
-  notebookId    String
-  userId        String
-  summary       String   @db.Text
-  keyPoints     Json?
+  id             String   @id @default(cuid())
+  notebookId     String
+  userId         String
+  summary        String   @db.Text
+  keyPoints      Json?
   sourceChunkIds Json?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -334,15 +340,15 @@ model NotebookSummary {
 }
 
 model NotebookConcept {
-  id             String   @id @default(cuid())
-  notebookId     String
-  userId         String
-  name           String
-  explanation    String   @db.Text
+  id               String   @id @default(cuid())
+  notebookId       String
+  userId           String
+  name             String
+  explanation      String   @db.Text
   evidenceChunkIds Json?
-  confidence     Float?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  confidence       Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -421,4 +427,12 @@ enum NotebookIngestionStatus {
   PENDING
   PROCESSED
   FAILED
+}
+
+model Referral {
+  id             String   @id @default(cuid())
+  referrerId     String
+  referredUserId String   @unique
+  createdAt      DateTime @default(now())
+  rewarded       Boolean  @default(false)
 }
