@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StatsRow } from "@/components/StatsRow";
 import { ProblemCard } from "@/components/ProblemCard";
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, BookOpen, AlertTriangle } from "lucide-react";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
 
   if (!session?.user?.id) {
     redirect("/login");

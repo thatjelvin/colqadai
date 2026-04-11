@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ interface TopicPageProps {
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
 
   if (!session?.user?.id) {
     redirect("/login");

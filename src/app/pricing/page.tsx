@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { PricingCards } from "@/components/PricingCards";
 
 export default async function PricingPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   const usage = session?.user?.id ? await getUsageSummary(session.user.id) : null;
 
   return (

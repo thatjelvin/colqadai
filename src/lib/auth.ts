@@ -1,115 +1,99 @@
-import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
-import { Adapter } from "next-auth/adapters";
-import { prisma } from "./prisma";
-import { Plan, SubscriptionStatus } from "@prisma/client";
-import { env } from "@/lib/env";
+import { Plan, SubscriptionStatus, type User } from "@prisma/client";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
-const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as Adapter,
-  trustHost: true,
-  useSecureCookies: process.env.NODE_ENV === "production",
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-  },
-  providers: [
-    GoogleProvider({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    }),
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        try {
-          const parsed = credentialsSchema.safeParse(credentials);
-          if (!parsed.success) {
-            console.warn("[auth][credentials] validation failed");
-            return null;
-          }
-
-          const { email, password } = parsed.data;
-
-          const user = await prisma.user.findUnique({
-            where: { email },
-          });
-
-          if (!user || !user.passwordHash) {
-            console.warn("[auth][credentials] user not found or missing password hash", {
-              email,
-            });
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(password, user.passwordHash);
-
-          if (!isValid) {
-            console.warn("[auth][credentials] invalid password", { email });
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-          };
-        } catch (error) {
-          console.error("[auth][credentials] authorize error", error);
-          return null;
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-
-      if (token.id) {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { plan: true, subscriptionStatus: true },
-          });
-
-          token.plan = dbUser?.plan ?? Plan.FREE;
-          token.subscriptionStatus = dbUser?.subscriptionStatus ?? SubscriptionStatus.INACTIVE;
-        } catch (error) {
-          console.error("[auth][jwt] failed to hydrate token from database", error);
-          token.plan = Plan.FREE;
-          token.subscriptionStatus = SubscriptionStatus.INACTIVE;
-        }
-      }
-
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user && typeof token.id === "string") {
-        session.user.id = token.id as string;
-        session.user.plan = (token.plan as Plan | undefined) ?? Plan.FREE;
-        session.user.subscriptionStatus =
-          (token.subscriptionStatus as SubscriptionStatus | undefined) ?? SubscriptionStatus.INACTIVE;
-      } else {
-        console.warn("[auth][session] token missing id; returning unauthenticated session shape");
-      }
-      return session;
-    },
-  },
+export type AppSession = {
+  user: {
+    id: string;
+    email: string | null;
+    name: string | null;
+    image: string | null;
+    plan: Plan;
+    subscriptionStatus: SubscriptionStatus;
+  };
 };
+
+function pickDisplayName(user: { user_metadata?: Record<string, unknown> }) {
+  const fullName = user.user_metadata?.full_name;
+  if (typeof fullName === "string" && fullName.trim()) return fullName.trim();
+
+  const name = user.user_metadata?.name;
+  if (typeof name === "string" && name.trim()) return name.trim();
+
+  return null;
+}
+
+function pickAvatar(user: { user_metadata?: Record<string, unknown> }) {
+  const avatar = user.user_metadata?.avatar_url;
+  if (typeof avatar === "string" && avatar.trim()) return avatar;
+
+  const picture = user.user_metadata?.picture;
+  if (typeof picture === "string" && picture.trim()) return picture;
+
+  return null;
+}
+
+async function ensureAppUserByEmail(params: {
+  email: string;
+  name: string | null;
+  image: string | null;
+}): Promise<User> {
+  const existing = await prisma.user.findUnique({
+    where: { email: params.email },
+  });
+
+  if (existing) {
+    const needsUpdate =
+      (params.name && !existing.name) ||
+      (params.image && !existing.image);
+
+    if (!needsUpdate) {
+      return existing;
+    }
+
+    return prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        name: existing.name ?? params.name,
+        image: existing.image ?? params.image,
+      },
+    });
+  }
+
+  return prisma.user.create({
+    data: {
+      email: params.email,
+      name: params.name,
+      image: params.image,
+    },
+  });
+}
+
+export async function getServerSession(): Promise<AppSession | null> {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user: supabaseUser },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !supabaseUser?.email) {
+    return null;
+  }
+
+  const appUser = await ensureAppUserByEmail({
+    email: supabaseUser.email,
+    name: pickDisplayName(supabaseUser),
+    image: pickAvatar(supabaseUser),
+  });
+
+  return {
+    user: {
+      id: appUser.id,
+      email: appUser.email,
+      name: appUser.name,
+      image: appUser.image,
+      plan: appUser.plan,
+      subscriptionStatus: appUser.subscriptionStatus,
+    },
+  };
+}

@@ -4,15 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  
-  // NextAuth
-  NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required"),
-  NEXTAUTH_URL: z.string().min(1, "NEXTAUTH_URL is required"),
-  
-  // Google OAuth
-  GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
-  GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required"),
-  
+
   // Gemini
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
   
