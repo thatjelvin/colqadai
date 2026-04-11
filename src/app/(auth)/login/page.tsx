@@ -11,8 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { useAuthSession } from "@/components/SessionProvider";
 import {
+  GOOGLE_PROVIDER_DISABLED_MESSAGE,
   getAuthErrorMessage,
-  getGoogleDisabledMessage,
   isGoogleOAuthEnabled,
   signIn,
   signInWithGoogle,
@@ -81,7 +81,7 @@ function LoginPageContent() {
 
   const handleGoogleSignIn = async () => {
     if (!isGoogleEnabled) {
-      setError(getGoogleDisabledMessage());
+      setError(GOOGLE_PROVIDER_DISABLED_MESSAGE);
       return;
     }
 
@@ -147,7 +147,7 @@ function LoginPageContent() {
             </Button>
             {!isGoogleEnabled && (
               <p className="text-xs text-muted-foreground text-center">
-                Google sign-in is currently disabled for this environment.
+                {GOOGLE_PROVIDER_DISABLED_MESSAGE}
               </p>
             )}
 

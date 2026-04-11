@@ -3,7 +3,7 @@
 import type { AuthError } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const GOOGLE_PROVIDER_DISABLED_MESSAGE =
+export const GOOGLE_PROVIDER_DISABLED_MESSAGE =
   "Google sign-in is not enabled right now. Continue with email and password or enable the Google provider in Supabase Auth settings.";
 
 const EMAIL_PROVIDER_DISABLED_MESSAGE =
@@ -75,9 +75,6 @@ export async function signInWithGoogle() {
   return result;
 }
 
-export function getGoogleDisabledMessage() {
-  return GOOGLE_PROVIDER_DISABLED_MESSAGE;
-}
 
 export async function signOut() {
   const supabase = getSupabaseBrowserClient();
