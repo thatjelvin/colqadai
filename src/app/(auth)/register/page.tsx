@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useAuthSession } from "@/components/SessionProvider";
 import {
   getAuthErrorMessage,
+  getGoogleDisabledMessage,
   isGoogleOAuthEnabled,
   signInWithGoogle,
   signUp,
@@ -97,6 +98,11 @@ function RegisterPageContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isGoogleEnabled) {
+      setServerError(getGoogleDisabledMessage());
+      return;
+    }
+
     setServerError("");
     setIsLoading(true);
 

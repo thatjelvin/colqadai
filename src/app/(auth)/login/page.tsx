@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { useAuthSession } from "@/components/SessionProvider";
-import { getAuthErrorMessage, isGoogleOAuthEnabled, signIn, signInWithGoogle } from "@/lib/supabase/auth";
+import {
+  getAuthErrorMessage,
+  getGoogleDisabledMessage,
+  isGoogleOAuthEnabled,
+  signIn,
+  signInWithGoogle,
+} from "@/lib/supabase/auth";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -74,6 +80,11 @@ function LoginPageContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isGoogleEnabled) {
+      setError(getGoogleDisabledMessage());
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 

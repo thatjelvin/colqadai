@@ -11,7 +11,11 @@ const EMAIL_PROVIDER_DISABLED_MESSAGE =
 
 function isProviderDisabledError(error: AuthError | null) {
   const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("unsupported provider") || message.includes("provider is not enabled");
+  return (
+    error?.code === "validation_failed" &&
+    error?.status === 400 &&
+    (message.includes("unsupported provider") || message.includes("provider is not enabled"))
+  );
 }
 
 function toAuthError(message: string): AuthError {
@@ -56,10 +60,6 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signInWithGoogle() {
-  if (!isGoogleOAuthEnabled()) {
-    return { data: { provider: "google", url: null }, error: toAuthError(GOOGLE_PROVIDER_DISABLED_MESSAGE) };
-  }
-
   const supabase = getSupabaseBrowserClient();
   const result = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -73,6 +73,10 @@ export async function signInWithGoogle() {
   }
 
   return result;
+}
+
+export function getGoogleDisabledMessage() {
+  return GOOGLE_PROVIDER_DISABLED_MESSAGE;
 }
 
 export async function signOut() {
