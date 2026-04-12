@@ -16,10 +16,12 @@ export default function OnboardingPage() {
     source: "",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/user/onboarding", {
@@ -33,9 +35,12 @@ export default function OnboardingPage() {
 
       if (res.ok) {
         router.push("/dashboard");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error ?? "Failed to save your details. Please try again.");
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setError("Something went wrong. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -93,7 +98,8 @@ export default function OnboardingPage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-col items-start gap-3">
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? "Saving..." : "Start Learning"}
             </Button>

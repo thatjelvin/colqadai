@@ -21,7 +21,7 @@ export default clerkMiddleware(async (auth, request) => {
   const { pathname } = request.nextUrl;
 
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    auth().protect();
   }
 
   // Rate limit chat API routes for authenticated users
