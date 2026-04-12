@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 
 const createNotebookSchema = z.object({
   title: z.string().min(1).max(120),
@@ -11,16 +11,14 @@ const createNotebookSchema = z.object({
 
 export async function GET() {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const notebooks = await prisma.notebook.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       _count: {
         select: {
@@ -57,13 +55,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const parsed = createNotebookSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -72,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   const notebook = await prisma.notebook.create({
     data: {
-      userId: session.user.id,
+      userId,
       title: parsed.data.title.trim(),
       description: parsed.data.description?.trim() || null,
     },

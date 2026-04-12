@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 
 const reflectionSchema = z.object({
   problemId: z.string().min(1),
@@ -13,17 +13,14 @@ const reflectionSchema = z.object({
 
 export async function GET() {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const reflections = await prisma.reflection.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     include: {
       problem: {
         include: { topic: true },
@@ -38,14 +35,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const parsed = reflectionSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -56,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   // Verify the problem belongs to the user
   const userProblem = await prisma.userProblem.findUnique({
-    where: { userId_problemId: { userId: session.user.id, problemId } },
+    where: { userId_problemId: { userId: userId, problemId } },
   });
 
   if (!userProblem) {
@@ -69,14 +63,14 @@ export async function POST(req: NextRequest) {
       where: { id: attemptId },
       select: { userId: true },
     });
-    if (!defaultAttempt || defaultAttempt.userId !== session.user.id) {
+    if (!defaultAttempt || defaultAttempt.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized access to attempt" }, { status: 403 });
     }
   }
 
   const reflection = await prisma.reflection.create({
     data: {
-      userId: session.user.id,
+      userId: userId,
       problemId,
       attemptId,
       prompt,

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { prisma } from "@/lib/prisma";
 import { UsageFeature } from "@prisma/client";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage } from "@/lib/billing/usage";
 
 export async function POST(
@@ -11,14 +11,11 @@ export async function POST(
 ) {
   try {
     const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!clerkUserId) {
+      return new Response("Unauthorized", { status: 401 });
     }
+    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+    const userId = dbUser.id;
 
     const problemId = params.id;
 
@@ -26,7 +23,7 @@ export async function POST(
     const existing = await prisma.userProblem.findUnique({
       where: {
         userId_problemId: {
-          userId: session.user.id,
+          userId,
           problemId,
         },
       },
@@ -36,7 +33,7 @@ export async function POST(
       return NextResponse.json(existing);
     }
 
-    await consumeUsage(session.user.id, UsageFeature.PROBLEM_START, 1);
+    await consumeUsage(userId, UsageFeature.PROBLEM_START, 1);
 
     // Create new UserProblem record
     const now = new Date();
@@ -45,7 +42,7 @@ export async function POST(
 
     const userProblem = await prisma.userProblem.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         problemId,
         easeFactor: 2.5,
         interval: 1,

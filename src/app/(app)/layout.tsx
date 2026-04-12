@@ -1,52 +1,37 @@
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  try {
-    const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { redirect("/sign-in"); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { redirect("/sign-in"); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-    if (!session?.user?.id) {
-      redirect("/sign-in");
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!dbUser) {
-      console.warn("[auth][layout] session user not found in database", {
-        userId: session.user.id,
-      });
-      redirect("/sign-in");
-    }
-
-    if (!dbUser.grade) {
-      redirect("/onboarding");
-    }
-
-    return (
-      <div className="min-h-screen bg-background">
-        <Sidebar user={session.user} plan={dbUser.plan} />
-        <main className="lg:pl-64">
-          <div className="min-h-screen">
-            {children}
-          </div>
-        </main>
-      </div>
-    );
-  } catch (error) {
-    console.error("[auth][layout] failed to resolve authenticated layout", error);
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
     redirect("/sign-in");
   }
+
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+
+  if (!dbUser.grade) {
+    redirect("/onboarding");
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar
+        user={{
+          name: dbUser.name,
+          email: dbUser.email,
+          image: dbUser.image,
+        }}
+        plan={dbUser.plan}
+      />
+      <main className="lg:pl-64">
+        <div className="min-h-screen">{children}</div>
+      </main>
+    </div>
+  );
 }

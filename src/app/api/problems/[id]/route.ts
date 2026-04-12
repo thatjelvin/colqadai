@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 
 export async function GET(
   req: NextRequest,
@@ -9,14 +9,10 @@ export async function GET(
 ) {
   try {
     const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!clerkUserId) {
+      return new Response("Unauthorized", { status: 401 });
     }
+    await getOrCreateUserForClerkId(clerkUserId);
 
     const problem = await prisma.problem.findUnique({
       where: { id: params.id },

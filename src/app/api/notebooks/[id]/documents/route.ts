@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { NotebookSourceType } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import {
   chunkText,
   hashContent,
@@ -32,16 +32,14 @@ type Context = { params: { id: string } };
 
 export async function GET(_: NextRequest, { params }: Context) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const notebook = await prisma.notebook.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId },
     select: { id: true },
   });
 
@@ -50,7 +48,7 @@ export async function GET(_: NextRequest, { params }: Context) {
   }
 
   const documents = await prisma.notebookDocument.findMany({
-    where: { notebookId: notebook.id, userId: session.user.id },
+    where: { notebookId: notebook.id, userId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -59,16 +57,14 @@ export async function GET(_: NextRequest, { params }: Context) {
 
 export async function POST(req: NextRequest, { params }: Context) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const notebook = await prisma.notebook.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId },
     select: { id: true },
   });
 
@@ -100,7 +96,7 @@ export async function POST(req: NextRequest, { params }: Context) {
     const created = await tx.notebookDocument.create({
       data: {
         notebookId: notebook.id,
-        userId: session.user.id,
+        userId,
         title: parsed.data.title.trim(),
         sourceType,
         mimeType:
@@ -126,7 +122,7 @@ export async function POST(req: NextRequest, { params }: Context) {
         data: chunks.map((content, chunkIndex) => ({
           notebookId: notebook.id,
           documentId: created.id,
-          userId: session.user.id,
+          userId,
           chunkIndex,
           content,
           contentHash: hashContent(content),

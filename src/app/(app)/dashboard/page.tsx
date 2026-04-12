@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import { StatsRow } from "@/components/StatsRow";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,19 +16,7 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  // Lazy profile creation
-  let dbUser = await prisma.user.findUnique({
-    where: { clerkUserId: userId },
-  });
-
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        clerkUserId: userId,
-        email: `${userId}@placeholder.com`, // Email is strictly required by schema, handle missing email case
-      },
-    });
-  }
+  const dbUser = await getOrCreateUserForClerkId(userId);
 
   const dbUserId = dbUser.id;
 

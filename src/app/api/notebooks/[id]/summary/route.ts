@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import {
   generateConcepts,
   generateGroundedSummary,
@@ -12,16 +12,14 @@ type Context = { params: { id: string } };
 
 export async function POST(_: Request, { params }: Context) {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   const notebook = await prisma.notebook.findFirst({
-    where: { id: params.id, userId: session.user.id },
+    where: { id: params.id, userId },
     select: { id: true },
   });
 
@@ -32,7 +30,7 @@ export async function POST(_: Request, { params }: Context) {
   const chunks = await prisma.notebookChunk.findMany({
     where: {
       notebookId: notebook.id,
-      userId: session.user.id,
+      userId: userId,
     },
     orderBy: [{ documentId: "asc" }, { chunkIndex: "asc" }],
     select: {
@@ -53,21 +51,21 @@ export async function POST(_: Request, { params }: Context) {
     await tx.notebookSummary.deleteMany({
       where: {
         notebookId: notebook.id,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
     await tx.notebookConcept.deleteMany({
       where: {
         notebookId: notebook.id,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
     const summary = await tx.notebookSummary.create({
       data: {
         notebookId: notebook.id,
-        userId: session.user.id,
+        userId: userId,
         summary: generatedSummary.summary,
         keyPoints: generatedSummary.keyPoints,
         sourceChunkIds: generatedSummary.sourceChunkIds,
@@ -78,7 +76,7 @@ export async function POST(_: Request, { params }: Context) {
       await tx.notebookConcept.createMany({
         data: generatedConcepts.map((concept) => ({
           notebookId: notebook.id,
-          userId: session.user.id,
+          userId: userId,
           name: concept.name,
           explanation: concept.explanation,
           evidenceChunkIds: concept.evidenceChunkIds,

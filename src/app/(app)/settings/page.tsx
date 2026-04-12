@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -9,33 +8,11 @@ import { SettingsForm } from "./SettingsForm";
 
 export default async function SettingsPage() {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { redirect("/sign-in"); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { redirect("/sign-in"); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-  if (!session?.user?.id) {
+  if (!clerkUserId) {
     redirect("/sign-in");
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      grade: true,
-      course: true,
-      age: true,
-      plan: true,
-      subscriptionStatus: true,
-      createdAt: true,
-    },
-  });
-
-  if (!dbUser) {
-    redirect("/sign-in");
-  }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
 
   const planLabel = dbUser.plan === "MAX" ? "MAX" : dbUser.plan === "PRO" ? "PRO" : "FREE";
 

@@ -1,21 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { TopicTree } from "@/components/TopicTree";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 
 export default async function TopicsPage() {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { redirect("/sign-in"); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { redirect("/sign-in"); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-  if (!session?.user?.id) {
+  if (!clerkUserId) {
     redirect("/sign-in");
   }
-
-  const userId = session.user.id;
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const userId = dbUser.id;
 
   // Get all topics with their subtopics and problems
   const topics = await prisma.topic.findMany({

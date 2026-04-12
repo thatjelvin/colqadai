@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { prisma } from "@/lib/prisma";
 import { gemini } from "@/lib/gemini";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@prisma/client";
@@ -16,14 +16,11 @@ const chatSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!clerkUserId) {
+      return new Response("Unauthorized", { status: 401 });
     }
+    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+    const userId = dbUser.id;
 
     const body = await req.json();
     const parsed = chatSchema.safeParse(body);
@@ -36,7 +33,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { message, sessionId, problemId } = parsed.data;
-    const userId = session.user.id;
 
     await consumeUsage(userId, UsageFeature.CHAT_MESSAGE, 1);
     const billingProfile = await getBillingProfile(userId);

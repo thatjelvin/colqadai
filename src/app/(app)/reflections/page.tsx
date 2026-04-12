@@ -2,23 +2,19 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default async function ReflectionsPage() {
   const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { redirect("/sign-in"); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { redirect("/sign-in"); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-
-  if (!session?.user?.id) {
+  if (!clerkUserId) {
     redirect("/sign-in");
   }
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
 
   const reflections = await prisma.reflection.findMany({
-    where: { userId: session.user.id },
+    where: { userId: dbUser.id },
     include: {
       problem: {
         include: {
