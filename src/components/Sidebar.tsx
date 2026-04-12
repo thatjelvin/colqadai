@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Lock,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,11 @@ const navItems = [
     title: "Review",
     href: "/study",
     icon: Brain,
+  },
+  {
+    title: "AI Tutor",
+    href: "/chat",
+    icon: Bot,
   },
   {
     title: "Reflections",

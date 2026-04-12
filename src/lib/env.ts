@@ -13,8 +13,9 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().min(1, "CLERK_SECRET_KEY is required"),
 
   // Supabase — database only (auth has been migrated to Clerk)
-  NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+  // These are optional; the app uses Prisma (DATABASE_URL) for all data access.
+  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
 
   // Optional services — app works without these configured
   RESEND_API_KEY: z.string().optional(),

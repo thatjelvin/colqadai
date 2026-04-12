@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const onboardingSchema = z.object({
+  name: z.string().optional(),
   grade: z.string().min(1),
   course: z.string().min(1),
   age: z.number().min(1).max(120).optional(),
@@ -25,11 +26,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
     }
 
-    const { grade, course, age, source } = parsed.data;
+    const { name, grade, course, age, source } = parsed.data;
 
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: {
+        ...(name !== undefined && { name }),
         grade,
         course,
         age,
