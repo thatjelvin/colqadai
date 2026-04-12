@@ -1,4 +1,5 @@
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
@@ -9,7 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, Clock, Target, Play } from "lucide-react";
 
 export default async function ReviewPage() {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { redirect("/sign-in"); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { redirect("/sign-in"); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
 
   if (!session?.user?.id) {
     redirect("/sign-in");

@@ -1,9 +1,15 @@
-import { getServerSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { PricingCards } from "@/components/PricingCards";
 
 export default async function PricingPage() {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { redirect("/sign-in"); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { redirect("/sign-in"); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
   const usage = session?.user?.id ? await getUsageSummary(session.user.id) : null;
 
   return (

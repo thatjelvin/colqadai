@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { NotebookSourceType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +31,11 @@ const ingestSchema = z.discriminatedUnion("sourceType", [
 type Context = { params: { id: string } };
 
 export async function GET(_: NextRequest, { params }: Context) {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -53,7 +58,11 @@ export async function GET(_: NextRequest, { params }: Context) {
 }
 
 export async function POST(req: NextRequest, { params }: Context) {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

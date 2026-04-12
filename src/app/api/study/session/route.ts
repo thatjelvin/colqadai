@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { prisma } from "@/lib/prisma";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
@@ -7,7 +8,11 @@ import { upsertLearningAnalytics } from "@/lib/learning/analytics";
 import { LearningMethod } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

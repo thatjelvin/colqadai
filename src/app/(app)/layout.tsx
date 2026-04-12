@@ -1,4 +1,5 @@
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +10,11 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   try {
-    const session = await getServerSession();
+    const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { redirect("/sign-in"); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { redirect("/sign-in"); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
 
     if (!session?.user?.id) {
       redirect("/sign-in");

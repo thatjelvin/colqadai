@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { prisma } from "@/lib/prisma";
 import { createPaddleCheckout } from "@/lib/payments/paddle";
 
@@ -10,7 +11,11 @@ const checkoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { return new Response("Unauthorized", { status: 401 }); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { return new Response("User not found in DB", { status: 404 }); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

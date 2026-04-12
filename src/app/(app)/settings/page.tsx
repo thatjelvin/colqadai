@@ -1,4 +1,5 @@
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,11 @@ import { Separator } from "@/components/ui/separator";
 import { SettingsForm } from "./SettingsForm";
 
 export default async function SettingsPage() {
-  const session = await getServerSession();
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) { redirect("/sign-in"); }
+  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
+  if (!dbUser) { redirect("/sign-in"); }
+  const session = { user: { id: dbUser.id, name: dbUser.name } };
 
   if (!session?.user?.id) {
     redirect("/sign-in");
