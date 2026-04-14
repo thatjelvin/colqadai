@@ -59,6 +59,7 @@ export async function getOrCreateUserForSupabaseId(
       email,
       error,
     });
-    throw new Error(`Failed to create or link user for Supabase id ${supabaseId}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to create or link user for Supabase id ${supabaseId}: ${message}`);
   }
 }
