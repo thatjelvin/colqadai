@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { createServerClient } from "@/lib/supabase/server";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { PricingCards } from "@/components/PricingCards";
 
 export default async function PricingPage() {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) { redirect("/sign-in"); }
-  const dbUser = await prisma.user.findUnique({ where: { clerkUserId } });
-  if (!dbUser) { redirect("/sign-in"); }
-  const session = { user: { id: dbUser.id, name: dbUser.name } };
-  const usage = session?.user?.id ? await getUsageSummary(session.user.id) : null;
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { redirect("/login"); }
+  const dbUser = await prisma.user.findUnique({ where: { supabaseId: user.id } });
+  if (!dbUser) { redirect("/login"); }
+  const usage = await getUsageSummary(dbUser.id);
 
   return (
     <div className="min-h-screen bg-background">

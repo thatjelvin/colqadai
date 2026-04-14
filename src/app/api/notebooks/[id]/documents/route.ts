@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { NotebookSourceType } from "@prisma/client";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import {
   chunkText,
   hashContent,
@@ -31,11 +31,12 @@ const ingestSchema = z.discriminatedUnion("sourceType", [
 type Context = { params: { id: string } };
 
 export async function GET(_: NextRequest, { params }: Context) {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
   const notebook = await prisma.notebook.findFirst({
@@ -56,11 +57,12 @@ export async function GET(_: NextRequest, { params }: Context) {
 }
 
 export async function POST(req: NextRequest, { params }: Context) {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
   const notebook = await prisma.notebook.findFirst({

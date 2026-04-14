@@ -1,17 +1,18 @@
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { createServerClient } from "@/lib/supabase/server";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default async function ReflectionsPage() {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
-    redirect("/sign-in");
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
 
   const reflections = await prisma.reflection.findMany({
     where: { userId: dbUser.id },

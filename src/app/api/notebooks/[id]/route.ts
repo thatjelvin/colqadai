@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 type Context = { params: { id: string } };
 
-async function getUserId() {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
-    return null;
-  }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   return dbUser.id;
 }
 
 export async function GET(_: Request, { params }: Context) {
-  const userId = await getUserId();
+  const userId = await getAuthenticatedUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -46,7 +45,7 @@ export async function GET(_: Request, { params }: Context) {
 }
 
 export async function DELETE(_: Request, { params }: Context) {
-  const userId = await getUserId();
+  const userId = await getAuthenticatedUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

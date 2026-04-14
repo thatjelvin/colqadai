@@ -8,15 +8,10 @@ const envSchema = z.object({
 
   // Gemini
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
-  
-  // Clerk
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required"),
-  CLERK_SECRET_KEY: z.string().min(1, "CLERK_SECRET_KEY is required"),
 
-  // Supabase — database only (auth has been migrated to Clerk)
-  // These are optional; the app uses Prisma (DATABASE_URL) for all data access.
-  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+  // Supabase Auth
+  NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   // Optional services — app works without these configured
@@ -49,19 +44,6 @@ const validated = parsedEnv.data;
 if (!validated.DIRECT_URL) {
   console.warn(
     "DIRECT_URL is not set. Prisma migrations/introspection can fail when DATABASE_URL uses a pooled connection."
-  );
-}
-
-const publishableKeyLooksMock =
-  validated.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("mock") ||
-  validated.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("your-clerk");
-const secretKeyLooksMock =
-  validated.CLERK_SECRET_KEY.includes("mock") ||
-  validated.CLERK_SECRET_KEY.includes("your-clerk");
-
-if (publishableKeyLooksMock || secretKeyLooksMock) {
-  console.warn(
-    "Clerk keys appear to be placeholders/mock values. Sign-in and sign-up will fail until real keys are configured."
   );
 }
 

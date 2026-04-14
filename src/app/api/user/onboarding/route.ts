@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 const onboardingSchema = z.object({
   name: z.string().optional(),
@@ -13,18 +13,15 @@ const onboardingSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const authResult = await auth().catch((error) => {
-    console.error("SIGNUP ERROR: onboarding auth() failed", error);
-    return null;
-  });
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const clerkUserId = authResult?.userId ?? null;
-  if (!clerkUserId) {
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
 
   const body = await req.json().catch((error) => {
-    console.error("SIGNUP ERROR: onboarding request JSON parse failed", error);
+    console.error("AUTH ERROR: onboarding request JSON parse failed", error);
     return null;
   });
 
@@ -37,9 +34,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
   }
 
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId).catch((error) => {
-    console.error("SIGNUP ERROR: onboarding user bootstrap failed", {
-      clerkUserId,
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!).catch((error) => {
+    console.error("AUTH ERROR: onboarding user bootstrap failed", {
+      supabaseId: user.id,
       error,
     });
     return null;
@@ -51,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const { name, grade, course, age, source } = parsed.data;
 
-  const user = await prisma.user
+  const updatedUser = await prisma.user
     .update({
       where: { id: dbUser.id },
       data: {
@@ -63,17 +60,17 @@ export async function POST(req: NextRequest) {
       },
     })
     .catch((error) => {
-      console.error("SIGNUP ERROR: onboarding user update failed", {
-        clerkUserId,
+      console.error("AUTH ERROR: onboarding user update failed", {
+        supabaseId: user.id,
         dbUserId: dbUser.id,
         error,
       });
       return null;
     });
 
-  if (!user) {
+  if (!updatedUser) {
     return NextResponse.json({ error: "Failed to save onboarding details" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, user });
+  return NextResponse.json({ success: true, user: updatedUser });
 }

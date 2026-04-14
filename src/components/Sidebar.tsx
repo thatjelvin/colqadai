@@ -22,8 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plan } from "@prisma/client";
-import { useClerk } from "@clerk/nextjs";
-
+import { createClient } from "@/lib/supabase/client";
 interface SidebarProps {
   user: {
     name?: string | null;
@@ -86,12 +85,13 @@ const navItems = [
 export function Sidebar({ user, plan }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { signOut } = useClerk();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const planLabel = plan === "MAX" ? "MAX" : plan === "PRO" ? "PRO" : "FREE";
 
   const handleSignOut = async () => {
-    await signOut({ redirectUrl: "/sign-in" });
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
     router.refresh();
   };
 

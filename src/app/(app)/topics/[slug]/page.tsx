@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { createServerClient } from "@/lib/supabase/server";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,11 +15,12 @@ interface TopicPageProps {
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
-    redirect("/sign-in");
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
   // Get topic with problems

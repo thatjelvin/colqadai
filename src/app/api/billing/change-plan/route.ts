@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { changeUserPlan } from "@/lib/billing/subscriptions";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { SubscriptionStatus } from "@prisma/client";
 
 const changePlanSchema = z.object({
@@ -11,11 +11,12 @@ const changePlanSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
-    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+    const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
 
     const body = await req.json();
     const parsed = changePlanSchema.safeParse(body);

@@ -1,29 +1,29 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let clerkUserId: string | null = null;
-  try {
-    const authResult = await auth();
-    clerkUserId = authResult.userId;
-  } catch (error) {
-    console.error("SIGNUP ERROR: auth() failed in app layout", error);
-    redirect("/sign-in");
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
   }
 
-  if (!clerkUserId) {
-    redirect("/sign-in");
-  }
-
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId).catch((error) => {
-    console.error("SIGNUP ERROR: failed to resolve app user", {
-      clerkUserId,
+  const dbUser = await getOrCreateUserForSupabaseId(
+    user.id,
+    user.email!,
+    user.user_metadata?.full_name ?? null
+  ).catch((error) => {
+    console.error("AUTH ERROR: failed to resolve app user", {
+      supabaseId: user.id,
       error,
     });
     throw error;

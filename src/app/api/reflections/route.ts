@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 const reflectionSchema = z.object({
   problemId: z.string().min(1),
@@ -12,11 +12,12 @@ const reflectionSchema = z.object({
 });
 
 export async function GET() {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
   const reflections = await prisma.reflection.findMany({
@@ -34,11 +35,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
   const parsed = reflectionSchema.safeParse(await req.json());

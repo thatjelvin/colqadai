@@ -1,18 +1,19 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { createServerClient } from "@/lib/supabase/server";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SettingsForm } from "./SettingsForm";
 
 export default async function SettingsPage() {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
-    redirect("/sign-in");
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
   }
 
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
 
   const planLabel = dbUser.plan === "MAX" ? "MAX" : dbUser.plan === "PRO" ? "PRO" : "FREE";
 
