@@ -20,7 +20,8 @@ export default async function AppLayout({
   const dbUser = await getOrCreateUserForSupabaseId(
     user.id,
     user.email!,
-    user.user_metadata?.full_name ?? null
+    // full_name is set by Supabase when the user signs up via OAuth or metadata update
+    (user.user_metadata?.full_name as string | undefined) ?? null
   ).catch((error) => {
     console.error("AUTH ERROR: failed to resolve app user", {
       supabaseId: user.id,
