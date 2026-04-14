@@ -1,53 +1,43 @@
-# COLQAD SKILLS — README
-# These files tell you everything about the Colqad app.
-# Read them in this order at the start of EVERY task.
+# COLQAD SKILLS - README
 
----
+Read these files at the start of every task:
 
-## READING ORDER
+1. COLQAD_APP.md
+2. COLQAD_PATTERNS.md
+3. COLQAD_DEBUGGING.md
 
-1. Read COLQAD_APP.md first — what the app is, tech stack, auth system, routing
-2. Read COLQAD_PATTERNS.md second — correct code for every common task
-3. Read COLQAD_DEBUGGING.md when something is broken — how to diagnose and fix
-
----
-
-## QUICK REFERENCE
+## Quick Reference
 
 | Question | Answer |
 |---|---|
-| What framework? | Next.js 14 App Router |
-| What auth? | Clerk v5 (@clerk/nextjs@5.7.0) |
-| What database? | Supabase (PostgreSQL) — database only, no Supabase auth |
-| What hosting? | Vercel |
-| Production URL? | colqad.tech |
-| GitHub repo? | github.com/thatjelvin/colqadai |
-| Can I upgrade Next.js? | NO — stays on v14 |
-| Can I upgrade Clerk? | NO — stays on v5 |
-| How do I get current user? | `const { userId } = await auth()` (server) or `useUser()` (client) |
-| How do I query user data? | `.eq('clerk_user_id', userId)` |
-| Are there RLS policies? | NO — empty, not configured |
+| Framework | Next.js 14 App Router |
+| Auth | Supabase Auth using @supabase/ssr |
+| Database | Supabase PostgreSQL via Prisma |
+| Hosting | Vercel |
+| Main user flow | Sign up/sign in -> onboarding (if needed) -> dashboard |
 
----
+## Auth Stack Summary
 
-## BEFORE STARTING ANY TASK
+- Browser auth client: src/lib/supabase/client.ts
+- Server auth client: src/lib/supabase/server.ts
+- Route protection: src/middleware.ts and src/app/(app)/layout.tsx
+- OAuth callback: src/app/auth/callback/route.ts
+- DB identity mapping: src/lib/supabase-db-user.ts (User.supabaseId)
 
-Run this and read the output:
+## Before Starting Any Task
+
 ```bash
 find src -type f | sort
 cat src/middleware.ts
-cat src/app/layout.tsx
-cat .env.local | cut -d'=' -f1
+cat src/app/(app)/layout.tsx
+cat src/lib/supabase/server.ts
 ```
 
-This gives you the current state of the app before you change anything.
+## After Finishing Any Task
 
----
-
-## AFTER FINISHING ANY TASK
-
-Always do these four things:
-1. `npm run build` — must pass with zero errors
-2. `git add . && git commit -m "your message" && git push`
-3. Watch Vercel build — must succeed
-4. Check colqad.tech works in browser
+1. `npm run build` must pass
+2. `npm run test` should pass
+3. Confirm no auth regressions:
+- logged-out user hitting protected route -> /login
+- logged-in user hitting /login or /register -> /dashboard
+- OAuth callback redirects correctly

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const callbackError = searchParams.get("error");
+    if (callbackError) {
+      setError(callbackError);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setEmailLoading(true);
     setError(null);
 
     const supabase = createClient();
@@ -27,12 +36,31 @@ export default function LoginPage() {
     if (error) {
       console.error("AUTH ERROR:", error.message);
       setError(error.message);
-      setLoading(false);
+      setEmailLoading(false);
       return;
     }
 
     router.push("/dashboard");
     router.refresh();
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error("AUTH ERROR:", error.message);
+      setError(error.message);
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -49,6 +77,16 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={googleLoading || emailLoading}
+              onClick={handleGoogleSignIn}
+            >
+              {googleLoading ? "Redirecting to Google..." : "Continue with Google"}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">or sign in with email</p>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -72,8 +110,8 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+            <Button type="submit" className="w-full" disabled={emailLoading || googleLoading}>
+              {emailLoading ? "Signing in..." : "Sign in"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}

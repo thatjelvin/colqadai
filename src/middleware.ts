@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const publicPaths = ['/', '/login', '/register', '/pricing', '/api/webhooks']
+const publicPaths = ['/', '/login', '/register', '/pricing', '/auth/callback', '/api/webhooks']
 
 function isPublicPath(pathname: string) {
   return publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/'))
@@ -20,9 +20,11 @@ export default async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options)
-          )
+          })
         },
       },
     }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,36 +11,70 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+
+  useEffect(() => {
+    const callbackError = searchParams.get("error");
+    if (callbackError) {
+      setError(callbackError);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setEmailLoading(true);
     setError(null);
 
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
 
     if (error) {
       console.error("AUTH ERROR:", error.message);
       setError(error.message);
-      setLoading(false);
+      setEmailLoading(false);
       return;
     }
 
     // If email confirmation is required, the session will be null
     if (!data.session) {
       setConfirmationSent(true);
-      setLoading(false);
+      setEmailLoading(false);
       return;
     }
 
     router.push("/dashboard");
     router.refresh();
+  };
+
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error("AUTH ERROR:", error.message);
+      setError(error.message);
+      setGoogleLoading(false);
+    }
   };
 
   if (confirmationSent) {
@@ -77,6 +111,16 @@ export default function RegisterPage() {
                 {error}
               </p>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={googleLoading || emailLoading}
+              onClick={handleGoogleSignUp}
+            >
+              {googleLoading ? "Redirecting to Google..." : "Continue with Google"}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">or create an account with email</p>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -101,8 +145,8 @@ export default function RegisterPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Create account"}
+            <Button type="submit" className="w-full" disabled={emailLoading || googleLoading}>
+              {emailLoading ? "Creating account..." : "Create account"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
