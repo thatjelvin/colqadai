@@ -18,10 +18,10 @@ export default function LandingPage() {
             <Link href="/pricing">
               <Button variant="ghost">Pricing</Button>
             </Link>
-            <Link href="/sign-in">
+            <Link href="/login">
               <Button variant="ghost">Sign in</Button>
             </Link>
-            <Link href="/sign-up">
+            <Link href="/register">
               <Button>Get started</Button>
             </Link>
           </div>
@@ -42,12 +42,12 @@ export default function LandingPage() {
             and when you&apos;re stuck, our AI explains rather than just giving answers.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up">
+            <Link href="/register">
               <Button size="lg" className="w-full sm:w-auto">
                 Join Early Access
               </Button>
             </Link>
-            <Link href="/sign-in">
+            <Link href="/login">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
                 Sign in
               </Button>
@@ -150,7 +150,7 @@ export default function LandingPage() {
             Join our early access program and be among the first to experience
             the future of math learning.
           </p>
-          <Link href="/sign-up">
+          <Link href="/register">
             <Button size="lg" variant="secondary">
               Get Started Free
             </Button>

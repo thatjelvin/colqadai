@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { gemini } from "@/lib/gemini";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@prisma/client";
@@ -15,11 +15,12 @@ const chatSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
-    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+    const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
     const body = await req.json();

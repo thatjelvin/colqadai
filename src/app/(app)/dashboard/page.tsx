@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { createServerClient } from "@/lib/supabase/server";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { StatsRow } from "@/components/StatsRow";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Brain, BookOpen, AlertTriangle } from "lucide-react";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!userId) {
-    redirect("/sign-in");
+  if (!user) {
+    redirect("/login");
   }
 
-  const dbUser = await getOrCreateUserForClerkId(userId);
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
 
   const dbUserId = dbUser.id;
 

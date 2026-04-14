@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { createPaddleCheckout } from "@/lib/payments/paddle";
-import { getOrCreateUserForClerkId } from "@/lib/clerk-db-user";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 const checkoutSchema = z.object({
   plan: z.enum(["pro", "max"]),
@@ -10,11 +10,12 @@ const checkoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
-    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+    const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     if (!dbUser.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
