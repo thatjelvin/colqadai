@@ -4,6 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DIRECT_URL: z.string().optional(),
 
   // Gemini
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
@@ -16,6 +17,7 @@ const envSchema = z.object({
   // These are optional; the app uses Prisma (DATABASE_URL) for all data access.
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   // Optional services — app works without these configured
   RESEND_API_KEY: z.string().optional(),
@@ -43,6 +45,25 @@ if (!parsedEnv.success) {
 }
 
 const validated = parsedEnv.data;
+
+if (!validated.DIRECT_URL) {
+  console.warn(
+    "DIRECT_URL is not set. Prisma migrations/introspection can fail when DATABASE_URL uses a pooled connection."
+  );
+}
+
+const publishableKeyLooksMock =
+  validated.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("mock") ||
+  validated.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("your-clerk");
+const secretKeyLooksMock =
+  validated.CLERK_SECRET_KEY.includes("mock") ||
+  validated.CLERK_SECRET_KEY.includes("your-clerk");
+
+if (publishableKeyLooksMock || secretKeyLooksMock) {
+  console.warn(
+    "Clerk keys appear to be placeholders/mock values. Sign-in and sign-up will fail until real keys are configured."
+  );
+}
 
 if (validated.PADDLE_ENVIRONMENT === "production") {
   const missingProdBillingVars = [

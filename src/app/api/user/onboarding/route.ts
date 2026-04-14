@@ -13,23 +13,46 @@ const onboardingSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-    const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const authResult = await auth().catch((error) => {
+    console.error("SIGNUP ERROR: onboarding auth() failed", error);
+    return null;
+  });
 
-    const body = await req.json();
-    const parsed = onboardingSchema.safeParse(body);
-    
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
-    }
+  const clerkUserId = authResult?.userId ?? null;
+  if (!clerkUserId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
-    const { name, grade, course, age, source } = parsed.data;
+  const body = await req.json().catch((error) => {
+    console.error("SIGNUP ERROR: onboarding request JSON parse failed", error);
+    return null;
+  });
 
-    const user = await prisma.user.update({
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const parsed = onboardingSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
+  }
+
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId).catch((error) => {
+    console.error("SIGNUP ERROR: onboarding user bootstrap failed", {
+      clerkUserId,
+      error,
+    });
+    return null;
+  });
+
+  if (!dbUser) {
+    return NextResponse.json({ error: "Failed to resolve user profile" }, { status: 500 });
+  }
+
+  const { name, grade, course, age, source } = parsed.data;
+
+  const user = await prisma.user
+    .update({
       where: { id: dbUser.id },
       data: {
         ...(name !== undefined && { name }),
@@ -38,14 +61,19 @@ export async function POST(req: NextRequest) {
         age,
         source,
       },
+    })
+    .catch((error) => {
+      console.error("SIGNUP ERROR: onboarding user update failed", {
+        clerkUserId,
+        dbUserId: dbUser.id,
+        error,
+      });
+      return null;
     });
 
-    return NextResponse.json({ success: true, user });
-  } catch (error) {
-    console.error("Error saving onboarding data:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+  if (!user) {
+    return NextResponse.json({ error: "Failed to save onboarding details" }, { status: 500 });
   }
+
+  return NextResponse.json({ success: true, user });
 }

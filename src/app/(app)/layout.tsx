@@ -8,12 +8,26 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId: clerkUserId } = await auth();
+  let clerkUserId: string | null = null;
+  try {
+    const authResult = await auth();
+    clerkUserId = authResult.userId;
+  } catch (error) {
+    console.error("SIGNUP ERROR: auth() failed in app layout", error);
+    redirect("/sign-in");
+  }
+
   if (!clerkUserId) {
     redirect("/sign-in");
   }
 
-  const dbUser = await getOrCreateUserForClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserForClerkId(clerkUserId).catch((error) => {
+    console.error("SIGNUP ERROR: failed to resolve app user", {
+      clerkUserId,
+      error,
+    });
+    throw error;
+  });
 
   if (!dbUser.grade) {
     redirect("/onboarding");
