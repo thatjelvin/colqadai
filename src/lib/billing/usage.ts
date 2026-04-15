@@ -1,5 +1,4 @@
-import { Plan, SubscriptionStatus, UsageFeature } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { Plan, SubscriptionStatus, UsageFeature } from "@/lib/db-types";
 import { ACTIVE_SUBSCRIPTION_STATUSES, PLAN_CODE_BY_DB, PLAN_DEFINITIONS, PlanCode } from "./plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -30,6 +29,11 @@ const usageFeatureToLimitKey: Record<UsageFeature, keyof typeof PLAN_DEFINITIONS
 
 function utcDayBucket(date = new Date()): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+/** Formats a UTC day bucket as YYYY-MM-DD for the usage_events primary key. */
+function usageBucketValue(bucket: Date): string {
+  return bucket.toISOString().slice(0, 10);
 }
 
 function normalizePlan(dbPlan: Plan, subscriptionStatus: SubscriptionStatus, periodEnd: Date | null): Plan {
@@ -91,18 +95,24 @@ export async function getBillingProfile(userId: string): Promise<BillingProfile>
 }
 
 export async function getFeatureUsage(userId: string, feature: UsageFeature): Promise<number> {
-  const event = await prisma.usageEvent.findUnique({
-    where: {
-      userId_feature_bucket: {
-        userId,
-        feature,
-        bucket: utcDayBucket(),
-      },
-    },
-    select: { count: true },
-  });
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("usage_events")
+      .select("count")
+      .eq("user_id", userId)
+      .eq("feature", feature)
+      .eq("bucket", usageBucketValue(utcDayBucket()))
+      .maybeSingle();
 
-  return event?.count ?? 0;
+    if (error && error.code !== "PGRST116") {
+      console.warn("BILLING WARN: failed to read usage event", { userId, feature, error });
+    }
+    return data?.count ?? 0;
+  } catch (error) {
+    console.warn("BILLING WARN: usage event read skipped", { userId, feature, error });
+    return 0;
+  }
 }
 
 export async function consumeUsage(userId: string, feature: UsageFeature, amount = 1) {
@@ -112,18 +122,8 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
   const limit = planDef.limits[limitKey] as number;
 
   const bucket = utcDayBucket();
-  const existing = await prisma.usageEvent.findUnique({
-    where: {
-      userId_feature_bucket: {
-        userId,
-        feature,
-        bucket,
-      },
-    },
-    select: { count: true },
-  });
-
-  const currentCount = existing?.count ?? 0;
+  const bucketValue = usageBucketValue(bucket);
+  const currentCount = await getFeatureUsage(userId, feature);
   if (currentCount + amount > limit) {
     throw new BillingLimitError(
       `Daily ${feature.toLowerCase()} limit reached for ${planDef.name}.`,
@@ -132,30 +132,29 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
     );
   }
 
-  const updated = await prisma.usageEvent.upsert({
-    where: {
-      userId_feature_bucket: {
-        userId,
+  const updatedCount = currentCount + amount;
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("usage_events").upsert(
+      {
+        user_id: userId,
         feature,
-        bucket,
+        bucket: bucketValue,
+        count: updatedCount,
       },
-    },
-    create: {
-      userId,
-      feature,
-      bucket,
-      count: amount,
-    },
-    update: {
-      count: { increment: amount },
-    },
-    select: { count: true },
-  });
+      { onConflict: "user_id,feature,bucket" }
+    );
+    if (error) {
+      console.warn("BILLING WARN: failed to persist usage event", { userId, feature, error });
+    }
+  } catch (error) {
+    console.warn("BILLING WARN: usage event persistence skipped", { userId, feature, error });
+  }
 
   return {
-    used: updated.count,
+    used: updatedCount,
     limit,
-    remaining: Math.max(0, limit - updated.count),
+    remaining: Math.max(0, limit - updatedCount),
     plan: profile.plan,
   };
 }

@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { calculateSM2, Rating, getStatusFromRepetitions } from "@/lib/sm2";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
 import { upsertLearningAnalytics } from "@/lib/learning/analytics";
-import { LearningMethod } from "@prisma/client";
+import { LearningMethod } from "@/lib/db-types";
 import { z } from "zod";
 
 const reviewSchema = z.object({
@@ -45,7 +45,7 @@ export async function POST(
     const { rating, timeTaken } = parsed.data;
 
     // Get existing UserProblem
-    const userProblem = await prisma.userProblem.findUnique({
+    const userProblem = await db.userProblem.findUnique({
       where: {
         userId_problemId: {
           userId: userId,
@@ -73,7 +73,7 @@ export async function POST(
     );
 
     // Update UserProblem
-    const updated = await prisma.userProblem.update({
+    const updated = await db.userProblem.update({
       where: {
         userId_problemId: {
           userId: userId,

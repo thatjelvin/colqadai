@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
@@ -20,7 +20,7 @@ export default async function ReviewPage() {
   const now = new Date();
 
   // Get due problems
-  const dueProblems = await prisma.userProblem.findMany({
+  const dueProblems = await db.userProblem.findMany({
     where: {
       userId,
       nextReviewAt: { lte: now },

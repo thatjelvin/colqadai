@@ -44,7 +44,7 @@ const validated = parsedEnv.data;
 
 if (!validated.DIRECT_URL) {
   console.warn(
-    "DIRECT_URL is not set. Prisma migrations/introspection can fail when DATABASE_URL uses a pooled connection."
+    "DIRECT_URL is not set. Set it to a direct Postgres connection for maintenance/migration workflows that should not use pooled URLs."
   );
 }
 
@@ -64,8 +64,14 @@ if (validated.PADDLE_ENVIRONMENT === "production") {
 }
 
 if (validated.PADDLE_ENVIRONMENT === "sandbox" && validated.PADDLE_API_KEY?.startsWith("pdl_live_")) {
-  console.warn(
-    "PADDLE_ENVIRONMENT is sandbox but PADDLE_API_KEY appears to be a live key. Checkout may fail."
+  throw new Error(
+    "PADDLE_ENVIRONMENT is sandbox but PADDLE_API_KEY starts with pdl_live_. Set PADDLE_ENVIRONMENT=production or use a sandbox key."
+  );
+}
+
+if (validated.PADDLE_ENVIRONMENT === "production" && validated.PADDLE_API_KEY?.startsWith("pdl_snd_")) {
+  throw new Error(
+    "PADDLE_ENVIRONMENT is production but PADDLE_API_KEY starts with pdl_snd_. Set PADDLE_ENVIRONMENT=sandbox or use a production key."
   );
 }
 

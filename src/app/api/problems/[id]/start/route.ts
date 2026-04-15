@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
-import { UsageFeature } from "@prisma/client";
+import { db } from "@/lib/db";
+import { UsageFeature } from "@/lib/db-types";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage } from "@/lib/billing/usage";
 
@@ -22,7 +22,7 @@ export async function POST(
     const problemId = params.id;
 
     // Check if UserProblem already exists
-    const existing = await prisma.userProblem.findUnique({
+    const existing = await db.userProblem.findUnique({
       where: {
         userId_problemId: {
           userId,
@@ -42,7 +42,7 @@ export async function POST(
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const userProblem = await prisma.userProblem.create({
+    const userProblem = await db.userProblem.create({
       data: {
         userId: userId,
         problemId,

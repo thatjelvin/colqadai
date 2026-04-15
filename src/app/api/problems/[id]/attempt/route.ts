@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
-import { LearningMethod } from "@prisma/client";
+import { LearningMethod } from "@/lib/db-types";
 import { gradeAnswer, classifyError, generateElaborationPrompt } from "@/lib/learning/aiClassifiers";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
@@ -41,8 +41,8 @@ export async function POST(
     const { answer, selfQuizMode, sessionKey } = parsed.data;
 
     const [problem, userProblem] = await Promise.all([
-      prisma.problem.findUnique({ where: { id: problemId } }),
-      prisma.userProblem.findUnique({
+      db.problem.findUnique({ where: { id: problemId } }),
+      db.userProblem.findUnique({
         where: {
           userId_problemId: {
             userId,
@@ -56,7 +56,7 @@ export async function POST(
       return NextResponse.json({ error: "Problem is not available for this user" }, { status: 404 });
     }
 
-    const lastCorrectAttempt = await prisma.problemAttempt.findFirst({
+    const lastCorrectAttempt = await db.problemAttempt.findFirst({
       where: {
         userId,
         problemId,
@@ -70,7 +70,7 @@ export async function POST(
       },
     });
 
-    const currentCycleAttemptCount = await prisma.problemAttempt.count({
+    const currentCycleAttemptCount = await db.problemAttempt.count({
       where: {
         userId,
         problemId,
@@ -86,7 +86,7 @@ export async function POST(
       ? await classifyError(problem.body, problem.solution, answer)
       : null;
 
-    const attempt = await prisma.problemAttempt.create({
+    const attempt = await db.problemAttempt.create({
       data: {
         userId,
         problemId,
@@ -102,7 +102,7 @@ export async function POST(
     });
 
     if (grade.isCorrect) {
-      await prisma.userProblem.update({
+      await db.userProblem.update({
         where: {
           userId_problemId: {
             userId,

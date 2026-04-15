@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
 import { upsertLearningAnalytics } from "@/lib/learning/analytics";
-import { LearningMethod } from "@prisma/client";
+import { LearningMethod } from "@/lib/db-types";
 
 export async function GET(req: NextRequest) {
   const supabase = createServerClient();
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const now = new Date();
 
   const [dueProblems, unseenProblems] = await Promise.all([
-    prisma.userProblem.findMany({
+    db.userProblem.findMany({
       where: {
         userId,
         nextReviewAt: {
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       },
       take: 30,
     }),
-    prisma.problem.findMany({
+    db.problem.findMany({
       where: {
         userProblems: {
           none: {

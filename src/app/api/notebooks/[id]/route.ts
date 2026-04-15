@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 type Context = { params: { id: string } };
@@ -19,7 +19,7 @@ export async function GET(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const notebook = await prisma.notebook.findFirst({
+  const notebook = await db.notebook.findFirst({
     where: {
       id: params.id,
       userId,
@@ -50,7 +50,7 @@ export async function DELETE(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const notebook = await prisma.notebook.findFirst({
+  const notebook = await db.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -59,6 +59,6 @@ export async function DELETE(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
   }
 
-  await prisma.notebook.delete({ where: { id: notebook.id } });
+  await db.notebook.delete({ where: { id: notebook.id } });
   return NextResponse.json({ success: true });
 }

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
@@ -14,7 +14,7 @@ export default async function ReflectionsPage() {
   }
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
 
-  const reflections = await prisma.reflection.findMany({
+  const reflections = await db.reflection.findMany({
     where: { userId: dbUser.id },
     include: {
       problem: {

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { TopicTree } from "@/components/TopicTree";
 import { createServerClient } from "@/lib/supabase/server";
@@ -14,7 +14,7 @@ export default async function TopicsPage() {
   const userId = dbUser.id;
 
   // Get all topics with their subtopics and problems
-  const topics = await prisma.topic.findMany({
+  const topics = await db.topic.findMany({
     where: {
       parentId: null,
     },
@@ -32,7 +32,7 @@ export default async function TopicsPage() {
   });
 
   // Get user's progress for all problems
-  const userProblems = await prisma.userProblem.findMany({
+  const userProblems = await db.userProblem.findMany({
     where: {
       userId,
     },

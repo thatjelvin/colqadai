@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    const chatSessions = await prisma.chatSession.findMany({
+    const chatSessions = await db.chatSession.findMany({
       where: {
         userId,
         problemId: null, // Only freeform chats

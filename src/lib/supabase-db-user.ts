@@ -1,7 +1,5 @@
 import { createServerClient } from "@/lib/supabase/server";
-
-type Plan = "FREE" | "PRO" | "MAX";
-type SubscriptionStatus = "INACTIVE" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
+import { Plan, ProfileRow, SubscriptionStatus } from "@/lib/db-types";
 
 export type AppUser = {
   id: string;
@@ -23,14 +21,19 @@ export type AppUser = {
 };
 
 function toPlan(value: string | null | undefined): Plan {
-  return value === "PRO" || value === "MAX" ? value : "FREE";
+  return value === Plan.PRO || value === Plan.MAX ? value : Plan.FREE;
 }
 
 function toSubscriptionStatus(value: string | null | undefined): SubscriptionStatus {
-  if (value === "ACTIVE" || value === "PAST_DUE" || value === "CANCELED" || value === "TRIALING") {
+  if (
+    value === SubscriptionStatus.ACTIVE ||
+    value === SubscriptionStatus.PAST_DUE ||
+    value === SubscriptionStatus.CANCELED ||
+    value === SubscriptionStatus.TRIALING
+  ) {
     return value;
   }
-  return "INACTIVE";
+  return SubscriptionStatus.INACTIVE;
 }
 
 export async function getOrCreateUserForSupabaseId(
@@ -40,16 +43,51 @@ export async function getOrCreateUserForSupabaseId(
   image?: string | null
 ): Promise<AppUser> {
   const supabase = createServerClient();
-  const { data: profile, error } = await supabase
+  let profile: ProfileRow | null = null;
+
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "id, full_name, avatar_url, grade, course, age, source, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at"
     )
     .eq("id", supabaseId)
     .maybeSingle();
+  profile = data;
 
   if (error && error.code !== "PGRST116") {
     console.warn("AUTH WARN: failed to read optional profile", { supabaseId, error });
+  }
+
+  if (!profile) {
+    const { error: upsertError } = await supabase.from("profiles").upsert(
+      {
+        id: supabaseId,
+        email,
+        full_name: name ?? null,
+        avatar_url: image ?? null,
+      },
+      { onConflict: "id" }
+    );
+    if (upsertError) {
+      console.warn("AUTH WARN: profile auto-create skipped", { supabaseId, error: upsertError });
+    } else {
+      profile = {
+        id: supabaseId,
+        full_name: name ?? null,
+        avatar_url: image ?? null,
+        grade: null,
+        course: null,
+        age: null,
+        source: null,
+        plan: Plan.FREE,
+        subscription_status: SubscriptionStatus.INACTIVE,
+        subscription_current_period_end: null,
+        paddle_customer_id: null,
+        paddle_subscription_id: null,
+        paddle_price_id: null,
+        created_at: new Date().toISOString(),
+      };
+    }
   }
 
   return {

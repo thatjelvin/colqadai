@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
@@ -20,7 +20,7 @@ export async function GET() {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const reflections = await prisma.reflection.findMany({
+  const reflections = await db.reflection.findMany({
     where: { userId },
     include: {
       problem: {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const { problemId, attemptId, prompt, response } = parsed.data;
 
   // Verify the problem belongs to the user
-  const userProblem = await prisma.userProblem.findUnique({
+  const userProblem = await db.userProblem.findUnique({
     where: { userId_problemId: { userId: userId, problemId } },
   });
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   // If linking to an attempt, verify it belongs to the user
   if (attemptId) {
-    const defaultAttempt = await prisma.problemAttempt.findUnique({
+    const defaultAttempt = await db.problemAttempt.findUnique({
       where: { id: attemptId },
       select: { userId: true },
     });
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const reflection = await prisma.reflection.create({
+  const reflection = await db.reflection.create({
     data: {
       userId: userId,
       problemId,
