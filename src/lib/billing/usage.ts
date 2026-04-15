@@ -1,6 +1,7 @@
 import { Plan, SubscriptionStatus, UsageFeature } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ACTIVE_SUBSCRIPTION_STATUSES, PLAN_CODE_BY_DB, PLAN_DEFINITIONS, PlanCode } from "./plans";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export class BillingLimitError extends Error {
   status: number;
@@ -45,14 +46,47 @@ function normalizePlan(dbPlan: Plan, subscriptionStatus: SubscriptionStatus, per
 }
 
 export async function getBillingProfile(userId: string): Promise<BillingProfile> {
-  const normalizedDbPlan = normalizePlan(Plan.FREE, SubscriptionStatus.INACTIVE, null);
+  let profile: {
+    plan: string | null;
+    subscription_status: string | null;
+    subscription_current_period_end: string | null;
+  } | null = null;
+
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("plan, subscription_status, subscription_current_period_end")
+      .eq("id", userId)
+      .maybeSingle();
+    profile = data;
+    if (error && error.code !== "PGRST116") {
+      console.warn("BILLING WARN: failed to read profile for billing", { userId, error });
+    }
+  } catch (error) {
+    console.warn("BILLING WARN: admin client unavailable for billing profile", { userId, error });
+  }
+
+  const plan = profile?.plan === "MAX" || profile?.plan === "PRO" ? (profile.plan as Plan) : Plan.FREE;
+  const subscriptionStatus =
+    profile?.subscription_status === "ACTIVE" ||
+    profile?.subscription_status === "PAST_DUE" ||
+    profile?.subscription_status === "CANCELED" ||
+    profile?.subscription_status === "TRIALING"
+      ? (profile.subscription_status as SubscriptionStatus)
+      : SubscriptionStatus.INACTIVE;
+  const periodEnd = profile?.subscription_current_period_end
+    ? new Date(profile.subscription_current_period_end)
+    : null;
+
+  const normalizedDbPlan = normalizePlan(plan, subscriptionStatus, periodEnd);
 
   return {
     userId,
     dbPlan: normalizedDbPlan,
     plan: PLAN_CODE_BY_DB[normalizedDbPlan],
-    subscriptionStatus: SubscriptionStatus.INACTIVE,
-    subscriptionCurrentPeriodEnd: null,
+    subscriptionStatus,
+    subscriptionCurrentPeriodEnd: periodEnd,
   };
 }
 

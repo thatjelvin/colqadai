@@ -1,5 +1,6 @@
 import { Plan, SubscriptionStatus, Tier } from "@prisma/client";
 import { DB_PLAN_BY_CODE, PlanCode } from "./plans";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function changeUserPlan(params: {
   userId: string;
@@ -22,6 +23,29 @@ export async function changeUserPlan(params: {
 
   const dbPlan = DB_PLAN_BY_CODE[plan];
   const dbTier = dbPlan === Plan.MAX ? Tier.MAX : dbPlan === Plan.PRO ? Tier.PRO : Tier.FREE;
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        id: userId,
+        plan: dbPlan,
+        tier: dbTier,
+        subscription_status: subscriptionStatus,
+        subscription_current_period_end: periodEnd?.toISOString() ?? null,
+        paddle_customer_id: paddleCustomerId ?? null,
+        paddle_subscription_id: paddleSubscriptionId ?? null,
+        paddle_price_id: paddlePriceId ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+
+    if (error) {
+      console.warn("BILLING WARN: failed to persist subscription profile", { userId, error });
+    }
+  } catch (error) {
+    console.warn("BILLING WARN: admin client unavailable for subscription persistence", { userId, error });
+  }
 
   return {
     id: userId,
@@ -36,6 +60,27 @@ export async function changeUserPlan(params: {
 }
 
 export async function downgradeUserAfterPeriod(userId: string) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        plan: Plan.FREE,
+        tier: Tier.FREE,
+        subscription_status: SubscriptionStatus.CANCELED,
+        paddle_price_id: null,
+        paddle_subscription_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (error) {
+      console.warn("BILLING WARN: failed to downgrade profile", { userId, error });
+    }
+  } catch (error) {
+    console.warn("BILLING WARN: admin client unavailable for profile downgrade", { userId, error });
+  }
+
   return {
     id: userId,
     plan: Plan.FREE,

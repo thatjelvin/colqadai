@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyPaddleWebhookSignature, PADDLE_PRICE_MAP } from "@/lib/payments/paddle";
 import { changeUserPlan, parsePaddleSubscriptionStatus, parsePlanFromPaddlePrice } from "@/lib/billing/subscriptions";
 import { SubscriptionStatus } from "@prisma/client";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type PaddleWebhookPayload = {
   event_type: string;
@@ -29,6 +30,24 @@ export async function POST(req: NextRequest) {
 
     const customData = asRecord(data.custom_data);
     const userId = asString(customData.userId);
+
+    if (!userId && data.customer_id) {
+      try {
+        const supabase = createAdminClient();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("paddle_customer_id", String(data.customer_id))
+          .maybeSingle();
+
+        if (profile?.id) {
+          await handleEvent(profile.id, event, data);
+        }
+      } catch (error) {
+        console.warn("BILLING WARN: unable to resolve profile by customer id", error);
+      }
+      return NextResponse.json({ received: true });
+    }
 
     if (!userId) {
       return NextResponse.json({ received: true });
@@ -109,5 +128,14 @@ async function handleEvent(userId: string, eventType: string, data: Record<strin
     return;
   }
 
-  if (eventType === "transaction.payment_failed") return;
+  if (eventType === "transaction.payment_failed") {
+    await changeUserPlan({
+      userId,
+      plan: "free",
+      subscriptionStatus: SubscriptionStatus.PAST_DUE,
+      periodEnd: null,
+      paddleCustomerId: asString(data.customer_id),
+      paddlePriceId: priceId ? String(priceId) : undefined,
+    });
+  }
 }
