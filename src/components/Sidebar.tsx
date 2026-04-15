@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plan } from "@prisma/client";
+import { Plan } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/client";
 interface SidebarProps {
   user: {

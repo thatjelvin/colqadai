@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
     const userId = dbUser.id;
 
     // Get all topics with their subtopics and problems
-    const topics = await prisma.topic.findMany({
+    const topics = await db.topic.findMany({
       where: {
         parentId: null, // Only top-level topics
       },
@@ -33,7 +33,7 @@ export async function GET() {
     });
 
     // Get user's progress for all problems
-    const userProblems = await prisma.userProblem.findMany({
+    const userProblems = await db.userProblem.findMany({
       where: {
         userId,
       },

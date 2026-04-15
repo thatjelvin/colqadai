@@ -1,17 +1,7 @@
-import { LearningMethod, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { JsonValue, LearningMethod } from "@/lib/db-types";
+import { db } from "@/lib/db";
 
-type JsonLike =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: JsonLike }
-  | JsonLike[];
-
-function toPrismaJson(value: JsonLike): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
-  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
-}
+type JsonLike = JsonValue;
 
 export async function upsertLearningAnalytics(
   userId: string,
@@ -19,7 +9,7 @@ export async function upsertLearningAnalytics(
   method: LearningMethod,
   aggregate: JsonLike
 ): Promise<void> {
-  await prisma.learningAnalytics.upsert({
+  await db.learningAnalytics.upsert({
     where: {
       userId_sessionKey_method: {
         userId,
@@ -28,13 +18,13 @@ export async function upsertLearningAnalytics(
       },
     },
     update: {
-      aggregate: toPrismaJson(aggregate),
+      aggregate,
     },
     create: {
       userId,
       sessionKey,
       method,
-      aggregate: toPrismaJson(aggregate),
+      aggregate,
     },
   });
 }

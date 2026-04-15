@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
@@ -24,7 +24,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
   const userId = dbUser.id;
 
   // Get topic with problems
-  const topic = await prisma.topic.findUnique({
+  const topic = await db.topic.findUnique({
     where: { slug: params.slug },
     include: {
       problems: {
@@ -51,7 +51,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
   );
   const allProblemIds = [...problemIds, ...childProblemIds];
 
-  const userProblems = await prisma.userProblem.findMany({
+  const userProblems = await db.userProblem.findMany({
     where: {
       userId,
       problemId: {

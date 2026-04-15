@@ -4,7 +4,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { changeUserPlan } from "@/lib/billing/subscriptions";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-import { SubscriptionStatus } from "@prisma/client";
+import { SubscriptionStatus } from "@/lib/db-types";
 
 const changePlanSchema = z.object({
   plan: z.enum(["free", "pro", "max"]),

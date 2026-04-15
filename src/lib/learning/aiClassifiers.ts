@@ -1,4 +1,4 @@
-import { ErrorType } from "@prisma/client";
+import { ErrorType } from "@/lib/db-types";
 import { gemini } from "@/lib/gemini";
 
 const MODEL = "gemini-2.5-flash";

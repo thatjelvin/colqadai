@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { gemini } from "@/lib/gemini";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
-import { UsageFeature } from "@prisma/client";
+import { UsageFeature } from "@/lib/db-types";
 
 const chatSchema = z.object({
   message: z.string().min(1),
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     let chatSession;
     
     if (sessionId) {
-      chatSession = await prisma.chatSession.findFirst({
+      chatSession = await db.chatSession.findFirst({
         where: {
           id: sessionId,
           userId,
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       // Generate title from first message
       const title = await generateTitle(message);
       
-      chatSession = await prisma.chatSession.create({
+      chatSession = await db.chatSession.create({
         data: {
           userId,
           problemId,
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Save user message
-    await prisma.chatMessage.create({
+    await db.chatMessage.create({
       data: {
         sessionId: chatSession.id,
         role: "USER",
@@ -88,11 +88,11 @@ export async function POST(req: NextRequest) {
     
     if (problemId) {
       // Problem-scoped chat
-      const problem = await prisma.problem.findUnique({
+      const problem = await db.problem.findUnique({
         where: { id: problemId },
       });
       
-      const userProblem = await prisma.userProblem.findUnique({
+      const userProblem = await db.userProblem.findUnique({
         where: {
           userId_problemId: {
             userId,
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (problem) {
-        const hasAttempt = await prisma.problemAttempt.findFirst({
+        const hasAttempt = await db.problemAttempt.findFirst({
           where: {
             userId,
             problemId,
@@ -177,7 +177,7 @@ Be clear, rigorous, and concise.`;
         }
 
         // Save assistant message to database
-        await prisma.chatMessage.create({
+        await db.chatMessage.create({
           data: {
             sessionId: chatSession.id,
             role: "ASSISTANT",

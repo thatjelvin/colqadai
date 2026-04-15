@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Difficulty, ReviewStatus } from "@prisma/client";
+import { Difficulty, ReviewStatus } from "@/lib/db-types";
 import Link from "next/link";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 

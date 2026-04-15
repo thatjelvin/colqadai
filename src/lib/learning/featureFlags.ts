@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 export const LEARNING_FEATURES = {
   SPACED_REPETITION: "spaced_repetition",
@@ -22,7 +22,7 @@ const defaultFeatureState: Record<LearningFeatureName, boolean> = {
 };
 
 export async function isFeatureEnabled(featureName: LearningFeatureName): Promise<boolean> {
-  const flag = await prisma.featureFlag.findUnique({
+  const flag = await db.featureFlag.findUnique({
     where: { featureName },
     select: { enabled: true },
   });
@@ -31,7 +31,7 @@ export async function isFeatureEnabled(featureName: LearningFeatureName): Promis
 }
 
 export async function getLearningFeatureFlags(): Promise<Record<LearningFeatureName, boolean>> {
-  const rows = await prisma.featureFlag.findMany({
+  const rows = await db.featureFlag.findMany({
     where: {
       featureName: {
         in: Object.values(LEARNING_FEATURES),

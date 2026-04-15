@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
-import { NotebookSourceType } from "@prisma/client";
+import { NotebookSourceType } from "@/lib/db-types";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import {
   chunkText,
@@ -39,7 +39,7 @@ export async function GET(_: NextRequest, { params }: Context) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebook = await prisma.notebook.findFirst({
+  const notebook = await db.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -48,7 +48,7 @@ export async function GET(_: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
   }
 
-  const documents = await prisma.notebookDocument.findMany({
+  const documents = await db.notebookDocument.findMany({
     where: { notebookId: notebook.id, userId },
     orderBy: { createdAt: "desc" },
   });
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebook = await prisma.notebook.findFirst({
+  const notebook = await db.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const chunks = chunkText(textContent);
   const sourceType = parsed.data.sourceType as NotebookSourceType;
 
-  const document = await prisma.$transaction(async (tx) => {
+  const document = await db.$transaction(async (tx) => {
     const created = await tx.notebookDocument.create({
       data: {
         notebookId: notebook.id,

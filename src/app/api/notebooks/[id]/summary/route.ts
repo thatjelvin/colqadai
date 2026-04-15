@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import {
   generateConcepts,
@@ -19,7 +19,7 @@ export async function POST(_: Request, { params }: Context) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebook = await prisma.notebook.findFirst({
+  const notebook = await db.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -28,7 +28,7 @@ export async function POST(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
   }
 
-  const chunks = await prisma.notebookChunk.findMany({
+  const chunks = await db.notebookChunk.findMany({
     where: {
       notebookId: notebook.id,
       userId: userId,
@@ -48,7 +48,7 @@ export async function POST(_: Request, { params }: Context) {
   const generatedSummary = generateGroundedSummary(chunkData);
   const generatedConcepts = generateConcepts(chunkData);
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     await tx.notebookSummary.deleteMany({
       where: {
         notebookId: notebook.id,

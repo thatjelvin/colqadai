@@ -1,4 +1,4 @@
-import { Plan, SubscriptionStatus, Tier } from "@prisma/client";
+import { Plan, SubscriptionStatus, Tier } from "@/lib/db-types";
 import { DB_PLAN_BY_CODE, PlanCode } from "./plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 

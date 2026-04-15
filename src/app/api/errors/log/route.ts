@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  const attempts = await prisma.problemAttempt.findMany({
+  const attempts = await db.problemAttempt.findMany({
     where: {
       userId,
       isCorrect: false,
@@ -32,7 +32,7 @@ export async function GET() {
     take: 300,
   });
 
-  const weeklyByType = await prisma.problemAttempt.groupBy({
+  const weeklyByType = await db.problemAttempt.groupBy({
     by: ["errorType"],
     where: {
       userId,
@@ -54,7 +54,7 @@ export async function GET() {
   const topError = weeklyByType.find((row) => row.errorType);
 
   const targetedProblems = topError?.errorType
-    ? await prisma.problem.findMany({
+    ? await db.problem.findMany({
         take: 3,
         include: { topic: true },
       })

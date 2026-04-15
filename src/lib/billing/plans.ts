@@ -1,4 +1,4 @@
-import { Plan, SubscriptionStatus } from "@prisma/client";
+import { Plan, SubscriptionStatus } from "@/lib/db-types";
 
 export type PlanCode = "free" | "pro" | "max";
 

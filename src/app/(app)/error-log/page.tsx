@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
@@ -18,7 +18,7 @@ export default async function ErrorLogPage() {
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   const [attempts, grouped] = await Promise.all([
-    prisma.problemAttempt.findMany({
+    db.problemAttempt.findMany({
       where: {
         userId,
         isCorrect: false,
@@ -35,7 +35,7 @@ export default async function ErrorLogPage() {
       },
       take: 150,
     }),
-    prisma.problemAttempt.groupBy({
+    db.problemAttempt.groupBy({
       by: ["errorType"],
       where: {
         userId,

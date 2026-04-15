@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { BillingLimitError, buildUpgradeErrorPayload, ensureFeatureAccess } from "@/lib/billing/usage";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
@@ -18,7 +18,7 @@ export async function GET() {
     await ensureFeatureAccess(userId, "analytics");
 
     // Get all user problems
-    const userProblems = await prisma.userProblem.findMany({
+    const userProblems = await db.userProblem.findMany({
       where: { userId },
     });
 
@@ -36,7 +36,7 @@ export async function GET() {
     const streak = calculateStreak(userProblems);
 
     // Get recent topics (last 3 topics user interacted with)
-    const recentUserProblems = await prisma.userProblem.findMany({
+    const recentUserProblems = await db.userProblem.findMany({
       where: { userId },
       orderBy: { lastReviewedAt: "desc" },
       take: 10,
@@ -64,13 +64,13 @@ export async function GET() {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const [attemptCount, firstTryCorrect, topErrorRows] = await Promise.all([
-      prisma.problemAttempt.count({
+      db.problemAttempt.count({
         where: {
           userId,
           createdAt: { gte: oneWeekAgo },
         },
       }),
-      prisma.problemAttempt.count({
+      db.problemAttempt.count({
         where: {
           userId,
           createdAt: { gte: oneWeekAgo },
@@ -78,7 +78,7 @@ export async function GET() {
           attemptNumber: 1,
         },
       }),
-      prisma.problemAttempt.groupBy({
+      db.problemAttempt.groupBy({
         by: ["errorType"],
         where: {
           userId,

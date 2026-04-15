@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
-import { LearningMethod } from "@prisma/client";
+import { LearningMethod } from "@/lib/db-types";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { upsertLearningAnalytics } from "@/lib/learning/analytics";
@@ -40,7 +40,7 @@ export async function POST(
     return NextResponse.json({ error: "Study phase must be at least 60 seconds" }, { status: 400 });
   }
 
-  const userProblem = await prisma.userProblem.findUnique({
+  const userProblem = await db.userProblem.findUnique({
     where: {
       userId_problemId: {
         userId: userId,
@@ -49,7 +49,7 @@ export async function POST(
     },
   });
 
-  const record = await prisma.workedExampleSession.create({
+  const record = await db.workedExampleSession.create({
     data: {
       userId: userId,
       problemId: params.id,

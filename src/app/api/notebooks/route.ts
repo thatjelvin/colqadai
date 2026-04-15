@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { z } from "zod";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
@@ -18,7 +18,7 @@ export async function GET() {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebooks = await prisma.notebook.findMany({
+  const notebooks = await db.notebook.findMany({
     where: { userId },
     include: {
       _count: {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const notebook = await prisma.notebook.create({
+  const notebook = await db.notebook.create({
     data: {
       userId,
       title: parsed.data.title.trim(),

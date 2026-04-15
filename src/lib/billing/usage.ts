@@ -1,5 +1,4 @@
-import { Plan, SubscriptionStatus, UsageFeature } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { Plan, SubscriptionStatus, UsageFeature } from "@/lib/db-types";
 import { ACTIVE_SUBSCRIPTION_STATUSES, PLAN_CODE_BY_DB, PLAN_DEFINITIONS, PlanCode } from "./plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -30,6 +29,12 @@ const usageFeatureToLimitKey: Record<UsageFeature, keyof typeof PLAN_DEFINITIONS
 
 function utcDayBucket(date = new Date()): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+const usageCounters = new Map<string, number>();
+
+function usageKey(userId: string, feature: UsageFeature, bucket: Date) {
+  return `${userId}:${feature}:${bucket.toISOString().slice(0, 10)}`;
 }
 
 function normalizePlan(dbPlan: Plan, subscriptionStatus: SubscriptionStatus, periodEnd: Date | null): Plan {
@@ -91,18 +96,7 @@ export async function getBillingProfile(userId: string): Promise<BillingProfile>
 }
 
 export async function getFeatureUsage(userId: string, feature: UsageFeature): Promise<number> {
-  const event = await prisma.usageEvent.findUnique({
-    where: {
-      userId_feature_bucket: {
-        userId,
-        feature,
-        bucket: utcDayBucket(),
-      },
-    },
-    select: { count: true },
-  });
-
-  return event?.count ?? 0;
+  return usageCounters.get(usageKey(userId, feature, utcDayBucket())) ?? 0;
 }
 
 export async function consumeUsage(userId: string, feature: UsageFeature, amount = 1) {
@@ -112,18 +106,8 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
   const limit = planDef.limits[limitKey] as number;
 
   const bucket = utcDayBucket();
-  const existing = await prisma.usageEvent.findUnique({
-    where: {
-      userId_feature_bucket: {
-        userId,
-        feature,
-        bucket,
-      },
-    },
-    select: { count: true },
-  });
-
-  const currentCount = existing?.count ?? 0;
+  const key = usageKey(userId, feature, bucket);
+  const currentCount = usageCounters.get(key) ?? 0;
   if (currentCount + amount > limit) {
     throw new BillingLimitError(
       `Daily ${feature.toLowerCase()} limit reached for ${planDef.name}.`,
@@ -132,30 +116,13 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
     );
   }
 
-  const updated = await prisma.usageEvent.upsert({
-    where: {
-      userId_feature_bucket: {
-        userId,
-        feature,
-        bucket,
-      },
-    },
-    create: {
-      userId,
-      feature,
-      bucket,
-      count: amount,
-    },
-    update: {
-      count: { increment: amount },
-    },
-    select: { count: true },
-  });
+  const updatedCount = currentCount + amount;
+  usageCounters.set(key, updatedCount);
 
   return {
-    used: updated.count,
+    used: updatedCount,
     limit,
-    remaining: Math.max(0, limit - updated.count),
+    remaining: Math.max(0, limit - updatedCount),
     plan: profile.plan,
   };
 }

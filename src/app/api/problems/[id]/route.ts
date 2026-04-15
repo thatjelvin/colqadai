@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export async function GET(
@@ -16,7 +16,7 @@ export async function GET(
     }
     await getOrCreateUserForSupabaseId(user.id, user.email!);
 
-    const problem = await prisma.problem.findUnique({
+    const problem = await db.problem.findUnique({
       where: { id: params.id },
       include: {
         topic: true,
