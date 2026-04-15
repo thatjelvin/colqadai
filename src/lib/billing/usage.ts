@@ -45,28 +45,14 @@ function normalizePlan(dbPlan: Plan, subscriptionStatus: SubscriptionStatus, per
 }
 
 export async function getBillingProfile(userId: string): Promise<BillingProfile> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      plan: true,
-      subscriptionStatus: true,
-      subscriptionCurrentPeriodEnd: true,
-    },
-  });
-
-  if (!user) {
-    throw new BillingLimitError("User not found", "USER_NOT_FOUND", 404);
-  }
-
-  const normalizedDbPlan = normalizePlan(user.plan, user.subscriptionStatus, user.subscriptionCurrentPeriodEnd);
+  const normalizedDbPlan = normalizePlan(Plan.FREE, SubscriptionStatus.INACTIVE, null);
 
   return {
     userId,
     dbPlan: normalizedDbPlan,
     plan: PLAN_CODE_BY_DB[normalizedDbPlan],
-    subscriptionStatus: user.subscriptionStatus,
-    subscriptionCurrentPeriodEnd: user.subscriptionCurrentPeriodEnd,
+    subscriptionStatus: SubscriptionStatus.INACTIVE,
+    subscriptionCurrentPeriodEnd: null,
   };
 }
 

@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifyPaddleWebhookSignature, PADDLE_PRICE_MAP } from "@/lib/payments/paddle";
 import { changeUserPlan, parsePaddleSubscriptionStatus, parsePlanFromPaddlePrice } from "@/lib/billing/subscriptions";
-import { Plan, SubscriptionStatus } from "@prisma/client";
+import { SubscriptionStatus } from "@prisma/client";
 
 type PaddleWebhookPayload = {
   event_type: string;
@@ -30,18 +29,6 @@ export async function POST(req: NextRequest) {
 
     const customData = asRecord(data.custom_data);
     const userId = asString(customData.userId);
-
-    if (!userId && data.customer_id) {
-      const byCustomer = await prisma.user.findFirst({
-        where: { paddleCustomerId: String(data.customer_id) },
-        select: { id: true },
-      });
-      if (byCustomer?.id) {
-        await handleEvent(byCustomer.id, event, data);
-      }
-
-      return NextResponse.json({ received: true });
-    }
 
     if (!userId) {
       return NextResponse.json({ received: true });
@@ -122,19 +109,5 @@ async function handleEvent(userId: string, eventType: string, data: Record<strin
     return;
   }
 
-  if (eventType === "transaction.payment_failed") {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { plan: true },
-    });
-
-    if (user && user.plan !== Plan.FREE) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          subscriptionStatus: SubscriptionStatus.PAST_DUE,
-        },
-      });
-    }
-  }
+  if (eventType === "transaction.payment_failed") return;
 }

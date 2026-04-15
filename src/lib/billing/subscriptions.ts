@@ -1,5 +1,4 @@
 import { Plan, SubscriptionStatus, Tier } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { DB_PLAN_BY_CODE, PlanCode } from "./plans";
 
 export async function changeUserPlan(params: {
@@ -24,31 +23,27 @@ export async function changeUserPlan(params: {
   const dbPlan = DB_PLAN_BY_CODE[plan];
   const dbTier = dbPlan === Plan.MAX ? Tier.MAX : dbPlan === Plan.PRO ? Tier.PRO : Tier.FREE;
 
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      plan: dbPlan,
-      tier: dbTier,
-      subscriptionStatus,
-      subscriptionCurrentPeriodEnd: periodEnd,
-      paddleCustomerId: paddleCustomerId ?? undefined,
-      paddleSubscriptionId: paddleSubscriptionId ?? undefined,
-      paddlePriceId: paddlePriceId ?? undefined,
-    },
-  });
+  return {
+    id: userId,
+    plan: dbPlan,
+    tier: dbTier,
+    subscriptionStatus,
+    subscriptionCurrentPeriodEnd: periodEnd,
+    paddleCustomerId: paddleCustomerId ?? null,
+    paddleSubscriptionId: paddleSubscriptionId ?? null,
+    paddlePriceId: paddlePriceId ?? null,
+  };
 }
 
 export async function downgradeUserAfterPeriod(userId: string) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      plan: Plan.FREE,
-      tier: Tier.FREE,
-      subscriptionStatus: SubscriptionStatus.CANCELED,
-      paddlePriceId: null,
-      paddleSubscriptionId: null,
-    },
-  });
+  return {
+    id: userId,
+    plan: Plan.FREE,
+    tier: Tier.FREE,
+    subscriptionStatus: SubscriptionStatus.CANCELED,
+    paddlePriceId: null,
+    paddleSubscriptionId: null,
+  };
 }
 
 export function parsePaddleSubscriptionStatus(status: string): SubscriptionStatus {
