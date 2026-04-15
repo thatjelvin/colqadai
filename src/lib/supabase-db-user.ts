@@ -1,7 +1,5 @@
 import { createServerClient } from "@/lib/supabase/server";
-
-type Plan = "FREE" | "PRO" | "MAX";
-type SubscriptionStatus = "INACTIVE" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "TRIALING";
+import { Plan, ProfileRow, SubscriptionStatus } from "@/lib/db-types";
 
 export type AppUser = {
   id: string;
@@ -23,14 +21,19 @@ export type AppUser = {
 };
 
 function toPlan(value: string | null | undefined): Plan {
-  return value === "PRO" || value === "MAX" ? value : "FREE";
+  return value === Plan.PRO || value === Plan.MAX ? value : Plan.FREE;
 }
 
 function toSubscriptionStatus(value: string | null | undefined): SubscriptionStatus {
-  if (value === "ACTIVE" || value === "PAST_DUE" || value === "CANCELED" || value === "TRIALING") {
+  if (
+    value === SubscriptionStatus.ACTIVE ||
+    value === SubscriptionStatus.PAST_DUE ||
+    value === SubscriptionStatus.CANCELED ||
+    value === SubscriptionStatus.TRIALING
+  ) {
     return value;
   }
-  return "INACTIVE";
+  return SubscriptionStatus.INACTIVE;
 }
 
 export async function getOrCreateUserForSupabaseId(
@@ -40,21 +43,7 @@ export async function getOrCreateUserForSupabaseId(
   image?: string | null
 ): Promise<AppUser> {
   const supabase = createServerClient();
-  let profile: {
-    full_name?: string | null;
-    avatar_url?: string | null;
-    grade?: string | null;
-    course?: string | null;
-    age?: number | null;
-    source?: string | null;
-    plan?: string | null;
-    subscription_status?: string | null;
-    subscription_current_period_end?: string | null;
-    paddle_customer_id?: string | null;
-    paddle_subscription_id?: string | null;
-    paddle_price_id?: string | null;
-    created_at?: string | null;
-  } | null = null;
+  let profile: ProfileRow | null = null;
 
   const { data, error } = await supabase
     .from("profiles")
@@ -83,10 +72,19 @@ export async function getOrCreateUserForSupabaseId(
       console.warn("AUTH WARN: profile auto-create skipped", { supabaseId, error: upsertError });
     } else {
       profile = {
+        id: supabaseId,
         full_name: name ?? null,
         avatar_url: image ?? null,
-        plan: "FREE",
-        subscription_status: "INACTIVE",
+        grade: null,
+        course: null,
+        age: null,
+        source: null,
+        plan: Plan.FREE,
+        subscription_status: SubscriptionStatus.INACTIVE,
+        subscription_current_period_end: null,
+        paddle_customer_id: null,
+        paddle_subscription_id: null,
+        paddle_price_id: null,
         created_at: new Date().toISOString(),
       };
     }

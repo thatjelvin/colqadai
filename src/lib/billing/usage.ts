@@ -31,10 +31,9 @@ function utcDayBucket(date = new Date()): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-const usageCounters = new Map<string, number>();
-
-function usageKey(userId: string, feature: UsageFeature, bucket: Date) {
-  return `${userId}:${feature}:${bucket.toISOString().slice(0, 10)}`;
+/** Formats a UTC day bucket as YYYY-MM-DD for the usage_events primary key. */
+function usageBucketValue(bucket: Date): string {
+  return bucket.toISOString().slice(0, 10);
 }
 
 function normalizePlan(dbPlan: Plan, subscriptionStatus: SubscriptionStatus, periodEnd: Date | null): Plan {
@@ -96,7 +95,24 @@ export async function getBillingProfile(userId: string): Promise<BillingProfile>
 }
 
 export async function getFeatureUsage(userId: string, feature: UsageFeature): Promise<number> {
-  return usageCounters.get(usageKey(userId, feature, utcDayBucket())) ?? 0;
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("usage_events")
+      .select("count")
+      .eq("user_id", userId)
+      .eq("feature", feature)
+      .eq("bucket", usageBucketValue(utcDayBucket()))
+      .maybeSingle();
+
+    if (error && error.code !== "PGRST116") {
+      console.warn("BILLING WARN: failed to read usage event", { userId, feature, error });
+    }
+    return data?.count ?? 0;
+  } catch (error) {
+    console.warn("BILLING WARN: usage event read skipped", { userId, feature, error });
+    return 0;
+  }
 }
 
 export async function consumeUsage(userId: string, feature: UsageFeature, amount = 1) {
@@ -106,8 +122,8 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
   const limit = planDef.limits[limitKey] as number;
 
   const bucket = utcDayBucket();
-  const key = usageKey(userId, feature, bucket);
-  const currentCount = usageCounters.get(key) ?? 0;
+  const bucketValue = usageBucketValue(bucket);
+  const currentCount = await getFeatureUsage(userId, feature);
   if (currentCount + amount > limit) {
     throw new BillingLimitError(
       `Daily ${feature.toLowerCase()} limit reached for ${planDef.name}.`,
@@ -117,7 +133,23 @@ export async function consumeUsage(userId: string, feature: UsageFeature, amount
   }
 
   const updatedCount = currentCount + amount;
-  usageCounters.set(key, updatedCount);
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("usage_events").upsert(
+      {
+        user_id: userId,
+        feature,
+        bucket: bucketValue,
+        count: updatedCount,
+      },
+      { onConflict: "user_id,feature,bucket" }
+    );
+    if (error) {
+      console.warn("BILLING WARN: failed to persist usage event", { userId, feature, error });
+    }
+  } catch (error) {
+    console.warn("BILLING WARN: usage event persistence skipped", { userId, feature, error });
+  }
 
   return {
     used: updatedCount,

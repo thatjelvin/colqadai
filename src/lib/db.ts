@@ -1,13 +1,15 @@
+import { randomUUID } from "crypto";
+
 type AnyRecord = Record<string, unknown>;
 type Store = Record<string, AnyRecord[]>;
 
 const globalStore = globalThis as typeof globalThis & {
-  __colqadMockDb__?: Store;
+  __colqadInMemoryDb__?: Store;
 };
 
-const store: Store = globalStore.__colqadMockDb__ ?? {};
-if (!globalStore.__colqadMockDb__) {
-  globalStore.__colqadMockDb__ = store;
+const store: Store = globalStore.__colqadInMemoryDb__ ?? {};
+if (!globalStore.__colqadInMemoryDb__) {
+  globalStore.__colqadInMemoryDb__ = store;
 }
 
 function ensureModel(model: string): AnyRecord[] {
@@ -16,7 +18,7 @@ function ensureModel(model: string): AnyRecord[] {
 }
 
 function generateId() {
-  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return randomUUID();
 }
 
 function normalizeComparable(value: unknown): unknown {
@@ -51,8 +53,16 @@ function matchesWhere(record: AnyRecord, where: AnyRecord | undefined): boolean 
       if ("lt" in cond) return normalizeComparable(record[key]) < normalizeComparable(cond.lt);
       if ("lte" in cond) return normalizeComparable(record[key]) <= normalizeComparable(cond.lte);
 
-      if (key.includes("_")) {
-        return Object.entries(cond).every(([nestedKey, nestedVal]) => record[nestedKey] === nestedVal);
+      if (
+        key.includes("_") &&
+        Object.keys(cond).length > 0 &&
+        Object.keys(cond).every((nestedKey) => Object.prototype.hasOwnProperty.call(record, nestedKey))
+      ) {
+        return Object.entries(cond).every(([nestedKey, nestedVal]) =>
+          Object.prototype.hasOwnProperty.call(record, nestedKey)
+            ? record[nestedKey] === nestedVal
+            : false
+        );
       }
 
       return matchesWhere(record[key] ?? {}, cond);
@@ -200,6 +210,7 @@ function modelDelegate(model: string) {
 
 export const db = new Proxy(
   {
+    // NOTE: Temporary stabilization fallback; replace with a persistent transactional datastore in follow-up hardening.
     $transaction: async (input: unknown) => {
       if (typeof input === "function") {
         return (input as (client: typeof db) => unknown)(db);

@@ -42,7 +42,7 @@ From production logs and code audit:
 
 4. **Usage event billing path no longer uses Prisma**
    - Updated: `src/lib/billing/usage.ts`
-   - Replaced Prisma `UsageEvent` read/upsert calls with temporary server-safe in-memory counters.
+   - Replaced Prisma `UsageEvent` read/upsert calls with Supabase `usage_events` reads/upserts.
    - `/api/chat` usage checks now run without querying missing Prisma tables.
 
 5. **Service role key handling hardened**
@@ -83,6 +83,6 @@ Validated flow behavior with app running build output and route/API smoke checks
 
 ## 6. Remaining Risks (if any)
 
-- Temporary usage counters are in-memory and reset on process restart; they are stabilization-safe but not durable for production quotas.
+- Usage enforcement now depends on the `public.usage_events` table being created from the SQL script; until deployed, usage checks degrade gracefully.
 - The SQL migration/script must be applied to production Supabase before relying on profile persistence.
 - Full end-to-end authenticated UX still depends on valid deployed Supabase credentials and live auth callback configuration.
