@@ -163,7 +163,7 @@ function RegisterPageContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div role="status" aria-live="polite">Loading...</div>}>
       <RegisterPageContent />
     </Suspense>
   );
