@@ -31,12 +31,16 @@ function RegisterPageContent() {
     setEmailLoading(true);
     setError(null);
 
+    const emailRedirectTo = `${location.origin}/auth/callback`;
+    console.log("[OAuth] register: location.origin =", location.origin);
+    console.log("[OAuth] register: emailRedirectTo =", emailRedirectTo);
+
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo,
       },
     });
 
@@ -62,11 +66,16 @@ function RegisterPageContent() {
     setGoogleLoading(true);
     setError(null);
 
+    const redirectTo = `${location.origin}/auth/callback`;
+    console.log("[OAuth] register: location.origin =", location.origin);
+    console.log("[OAuth] register: redirectTo =", redirectTo);
+    console.log("[OAuth] register: NEXT_PUBLIC_SUPABASE_URL =", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo,
       },
     });
 
