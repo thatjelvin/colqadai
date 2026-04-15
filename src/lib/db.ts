@@ -1,4 +1,4 @@
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 type Store = Record<string, AnyRecord[]>;
 
 const globalStore = globalThis as typeof globalThis & {
@@ -19,7 +19,7 @@ function generateId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function normalizeComparable(value: any): any {
+function normalizeComparable(value: unknown): unknown {
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") {
     const asDate = Date.parse(value);
@@ -200,9 +200,9 @@ function modelDelegate(model: string) {
 
 export const db = new Proxy(
   {
-    $transaction: async (input: any) => {
+    $transaction: async (input: unknown) => {
       if (typeof input === "function") {
-        return input(db);
+        return (input as (client: typeof db) => unknown)(db);
       }
       if (Array.isArray(input)) {
         return Promise.all(input);
