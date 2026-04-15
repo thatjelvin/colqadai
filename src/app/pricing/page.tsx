@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { createServerClient } from "@/lib/supabase/server";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { PricingCards } from "@/components/PricingCards";
@@ -8,9 +7,7 @@ export default async function PricingPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { redirect("/login"); }
-  const dbUser = await prisma.user.findUnique({ where: { supabaseId: user.id } });
-  if (!dbUser) { redirect("/login"); }
-  const usage = await getUsageSummary(dbUser.id);
+  const usage = await getUsageSummary(user.id);
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createServerClient } from "@/lib/supabase/server";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { StatsRow } from "@/components/StatsRow";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,15 +16,13 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
-
-  const dbUserId = dbUser.id;
+  const userId = user.id;
 
   // Get due problems
   const now = new Date();
   const dueProblems = await prisma.userProblem.findMany({
     where: {
-      userId: dbUserId,
+      userId,
       nextReviewAt: {
         lte: now,
       },
@@ -45,7 +42,7 @@ export default async function DashboardPage() {
 
   // Get recent topics
   const recentUserProblems = await prisma.userProblem.findMany({
-    where: { userId: dbUserId },
+    where: { userId },
     orderBy: { lastReviewedAt: "desc" },
     take: 10,
     include: {
@@ -70,7 +67,7 @@ export default async function DashboardPage() {
 
   // Get stats
   const userProblems = await prisma.userProblem.findMany({
-    where: { userId: dbUserId },
+    where: { userId },
   });
 
   const totalSeen = userProblems.length;
@@ -89,7 +86,7 @@ export default async function DashboardPage() {
   const [attemptsThisWeek, firstAttemptCorrectCount, weeklyErrorGroups] = await Promise.all([
     prisma.problemAttempt.count({
       where: {
-        userId: dbUserId,
+        userId,
         createdAt: {
           gte: weekAgo,
         },
@@ -97,7 +94,7 @@ export default async function DashboardPage() {
     }),
     prisma.problemAttempt.count({
       where: {
-        userId: dbUserId,
+        userId,
         createdAt: {
           gte: weekAgo,
         },
@@ -108,7 +105,7 @@ export default async function DashboardPage() {
     prisma.problemAttempt.groupBy({
       by: ["errorType"],
       where: {
-        userId: dbUserId,
+        userId,
         isCorrect: false,
         createdAt: {
           gte: weekAgo,
@@ -132,7 +129,7 @@ export default async function DashboardPage() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome Header */}
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Welcome back{dbUser.name ? `, ${dbUser.name}` : ""}</h1>
+        <h1 className="mb-2 text-3xl font-bold">Welcome back{user.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ""}</h1>
         <p className="text-muted-foreground">
           {dueProblems.length > 0
             ? `You have ${dueProblems.length} items due for review`

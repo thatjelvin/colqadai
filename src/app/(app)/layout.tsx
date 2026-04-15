@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { createServerClient } from "@/lib/supabase/server";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export default async function AppLayout({
   children,
@@ -16,33 +16,26 @@ export default async function AppLayout({
   if (!user) {
     redirect("/login");
   }
-
-  const dbUser = await getOrCreateUserForSupabaseId(
-    user.id,
-    user.email!,
-    // full_name is set by Supabase when the user signs up via OAuth or metadata update
-    (user.user_metadata?.full_name as string | undefined) ?? null
-  ).catch((error) => {
-    console.error("AUTH ERROR: failed to resolve app user", {
-      supabaseId: user.id,
-      error,
-    });
-    throw error;
-  });
-
-  if (!dbUser.grade) {
-    redirect("/onboarding");
+  if (!user.email) {
+    redirect("/login");
   }
+
+  const appUser = await getOrCreateUserForSupabaseId(
+    user.id,
+    user.email,
+    user.user_metadata?.full_name ?? null,
+    user.user_metadata?.avatar_url ?? null
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar
         user={{
-          name: dbUser.name,
-          email: dbUser.email,
-          image: dbUser.image,
+          name: appUser.name,
+          email: appUser.email,
+          image: appUser.image,
         }}
-        plan={dbUser.plan}
+        plan={appUser.plan}
       />
       <main className="lg:pl-64">
         <div className="min-h-screen">{children}</div>

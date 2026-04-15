@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 const onboardingSchema = z.object({
   name: z.string().optional(),
@@ -34,43 +32,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
   }
 
-  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!).catch((error) => {
-    console.error("AUTH ERROR: onboarding user bootstrap failed", {
-      supabaseId: user.id,
-      error,
+  const { name, grade, course, age, source } = parsed.data;
+  if (name !== undefined) {
+    const { error: authUpdateError } = await supabase.auth.updateUser({
+      data: { full_name: name },
     });
-    return null;
-  });
-
-  if (!dbUser) {
-    return NextResponse.json({ error: "Failed to resolve user profile" }, { status: 500 });
+    if (authUpdateError) {
+      console.warn("AUTH WARN: failed to update auth profile name", authUpdateError);
+    }
   }
 
-  const { name, grade, course, age, source } = parsed.data;
-
-  const updatedUser = await prisma.user
-    .update({
-      where: { id: dbUser.id },
-      data: {
-        ...(name !== undefined && { name }),
+  const { error: profileUpsertError } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email,
+        full_name: name ?? user.user_metadata?.full_name ?? null,
         grade,
         course,
-        age,
-        source,
+        age: age ?? null,
+        source: source ?? null,
       },
-    })
-    .catch((error) => {
-      console.error("AUTH ERROR: onboarding user update failed", {
-        supabaseId: user.id,
-        dbUserId: dbUser.id,
-        error,
-      });
-      return null;
-    });
+      { onConflict: "id" }
+    );
 
-  if (!updatedUser) {
-    return NextResponse.json({ error: "Failed to save onboarding details" }, { status: 500 });
+  if (profileUpsertError) {
+    console.warn("AUTH WARN: onboarding profile upsert failed", profileUpsertError);
   }
 
-  return NextResponse.json({ success: true, user: updatedUser });
+  return NextResponse.json({
+    success: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: name ?? user.user_metadata?.full_name ?? null,
+      grade,
+      course,
+      age: age ?? null,
+      source: source ?? null,
+    },
+  });
 }
