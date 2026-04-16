@@ -4,6 +4,8 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+const MS_PER_DAY = 86400000;
+
 export async function GET() {
   try {
     const supabase = createServerClient();
@@ -61,7 +63,7 @@ function calculateStreak(userProblems: { lastReviewedAt: Date | null }[]): numbe
 
   const sortedDates = Array.from(reviewDates).sort().reverse();
   const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - MS_PER_DAY).toISOString().split("T")[0];
 
   if (sortedDates[0] !== today && sortedDates[0] !== yesterday) return 0;
 

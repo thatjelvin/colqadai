@@ -15,6 +15,8 @@ export type Material = {
   created_at: string;
 };
 
+const MAX_CONTENT_LENGTH_FOR_SUMMARY = 12000;
+
 const SUMMARY_SYSTEM_PROMPT = `You are a learning assistant for university STEM students.
 Generate a structured concept summary from the provided material.
 Format your response as:
@@ -90,7 +92,7 @@ async function generateSummary(
 
     // Text-based (pdf, note, ppt)
     if (!content) return "No content provided to summarize.";
-    const truncated = content.slice(0, 12000);
+    const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
     const response = await gemini.models.generateContent({
       model: "gemini-2.0-flash",
       contents: [{ role: "user", parts: [{ text: `${userPrompt}\n\n${truncated}` }] }],
@@ -217,7 +219,7 @@ export async function POST(req: NextRequest) {
 
     // Upload image to Supabase Storage
     try {
-      const ext = imageMimeType.includes("png") ? "png" : "jpg";
+      const ext = imageMimeType === "image/png" ? "png" : imageMimeType === "image/gif" ? "gif" : imageMimeType === "image/webp" ? "webp" : "jpg";
       const bytes = Buffer.from(imageBase64, "base64");
       const filePath = `${user.id}/${Date.now()}/upload.${ext}`;
       const { data: uploadData, error: uploadError } = await supabase.storage

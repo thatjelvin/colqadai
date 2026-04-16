@@ -351,7 +351,7 @@ export default function DashboardPage() {
 
                 <div className="flex gap-2">
                   <Button type="submit" disabled={isUploading}>
-                    {isUploading ? "Generating summary…" : "Upload & Summarise"}
+                    {isUploading ? "Generating summary…" : "Upload & Summarize"}
                   </Button>
                   {(title || noteContent || youtubeUrl || selectedFile) && (
                     <Button type="button" variant="ghost" size="icon" onClick={resetForm}>
