@@ -61,7 +61,11 @@ export async function POST(req: NextRequest) {
     );
 
   if (profileUpsertError) {
-    console.warn("AUTH WARN: onboarding profile upsert failed", profileUpsertError);
+    console.error("AUTH ERROR: onboarding profile upsert failed", profileUpsertError);
+    return NextResponse.json(
+      { error: "Failed to save your profile. Please try again." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
