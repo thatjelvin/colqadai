@@ -19,6 +19,7 @@ interface ChatInterfaceProps {
   sessionId?: string;
   initialMessages?: Message[];
   onNewChat?: () => void;
+  onSessionCreated?: () => void;
 }
 
 export function ChatInterface({
@@ -26,6 +27,7 @@ export function ChatInterface({
   sessionId: initialSessionId,
   initialMessages = [],
   onNewChat,
+  onSessionCreated,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -81,8 +83,9 @@ export function ChatInterface({
 
       // Get session ID from header
       const newSessionId = response.headers.get("X-Chat-Session-Id");
-      if (newSessionId) {
+      if (newSessionId && newSessionId !== currentSessionId) {
         setCurrentSessionId(newSessionId);
+        onSessionCreated?.();
       }
 
       // Read streaming response

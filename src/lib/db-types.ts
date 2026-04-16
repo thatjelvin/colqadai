@@ -91,4 +91,5 @@ export type ProfileRow = {
   paddle_subscription_id?: string | null;
   paddle_price_id?: string | null;
   created_at?: string | null;
+  onboarding_completed?: boolean | null;
 };
