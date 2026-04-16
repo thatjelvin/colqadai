@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Brain, Target, Flame, TrendingUp, Calendar, AlertCircle } from "lucide-react";
+import { Brain, Target, Flame, TrendingUp, Calendar, AlertCircle, Lock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 
 type DashboardStats = {
   masteryPercentage: number;
@@ -16,14 +17,20 @@ type DashboardStats = {
 
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [plan, setPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await fetch("/api/dashboard/stats");
-        if (!response.ok) throw new Error("Failed to load stats");
-        const data = await response.json();
-        setStats(data);
+        const [statsRes, usageRes] = await Promise.all([
+          fetch("/api/dashboard/stats"),
+          fetch("/api/billing/usage"),
+        ]);
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (usageRes.ok) {
+          const usage = await usageRes.json();
+          setPlan(usage.plan ?? "free");
+        }
       } catch (error) {
         console.error("Failed to load analytics:", error);
       }
@@ -31,6 +38,8 @@ export default function AnalyticsPage() {
 
     load();
   }, []);
+
+  const isPaid = plan === "pro" || plan === "max";
 
   if (!stats) {
     return (
@@ -47,10 +56,13 @@ export default function AnalyticsPage() {
         <h1 className="mb-2 text-3xl font-bold">Analytics</h1>
         <p className="text-muted-foreground">
           Track your learning progress and identify areas for improvement
+          {!isPaid && (
+            <span className="ml-2 text-xs text-amber-600 font-medium">(7-day overview — upgrade for full access)</span>
+          )}
         </p>
       </div>
 
-      {/* Key Metrics */}
+      {/* Key Metrics — always visible */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -100,7 +112,8 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Detail sections — blurred for free users */}
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${!isPaid ? "relative" : ""}`}>
         <Card className="border-error/20 bg-error/5">
           <CardHeader>
             <div className="flex items-center space-x-2">
@@ -135,6 +148,23 @@ export default function AnalyticsPage() {
             <p className="text-xs text-muted-foreground">Retrieval-first practice and interleaving are active for long-term retention.</p>
           </CardContent>
         </Card>
+
+        {/* Blur overlay for free users */}
+        {!isPaid && (
+          <div className="absolute inset-0 rounded-lg backdrop-blur-sm bg-background/60 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+            <p className="font-semibold text-sm">Unlock full analytics with Pro</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              See your Focus Areas, Strong Areas, and week-over-week trends. Upgrade to Pro for the full picture.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow hover:bg-primary/90 transition"
+            >
+              Upgrade to Pro →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

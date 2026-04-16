@@ -25,6 +25,7 @@ export const UsageFeature = {
   CHAT_MESSAGE: "CHAT_MESSAGE",
   NEW_CHAT_SESSION: "NEW_CHAT_SESSION",
   PROBLEM_START: "PROBLEM_START",
+  MATERIAL_SUMMARY: "MATERIAL_SUMMARY",
 } as const;
 export type UsageFeature = (typeof UsageFeature)[keyof typeof UsageFeature];
 
@@ -84,6 +85,7 @@ export type ProfileRow = {
   course?: string | null;
   age?: number | null;
   source?: string | null;
+  challenge?: string | null;
   plan?: string | null;
   subscription_status?: string | null;
   subscription_current_period_end?: string | null;

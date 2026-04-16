@@ -36,8 +36,15 @@ export default async function ReflectionsPage() {
 
       {reflections.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            No reflections yet. Complete a correct attempt and respond to the follow-up prompt.
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="text-5xl" role="img" aria-label="Thinking">💭</span>
+            <p className="font-semibold text-base">No reflections yet</p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              After answering a problem correctly, you&apos;ll be prompted to reflect on your reasoning. Your reflections build deeper long-term memory.
+            </p>
+            <Link href="/study">
+              <Button size="sm" variant="outline">Start a Practice Session</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (

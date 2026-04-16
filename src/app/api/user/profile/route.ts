@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-const onboardingSchema = z.object({
+const profileSchema = z.object({
   name: z.string().optional(),
   grade: z.string().min(1),
   course: z.string().min(1),
   age: z.number().min(1).max(120).optional(),
-  source: z.string().optional(),
-  challenge: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -19,27 +17,24 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const body = await req.json().catch((error) => {
-    console.error("AUTH ERROR: onboarding request JSON parse failed", error);
-    return null;
-  });
-
+  const body = await req.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const parsed = onboardingSchema.safeParse(body);
+  const parsed = profileSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
   }
 
-  const { name, grade, course, age, source, challenge } = parsed.data;
+  const { name, grade, course, age } = parsed.data;
+
   if (name !== undefined) {
     const { error: authUpdateError } = await supabase.auth.updateUser({
       data: { full_name: name },
     });
     if (authUpdateError) {
-      console.warn("AUTH WARN: failed to update auth profile name", authUpdateError);
+      console.warn("PROFILE WARN: failed to update auth profile name", authUpdateError);
     }
   }
 
@@ -53,15 +48,13 @@ export async function POST(req: NextRequest) {
         grade,
         course,
         age: age ?? null,
-        source: source ?? null,
-        challenge: challenge ?? null,
-        onboarding_completed: true,
       },
       { onConflict: "id" }
     );
 
   if (profileUpsertError) {
-    console.warn("AUTH WARN: onboarding profile upsert failed", profileUpsertError);
+    console.warn("PROFILE WARN: profile upsert failed", profileUpsertError);
+    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -73,8 +66,6 @@ export async function POST(req: NextRequest) {
       grade,
       course,
       age: age ?? null,
-      source: source ?? null,
-      challenge: challenge ?? null,
     },
   });
 }

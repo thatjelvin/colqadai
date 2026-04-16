@@ -25,6 +25,7 @@ const usageFeatureToLimitKey: Record<UsageFeature, keyof typeof PLAN_DEFINITIONS
   CHAT_MESSAGE: "chatMessagesPerDay",
   NEW_CHAT_SESSION: "newChatSessionsPerDay",
   PROBLEM_START: "problemStartsPerDay",
+  MATERIAL_SUMMARY: "materialSummariesPerDay",
 };
 
 function utcDayBucket(date = new Date()): Date {

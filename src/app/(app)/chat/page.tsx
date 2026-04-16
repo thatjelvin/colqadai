@@ -139,8 +139,9 @@ export default function ChatPage() {
                 Loading...
               </div>
             ) : sessions.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-sm px-4">
-                No chat history yet.
+              <div className="py-6 px-4 text-center text-sm text-muted-foreground space-y-2">
+                <p className="font-medium text-foreground">No previous sessions</p>
+                <p>Ask me anything about your math — problems, concepts, or your upcoming exam.</p>
               </div>
             ) : (
               sessions.map((session) => (

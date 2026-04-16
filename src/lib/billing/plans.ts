@@ -6,8 +6,10 @@ export type PlanLimits = {
   chatMessagesPerDay: number;
   newChatSessionsPerDay: number;
   problemStartsPerDay: number;
+  materialSummariesPerDay: number;
   analyticsAccess: boolean;
   notebooksAccess: boolean;
+  notebooksLimit: number;
   priorityResponses: boolean;
   earlyAccess: boolean;
 };
@@ -37,8 +39,10 @@ export const PLAN_DEFINITIONS: Record<PlanCode, PlanDefinition> = {
       chatMessagesPerDay: 10,
       newChatSessionsPerDay: 3,
       problemStartsPerDay: 20,
+      materialSummariesPerDay: 5,
       analyticsAccess: false,
       notebooksAccess: false,
+      notebooksLimit: 0,
       priorityResponses: false,
       earlyAccess: false,
     },
@@ -59,8 +63,10 @@ export const PLAN_DEFINITIONS: Record<PlanCode, PlanDefinition> = {
       chatMessagesPerDay: 120,
       newChatSessionsPerDay: 30,
       problemStartsPerDay: 200,
+      materialSummariesPerDay: 999,
       analyticsAccess: true,
       notebooksAccess: true,
+      notebooksLimit: 10,
       priorityResponses: false,
       earlyAccess: false,
     },
@@ -80,8 +86,10 @@ export const PLAN_DEFINITIONS: Record<PlanCode, PlanDefinition> = {
       chatMessagesPerDay: 600,
       newChatSessionsPerDay: 120,
       problemStartsPerDay: 1000,
+      materialSummariesPerDay: 999,
       analyticsAccess: true,
       notebooksAccess: true,
+      notebooksLimit: 999,
       priorityResponses: true,
       earlyAccess: true,
     },
