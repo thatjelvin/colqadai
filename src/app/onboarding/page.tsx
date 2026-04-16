@@ -502,9 +502,9 @@ export default function OnboardingPage() {
         }),
       });
       if (res.ok) {
-        // Hard redirect so the server component re-reads the updated profile
-        // and does not serve a stale cached onboarding_completed = false value.
-        window.location.href = "/dashboard";
+        // Advance to the done screen only after a confirmed save.
+        setCurrentStep(STEPS.length);
+        setLoading(false);
       } else {
         const data = await res.json().catch(() => ({}));
         console.error("Onboarding API error:", data);
@@ -534,10 +534,11 @@ export default function OnboardingPage() {
 
         <div className="rounded-3xl border bg-card shadow-lg p-8">
           {isDoneScreen ? (
-            <>
-              {error && <p className="mb-4 text-sm text-destructive text-center">{error}</p>}
-              <AllSetScreen name={null} onStart={submit} loading={loading} />
-            </>
+            <AllSetScreen
+              name={null}
+              onStart={() => (window.location.href = "/dashboard")}
+              loading={false}
+            />
           ) : (
             <>
               {/* Progress */}
@@ -594,14 +595,16 @@ export default function OnboardingPage() {
               {/* Error */}
               {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
-              {/* Next button */}
+              {/* Next / submit button */}
               <button
                 type="button"
-                onClick={goNext}
-                disabled={!canProceed}
+                onClick={currentStep === STEPS.length - 1 ? submit : goNext}
+                disabled={!canProceed || loading}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {currentStep === STEPS.length - 1 ? "Almost done →" : "Next →"}
+                {currentStep === STEPS.length - 1
+                  ? loading ? "Saving…" : "Almost done →"
+                  : "Next →"}
               </button>
             </>
           )}
