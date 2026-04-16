@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
         course,
         age: age ?? null,
         source: source ?? null,
+        onboarding_completed: true,
       },
       { onConflict: "id" }
     );

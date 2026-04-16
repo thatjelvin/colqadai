@@ -27,6 +27,10 @@ export default async function AppLayout({
     user.user_metadata?.avatar_url ?? null
   );
 
+  if (!appUser.onboardingCompleted) {
+    redirect("/onboarding");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar

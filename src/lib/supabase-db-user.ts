@@ -18,6 +18,7 @@ export type AppUser = {
   paddleSubscriptionId: string | null;
   paddlePriceId: string | null;
   createdAt: Date;
+  onboardingCompleted: boolean;
 };
 
 function toPlan(value: string | null | undefined): Plan {
@@ -48,7 +49,7 @@ export async function getOrCreateUserForSupabaseId(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, avatar_url, grade, course, age, source, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at"
+      "id, full_name, avatar_url, grade, course, age, source, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at, onboarding_completed"
     )
     .eq("id", supabaseId)
     .maybeSingle();
@@ -109,5 +110,8 @@ export async function getOrCreateUserForSupabaseId(
     paddleSubscriptionId: profile?.paddle_subscription_id ?? null,
     paddlePriceId: profile?.paddle_price_id ?? null,
     createdAt: profile?.created_at ? new Date(profile.created_at) : new Date(),
+    onboardingCompleted:
+      profile?.onboarding_completed ??
+      (!!profile?.grade && !!profile?.course),
   };
 }

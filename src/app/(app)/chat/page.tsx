@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -14,19 +14,41 @@ interface ChatSession {
   createdAt: string;
 }
 
+interface Message {
+  id: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+}
+
 export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [usage, setUsage] = useState<{
     plan: string;
     usage: { chatMessages: { used: number; limit: number } };
   } | null>(null);
 
+  const fetchSessions = useCallback(async () => {
+    try {
+      const response = await fetch("/api/chat/sessions");
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data);
+      }
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSessions();
     fetchUsage();
-  }, []);
+  }, [fetchSessions]);
 
   const fetchUsage = async () => {
     try {
@@ -39,27 +61,47 @@ export default function ChatPage() {
     }
   };
 
-  const fetchSessions = async () => {
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    setIsLoadingMessages(true);
+    setSessionMessages([]);
     try {
-      const response = await fetch("/api/chat/sessions");
+      const response = await fetch(`/api/chat/sessions/${sessionId}`);
       if (response.ok) {
         const data = await response.json();
-        setSessions(data);
+        setSessionMessages(
+          (data.messages ?? []).map(
+            (m: { id: string; role: string; content: string }) => ({
+              id: m.id,
+              role: m.role as "USER" | "ASSISTANT",
+              content: m.content,
+            })
+          )
+        );
       }
     } catch (error) {
-      console.error("Error fetching sessions:", error);
+      console.error("Error loading session messages:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingMessages(false);
     }
-  };
+  }, []);
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     setSelectedSessionId(null);
-  };
+    setSessionMessages([]);
+    fetchSessions();
+  }, [fetchSessions]);
 
-  const handleSessionSelect = (sessionId: string) => {
-    setSelectedSessionId(sessionId);
-  };
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => {
+      setSelectedSessionId(sessionId);
+      loadSessionMessages(sessionId);
+    },
+    [loadSessionMessages]
+  );
+
+  const handleSessionCreated = useCallback(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   return (
     <div className="h-full flex">
@@ -122,11 +164,21 @@ export default function ChatPage() {
 
       {/* Main chat area */}
       <div className="flex-1 p-6">
-        <ChatInterface
-          sessionId={selectedSessionId || undefined}
-          onNewChat={handleNewChat}
-        />
+        {isLoadingMessages ? (
+          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+            Loading conversation…
+          </div>
+        ) : (
+          <ChatInterface
+            key={selectedSessionId ?? "new"}
+            sessionId={selectedSessionId || undefined}
+            initialMessages={sessionMessages}
+            onNewChat={handleNewChat}
+            onSessionCreated={handleSessionCreated}
+          />
+        )}
       </div>
     </div>
   );
 }
+
