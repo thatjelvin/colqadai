@@ -4,6 +4,9 @@ import { createServerClient } from "@/lib/supabase/server";
 import { gemini } from "@/lib/gemini";
 import { readPdfTextFromBase64, normalizeSourceText } from "@/lib/notebooks/processing";
 import { z } from "zod";
+import { consumeUsage, buildUpgradeErrorPayload } from "@/lib/billing/usage";
+import { BillingLimitError } from "@/lib/billing/usage";
+import { UsageFeature } from "@/lib/db-types";
 
 export type Material = {
   id: string;
@@ -162,6 +165,16 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Enforce material summary daily limit
+  try {
+    await consumeUsage(user.id, UsageFeature.MATERIAL_SUMMARY);
+  } catch (err) {
+    if (err instanceof BillingLimitError) {
+      return NextResponse.json(buildUpgradeErrorPayload(err), { status: err.status });
+    }
+    throw err;
+  }
 
   let body: unknown;
   try {

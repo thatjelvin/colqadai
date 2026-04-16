@@ -32,7 +32,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
     setError(null);
 
     try {
-      const res = await fetch("/api/user/onboarding", {
+      const res = await fetch("/api/user/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

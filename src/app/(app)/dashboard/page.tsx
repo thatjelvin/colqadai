@@ -59,6 +59,31 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   youtube: Youtube,
 };
 
+/** Parse bold-section headings out of the AI summary for structured display. */
+function parseSummarySections(text: string): { heading: string | null; body: string }[] {
+  const lines = text.split("\n");
+  const sections: { heading: string | null; body: string }[] = [];
+  let currentHeading: string | null = null;
+  let currentLines: string[] = [];
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^\*\*(.+?)\*\*\s*$/);
+    if (headingMatch) {
+      if (currentLines.length > 0 || currentHeading !== null) {
+        sections.push({ heading: currentHeading, body: currentLines.join("\n").trim() });
+      }
+      currentHeading = headingMatch[1];
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  }
+  if (currentLines.length > 0 || currentHeading !== null) {
+    sections.push({ heading: currentHeading, body: currentLines.join("\n").trim() });
+  }
+  return sections.filter((s) => s.heading || s.body);
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -72,6 +97,14 @@ export default function DashboardPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Determine greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   const fetchStats = useCallback(async () => {
     try {
@@ -193,61 +226,63 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-1">
-          {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Dashboard"}
+          {userName
+            ? `${getGreeting()}, ${userName.split(" ")[0]}${stats && stats.streak > 0 ? ` — 🔥 ${stats.streak}-day streak` : ""}`
+            : "Dashboard"}
         </h1>
         <p className="text-muted-foreground">Your learning hub — upload material, review progress, or jump into practice.</p>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-800/40 dark:bg-orange-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardDescription>Streak</CardDescription>
+              <CardDescription className="text-orange-700 dark:text-orange-300 font-medium">Streak</CardDescription>
               <Flame className="h-4 w-4 text-orange-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.streak ?? "—"}</div>
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats?.streak ?? "—"}</div>
             <p className="text-xs text-muted-foreground mt-0.5">days</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800/40 dark:bg-blue-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardDescription>Reviewed</CardDescription>
+              <CardDescription className="text-blue-700 dark:text-blue-300 font-medium">Reviewed</CardDescription>
               <Brain className="h-4 w-4 text-blue-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.totalSeen ?? "—"}</div>
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats?.totalSeen ?? "—"}</div>
             <p className="text-xs text-muted-foreground mt-0.5">problems</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-green-200 bg-green-50/50 dark:border-green-800/40 dark:bg-green-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardDescription>Mastery</CardDescription>
+              <CardDescription className="text-green-700 dark:text-green-300 font-medium">Mastery</CardDescription>
               <Target className="h-4 w-4 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.masteryPercentage ?? "—"}%</div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? "—"}%</div>
             <p className="text-xs text-muted-foreground mt-0.5">of seen problems</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800/40 dark:bg-amber-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardDescription>Due Today</CardDescription>
+              <CardDescription className="text-amber-700 dark:text-amber-300 font-medium">Due Today</CardDescription>
               <Clock className="h-4 w-4 text-amber-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.dueCount ?? "—"}</div>
+            <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? "—"}</div>
             <p className="text-xs text-muted-foreground mt-0.5">items to review</p>
           </CardContent>
         </Card>
@@ -263,7 +298,7 @@ export default function DashboardPage() {
                 Add Learning Material
               </CardTitle>
               <CardDescription>
-                Upload a PDF, image, paste a note, or link a YouTube video to get an instant AI concept summary.
+                Upload your lecture notes, slides, or a YouTube link — Colqad will break it down for you.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -368,8 +403,19 @@ export default function DashboardPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Recent Summaries</h2>
               {materials.map((m) => {
-                const Icon = TYPE_ICONS[m.type] ?? FileText;
                 const isExpanded = expandedId === m.id;
+                const typeEmoji =
+                  m.type === "youtube" ? "🎥"
+                  : m.type === "image" ? "🖼️"
+                  : m.type === "pdf" ? "📄"
+                  : "📝";
+                const Icon = TYPE_ICONS[m.type] ?? FileText;
+
+                // Build one-line preview from summary
+                const previewText = m.summary
+                  ? m.summary.replace(/\*\*/g, "").replace(/\n/g, " ").trim().slice(0, 100)
+                  : null;
+
                 return (
                   <Card key={m.id} className="overflow-hidden">
                     <button
@@ -379,10 +425,15 @@ export default function DashboardPage() {
                     >
                       <CardHeader className="py-3">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <CardTitle className="text-sm font-medium truncate">{m.title}</CardTitle>
-                            <Badge variant="outline" className="text-xs shrink-0">{m.type}</Badge>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base" role="img" aria-hidden>{typeEmoji}</span>
+                              <CardTitle className="text-sm font-medium truncate">{m.title}</CardTitle>
+                              <Badge variant="outline" className="text-xs shrink-0">{m.type}</Badge>
+                            </div>
+                            {previewText && !isExpanded && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate pl-7">{previewText}…</p>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-xs text-muted-foreground hidden sm:block">
@@ -399,8 +450,17 @@ export default function DashboardPage() {
                     </button>
                     {isExpanded && m.summary && (
                       <CardContent className="pt-0 pb-4 border-t">
-                        <div className="prose prose-sm max-w-none text-sm text-foreground/90 whitespace-pre-wrap mt-3">
-                          {m.summary}
+                        <div className="mt-3 space-y-3 text-sm text-foreground/90">
+                          {parseSummarySections(m.summary).map((section, idx) => (
+                            <div key={idx}>
+                              {section.heading && (
+                                <p className="font-semibold text-foreground mb-1">{section.heading}</p>
+                              )}
+                              <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                                {section.body}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                         {m.storage_url && m.type === "youtube" && (
                           <a
@@ -432,7 +492,7 @@ export default function DashboardPage() {
               { href: "/notebooks", icon: BookOpen, label: "Notebooks", desc: "Deep-dive source workspace", premium: true },
               { href: "/analytics", icon: BarChart3, label: "Analytics", desc: "Track your performance", premium: true },
             ].map((item) => (
-              <Link key={item.href} href={item.href}>
+              <Link key={item.href} href={item.premium ? "/pricing" : item.href}>
                 <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -441,7 +501,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-medium">{item.label}</p>
                           {item.premium && (
-                            <Badge variant="outline" className="text-[10px] py-0">PRO</Badge>
+                            <Badge className="text-[10px] py-0 bg-amber-500 hover:bg-amber-500 text-white">PRO</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">{item.desc}</p>
@@ -453,20 +513,33 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {stats && stats.dueCount > 0 && (
+          {stats && stats.dueCount > 0 ? (
             <Card className="border-amber-300/50 bg-amber-50/50 dark:bg-amber-900/10">
               <CardContent className="py-3 px-4">
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   You have {stats.dueCount} problem{stats.dueCount !== 1 ? "s" : ""} due for review.
                 </p>
                 <Link href="/study">
-                  <Button size="sm" className="mt-2 w-full">
-                    Start Review
+                  <Button size="sm" className="mt-2 w-full animate-pulse">
+                    Start Review →
                   </Button>
                 </Link>
               </CardContent>
             </Card>
-          )}
+          ) : stats !== null ? (
+            <Card className="border-muted">
+              <CardContent className="py-3 px-4">
+                <p className="text-sm text-muted-foreground">
+                  🎉 Nothing due today — great work keeping up!
+                </p>
+                <Link href="/topics">
+                  <Button size="sm" variant="outline" className="mt-2 w-full">
+                    Browse Topics
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </div>

@@ -82,7 +82,13 @@ export default async function ErrorLogPage() {
         </CardHeader>
         <CardContent>
           {attempts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No mistakes logged yet.</p>
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <span className="text-5xl" role="img" aria-label="All clear">✅</span>
+              <p className="font-semibold text-base">No errors yet — keep practicing!</p>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                Wrong answers will show up here so you can re-attempt them deliberately. Nothing here means you&apos;re on a roll.
+              </p>
+            </div>
           ) : (
             <div className="space-y-3">
               {attempts.map((attempt) => (

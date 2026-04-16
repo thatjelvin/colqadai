@@ -18,7 +18,7 @@ type PlanConfig = {
   code: "free" | "pro" | "max";
   title: string;
   price: string;
-  subtitle: string;
+  headline: string;
   features: string[];
   highlight?: boolean;
 };
@@ -28,37 +28,40 @@ const plans: PlanConfig[] = [
     code: "free",
     title: "Free",
     price: "$0",
-    subtitle: "Great to start building momentum",
+    headline: "Start building momentum — no card needed.",
     features: [
-      "10 AI tutor messages/day",
-      "3 new chat sessions/day",
-      "20 problem starts/day",
-      "Core spaced repetition + dashboard",
+      "AI tutor when you need a nudge (10 msgs/day)",
+      "20 practice problems per day",
+      "Core spaced repetition + progress dashboard",
+      "5 material summaries per day",
+      "7-day analytics overview",
     ],
   },
   {
     code: "pro",
     title: "Pro",
     price: "$6.99/mo",
-    subtitle: "Best value for serious students",
+    headline: "AI help whenever you're stuck — not rationed.",
     highlight: true,
     features: [
-      "120 AI tutor messages/day",
-      "30 new chat sessions/day",
+      "120 AI tutor messages/day, 30 sessions",
       "200 problem starts/day",
-      "Advanced analytics + notebooks",
+      "Turn lecture notes into a revision guide in seconds (unlimited summaries)",
+      "Full analytics — see exactly where to improve",
+      "Up to 10 Notebooks for deep-dive study",
     ],
   },
   {
     code: "max",
-    title: "Max",
+    title: "Max — Exam Mode",
     price: "$16.99/mo",
-    subtitle: "Power-user plan with priority lane",
+    headline: "Unlimited power for the week before finals.",
     features: [
-      "600 AI tutor messages/day",
-      "120 new chat sessions/day",
-      "1000 problem starts/day",
-      "Priority processing + early access",
+      "600 AI tutor messages/day, 120 sessions",
+      "1,000 problem starts/day",
+      "Unlimited Notebooks",
+      "Priority AI responses (4096 tokens)",
+      "Early access to new features",
     ],
   },
 ];
@@ -142,8 +145,8 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
                   <CardTitle>{plan.title}</CardTitle>
                   {plan.highlight && <Badge>Most Popular</Badge>}
                 </div>
-                <CardDescription>{plan.subtitle}</CardDescription>
-                <p className="text-3xl font-bold">{plan.price}</p>
+                <CardDescription className="text-sm font-medium text-foreground/80 mt-1">{plan.headline}</CardDescription>
+                <p className="text-3xl font-bold mt-2">{plan.price}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm text-muted-foreground">
