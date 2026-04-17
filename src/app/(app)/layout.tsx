@@ -3,6 +3,10 @@ import { Sidebar } from "@/components/Sidebar";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+// Force fresh data on every request so the onboarding-completion flag is
+// never served from the Next.js Data Cache after the user finishes onboarding.
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {
@@ -26,6 +30,8 @@ export default async function AppLayout({
     user.user_metadata?.full_name ?? null,
     user.user_metadata?.avatar_url ?? null
   );
+
+  console.log("APP_LAYOUT PROFILE:", JSON.stringify({ id: appUser.id, onboardingCompleted: appUser.onboardingCompleted }));
 
   if (!appUser.onboardingCompleted) {
     redirect("/onboarding");
