@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existingProfile } = await adminSupabase
     .from("profiles")
-    .select("*")
+    .select("id")
     .eq("id", user.id)
     .single();
   console.log("EXISTING PROFILE:", existingProfile);
@@ -98,6 +98,14 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
   console.log("VERIFIED PROFILE:", verify);
+
+  if (!verify?.onboarding_completed) {
+    console.error("AUTH ERROR: onboarding_completed verification failed after upsert", { verify });
+    return NextResponse.json(
+      { error: "Profile update could not be verified. Please try again." },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({
     success: true,
