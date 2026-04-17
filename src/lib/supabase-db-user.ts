@@ -49,7 +49,23 @@ export async function getOrCreateUserForSupabaseId(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, avatar_url, grade, course, age, source, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at, onboarding_completed"
+      `
+      id,
+      full_name,
+      avatar_url,
+      grade,
+      course,
+      age,
+      source,
+      plan,
+      subscription_status,
+      subscription_current_period_end,
+      paddle_customer_id,
+      paddle_subscription_id,
+      paddle_price_id,
+      created_at,
+      onboarding_completed
+      `
     )
     .eq("id", supabaseId)
     .maybeSingle();
@@ -91,27 +107,36 @@ export async function getOrCreateUserForSupabaseId(
     }
   }
 
+  const normalizedProfile = profile
+    ? {
+        ...profile,
+        onboardingCompleted: profile.onboarding_completed,
+      }
+    : null;
+
+  console.log("PROFILE AFTER MAPPING:", normalizedProfile);
+
   return {
     id: supabaseId,
     supabaseId,
     email,
-    name: profile?.full_name ?? name ?? null,
-    image: profile?.avatar_url ?? image ?? null,
-    grade: profile?.grade ?? null,
-    course: profile?.course ?? null,
-    age: profile?.age ?? null,
-    source: profile?.source ?? null,
-    plan: toPlan(profile?.plan),
-    subscriptionStatus: toSubscriptionStatus(profile?.subscription_status),
-    subscriptionCurrentPeriodEnd: profile?.subscription_current_period_end
-      ? new Date(profile.subscription_current_period_end)
+    name: normalizedProfile?.full_name ?? name ?? null,
+    image: normalizedProfile?.avatar_url ?? image ?? null,
+    grade: normalizedProfile?.grade ?? null,
+    course: normalizedProfile?.course ?? null,
+    age: normalizedProfile?.age ?? null,
+    source: normalizedProfile?.source ?? null,
+    plan: toPlan(normalizedProfile?.plan),
+    subscriptionStatus: toSubscriptionStatus(normalizedProfile?.subscription_status),
+    subscriptionCurrentPeriodEnd: normalizedProfile?.subscription_current_period_end
+      ? new Date(normalizedProfile.subscription_current_period_end)
       : null,
-    paddleCustomerId: profile?.paddle_customer_id ?? null,
-    paddleSubscriptionId: profile?.paddle_subscription_id ?? null,
-    paddlePriceId: profile?.paddle_price_id ?? null,
-    createdAt: profile?.created_at ? new Date(profile.created_at) : new Date(),
+    paddleCustomerId: normalizedProfile?.paddle_customer_id ?? null,
+    paddleSubscriptionId: normalizedProfile?.paddle_subscription_id ?? null,
+    paddlePriceId: normalizedProfile?.paddle_price_id ?? null,
+    createdAt: normalizedProfile?.created_at ? new Date(normalizedProfile.created_at) : new Date(),
     onboardingCompleted:
-      profile?.onboarding_completed ??
-      (!!profile?.grade && !!profile?.course),
+      normalizedProfile?.onboardingCompleted ??
+      (!!normalizedProfile?.grade && !!normalizedProfile?.course),
   };
 }
