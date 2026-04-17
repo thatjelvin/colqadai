@@ -44,24 +44,27 @@ async function generateSummary(
   content: string,
   youtubeUrl?: string,
 ): Promise<string> {
+  // YouTube: transcript extraction not available with Groq (text-only API)
+  if (type === "youtube" && youtubeUrl) {
+    return "Automatic summarization of YouTube videos is not currently available. Please copy and paste the video transcript as a text note to generate a summary.";
+  }
+
+  // Image: vision capabilities not available with Groq (text-only API)
+  if (type === "image") {
+    return "Automatic summarization of images is not currently available. Please describe the image content as a text note to generate a summary.";
+  }
+
+  // Text-based (pdf, note, ppt)
+  if (!content) return "No content provided to summarize.";
   const userPrompt = "Summarize the following material for a university student:";
+  const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
 
   try {
-    let textToSummarize: string;
-
-    if (type === "youtube" && youtubeUrl) {
-      textToSummarize = `${userPrompt}\n\nYouTube video URL: ${youtubeUrl}\n\nNote: Please provide a general academic summary based on the URL context. Full transcript processing is not available; summarize the topic inferred from the URL.`;
-    } else {
-      if (!content) return "No content provided to summarize.";
-      const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
-      textToSummarize = `${userPrompt}\n\n${truncated}`;
-    }
-
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: SUMMARY_SYSTEM_PROMPT },
-        { role: "user", content: textToSummarize },
+        { role: "user", content: `${userPrompt}\n\n${truncated}` },
       ],
       max_tokens: 1024,
     });
@@ -194,7 +197,6 @@ export async function POST(req: NextRequest) {
   } else if (data.type === "image") {
     imageBase64 = data.imageBase64;
     imageMimeType = data.imageMimeType;
-    textContent = `Image material titled "${data.title}" uploaded by the student. Provide a general academic summary placeholder noting that image content analysis is not available.`;
 
     // Upload image to Supabase Storage
     try {
