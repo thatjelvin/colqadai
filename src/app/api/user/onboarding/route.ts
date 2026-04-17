@@ -48,6 +48,23 @@ export async function POST(req: NextRequest) {
   }
 
   console.log("USER ID:", user.id);
+
+  const { data: existingProfile } = await adminSupabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+  console.log("EXISTING PROFILE:", existingProfile);
+
+  if (!existingProfile) {
+    const { error: insertError } = await adminSupabase
+      .from("profiles")
+      .insert({ id: user.id, email: user.email });
+    if (insertError) {
+      console.warn("AUTH WARN: pre-insert failed, upsert will handle it", insertError);
+    }
+  }
+
   const { error: profileUpsertError, data: upsertResult } = await adminSupabase
     .from("profiles")
     .upsert(
@@ -63,7 +80,8 @@ export async function POST(req: NextRequest) {
         onboarding_completed: true,
       },
       { onConflict: "id" }
-    );
+    )
+    .select();
   console.log("UPSERT RESULT:", upsertResult);
 
   if (profileUpsertError) {
@@ -73,6 +91,13 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
+  const { data: verify } = await adminSupabase
+    .from("profiles")
+    .select("id, onboarding_completed")
+    .eq("id", user.id)
+    .single();
+  console.log("VERIFIED PROFILE:", verify);
 
   return NextResponse.json({
     success: true,
