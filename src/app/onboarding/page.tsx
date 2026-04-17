@@ -538,7 +538,11 @@ export default function OnboardingPage() {
           {isDoneScreen ? (
             <AllSetScreen
               name={null}
-              onStart={() => router.push("/dashboard")}
+              onStart={async () => {
+                await new Promise((res) => setTimeout(res, 100));
+                router.refresh();
+                router.push("/dashboard");
+              }}
               loading={false}
             />
           ) : (
