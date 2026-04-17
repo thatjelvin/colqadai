@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -467,6 +468,7 @@ function AllSetScreen({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0); // 0-indexed; STEPS.length = done screen
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -536,7 +538,7 @@ export default function OnboardingPage() {
           {isDoneScreen ? (
             <AllSetScreen
               name={null}
-              onStart={() => (window.location.href = "/dashboard")}
+              onStart={() => router.push("/dashboard")}
               loading={false}
             />
           ) : (
