@@ -50,7 +50,9 @@ async function generateSummary(
 
   try {
     if (type === "youtube" && youtubeUrl) {
-      // Grok does not support direct video ingestion; summarize from the URL context.
+      // Grok does not support direct video ingestion (unlike Gemini's native YouTube processing).
+      // Summarization is based on any topic context inferable from the URL.
+      // For richer summaries, provide the video transcript as a note or PDF material instead.
       const response = await grok.chat.completions.create({
         model: "grok-3-fast",
         messages: [
@@ -65,7 +67,12 @@ async function generateSummary(
       return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
     }
 
+    const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
     if (type === "image" && imageBase64 && imageMimeType) {
+      if (!ALLOWED_IMAGE_TYPES.includes(imageMimeType)) {
+        return "Unsupported image format. Please upload a JPEG, PNG, GIF, or WebP image.";
+      }
       const dataUrl = `data:${imageMimeType};base64,${imageBase64}`;
       const response = await grok.chat.completions.create({
         model: "grok-2-vision-1212",
