@@ -3,6 +3,8 @@ import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const onboardingSchema = z.object({
   name: z.string().optional(),
   grade: z.string().min(1),
