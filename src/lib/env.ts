@@ -6,8 +6,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DIRECT_URL: z.string().optional(),
 
-  // Gemini
-  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+  // Grok (xAI)
+  XAI_API_KEY: z.string().min(1, "XAI_API_KEY is required"),
 
   // Supabase Auth
   NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),

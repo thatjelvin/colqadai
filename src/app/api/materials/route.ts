@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { gemini } from "@/lib/gemini";
+import { grok } from "@/lib/grok";
 import { readPdfTextFromBase64, normalizeSourceText } from "@/lib/notebooks/processing";
 import { z } from "zod";
 import { consumeUsage, buildUpgradeErrorPayload } from "@/lib/billing/usage";
@@ -50,60 +50,54 @@ async function generateSummary(
 
   try {
     if (type === "youtube" && youtubeUrl) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
+      // Grok does not support direct video ingestion; summarize from the URL context.
+      const response = await grok.chat.completions.create({
+        model: "grok-3-fast",
+        messages: [
+          { role: "system", content: SUMMARY_SYSTEM_PROMPT },
           {
             role: "user",
-            parts: [
-              {
-                fileData: {
-                  mimeType: "video/*",
-                  fileUri: youtubeUrl,
-                },
-              },
-              { text: userPrompt },
-            ],
+            content: `${userPrompt}\n\nYouTube video: ${youtubeUrl}\n\nNote: Provide a structured summary based on any topic information you can infer from this URL, and indicate that the student should watch the video for full details.`,
           },
         ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+        max_tokens: 1024,
       });
-      return response.text?.trim() ?? "Could not generate summary.";
+      return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
     }
 
     if (type === "image" && imageBase64 && imageMimeType) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
+      const dataUrl = `data:${imageMimeType};base64,${imageBase64}`;
+      const response = await grok.chat.completions.create({
+        model: "grok-2-vision-1212",
+        messages: [
+          { role: "system", content: SUMMARY_SYSTEM_PROMPT },
           {
             role: "user",
-            parts: [
-              {
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64,
-                },
-              },
-              { text: userPrompt },
+            content: [
+              { type: "image_url", image_url: { url: dataUrl } },
+              { type: "text", text: userPrompt },
             ],
           },
         ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+        max_tokens: 1024,
       });
-      return response.text?.trim() ?? "Could not generate summary.";
+      return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
     }
 
     // Text-based (pdf, note, ppt)
     if (!content) return "No content provided to summarize.";
     const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
-    const response = await gemini.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: `${userPrompt}\n\n${truncated}` }] }],
-      config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+    const response = await grok.chat.completions.create({
+      model: "grok-3-fast",
+      messages: [
+        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+        { role: "user", content: `${userPrompt}\n\n${truncated}` },
+      ],
+      max_tokens: 1024,
     });
-    return response.text?.trim() ?? "Could not generate summary.";
+    return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
   } catch (error) {
-    console.error("Gemini summarization error:", error);
+    console.error("Grok summarization error:", error);
     return "Summary generation failed. Please try again.";
   }
 }

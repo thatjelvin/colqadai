@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { gemini } from "@/lib/gemini";
+import { grok } from "@/lib/grok";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
@@ -144,25 +144,23 @@ Be clear, rigorous, and concise.`;
     }
 
     // Build message history
-    const contents = chatSession.messages.map((m) => ({
-      role: m.role === "USER" ? "user" : "model",
-      parts: [{ text: m.content }],
+    const messages: { role: "user" | "assistant"; content: string }[] = chatSession.messages.map((m) => ({
+      role: m.role === "USER" ? "user" : "assistant",
+      content: m.content,
     }));
 
     // Add current message
-    contents.push({
-      role: "user",
-      parts: [{ text: message }],
-    });
+    messages.push({ role: "user", content: message });
 
     // Create streaming response
-    const stream = await gemini.models.generateContentStream({
-      model: "gemini-2.5-flash",
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-        maxOutputTokens: billingProfile.plan === "max" ? 4096 : 3000,
-      }
+    const stream = await grok.chat.completions.create({
+      model: "grok-3",
+      messages: [
+        ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+        ...messages,
+      ],
+      max_tokens: billingProfile.plan === "max" ? 4096 : 3000,
+      stream: true,
     });
 
     // Create a ReadableStream
@@ -171,7 +169,7 @@ Be clear, rigorous, and concise.`;
         let fullResponse = "";
 
         for await (const chunk of stream) {
-          const text = chunk.text ?? "";
+          const text = chunk.choices[0]?.delta?.content ?? "";
           fullResponse += text;
           controller.enqueue(new TextEncoder().encode(text));
         }
@@ -210,18 +208,20 @@ Be clear, rigorous, and concise.`;
 
 async function generateTitle(message: string): Promise<string> {
   try {
-    const response = await gemini.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: message,
-      config: {
-        maxOutputTokens: 20,
-        systemInstruction: "Generate a short title (max 10 words, plain text, no quotes) for a chat that starts with the given message."
-      }
+    const response = await grok.chat.completions.create({
+      model: "grok-3-fast",
+      messages: [
+        {
+          role: "system",
+          content: "Generate a short title (max 10 words, plain text, no quotes) for a chat that starts with the given message.",
+        },
+        { role: "user", content: message },
+      ],
+      max_tokens: 20,
     });
 
-    return response.text
-      ? response.text.trim().slice(0, 50)
-      : "New Chat";
+    const text = response.choices[0]?.message?.content;
+    return text ? text.trim().slice(0, 50) : "New Chat";
   } catch (error) {
     console.error("Error generating title:", error);
     return "New Chat";
