@@ -538,7 +538,15 @@ export default function OnboardingPage() {
           {isDoneScreen ? (
             <AllSetScreen
               name={null}
-              onStart={() => router.push("/dashboard")}
+              onStart={async () => {
+                // router.refresh() is not awaitable in Next.js App Router — it fires
+                // a background RSC re-fetch.  The 100 ms pause gives that request time
+                // to complete so the dashboard layout reads fresh data (onboarding_completed
+                // = true) instead of the stale cached value that would cause a redirect loop.
+                router.refresh();
+                await new Promise((res) => setTimeout(res, 100));
+                router.push("/dashboard");
+              }}
               loading={false}
             />
           ) : (
