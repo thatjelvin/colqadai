@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -11,6 +12,7 @@ const profileSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient();
+  const adminSupabase = createAdminClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { error: profileUpsertError } = await supabase
+  const { error: profileUpsertError } = await adminSupabase
     .from("profiles")
     .upsert(
       {
