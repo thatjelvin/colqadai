@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { gemini } from "@/lib/gemini";
+import { groq } from "@/lib/groq";
 import { readPdfTextFromBase64, normalizeSourceText } from "@/lib/notebooks/processing";
 import { z } from "zod";
 import { consumeUsage, buildUpgradeErrorPayload } from "@/lib/billing/usage";
@@ -43,67 +43,35 @@ async function generateSummary(
   type: string,
   content: string,
   youtubeUrl?: string,
-  imageBase64?: string,
-  imageMimeType?: string
 ): Promise<string> {
+  // YouTube: transcript extraction not available with Groq (text-only API)
+  if (type === "youtube" && youtubeUrl) {
+    return "Automatic summarization of YouTube videos is not currently available. Please copy and paste the video transcript as a text note to generate a summary.";
+  }
+
+  // Image: vision capabilities not available with Groq (text-only API)
+  if (type === "image") {
+    return "Automatic summarization of images is not currently available. Please describe the image content as a text note to generate a summary.";
+  }
+
+  // Text-based (pdf, note, ppt)
+  if (!content) return "No content provided to summarize.";
   const userPrompt = "Summarize the following material for a university student:";
+  const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
 
   try {
-    if (type === "youtube" && youtubeUrl) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                fileData: {
-                  mimeType: "video/*",
-                  fileUri: youtubeUrl,
-                },
-              },
-              { text: userPrompt },
-            ],
-          },
-        ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
-      });
-      return response.text?.trim() ?? "Could not generate summary.";
-    }
-
-    if (type === "image" && imageBase64 && imageMimeType) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64,
-                },
-              },
-              { text: userPrompt },
-            ],
-          },
-        ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
-      });
-      return response.text?.trim() ?? "Could not generate summary.";
-    }
-
-    // Text-based (pdf, note, ppt)
-    if (!content) return "No content provided to summarize.";
-    const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
-    const response = await gemini.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: `${userPrompt}\n\n${truncated}` }] }],
-      config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+        { role: "user", content: `${userPrompt}\n\n${truncated}` },
+      ],
+      max_tokens: 1024,
     });
-    return response.text?.trim() ?? "Could not generate summary.";
+
+    return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
   } catch (error) {
-    console.error("Gemini summarization error:", error);
+    console.error("Groq summarization error:", error);
     return "Summary generation failed. Please try again.";
   }
 }
@@ -247,7 +215,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const summary = await generateSummary(data.type, textContent, youtubeUrl, imageBase64, imageMimeType);
+  const summary = await generateSummary(data.type, textContent, youtubeUrl);
 
   const { data: material, error: insertError } = await supabase
     .from("materials")
