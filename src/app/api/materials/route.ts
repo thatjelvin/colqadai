@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { gemini } from "@/lib/gemini";
+import { groq } from "@/lib/groq";
 import { readPdfTextFromBase64, normalizeSourceText } from "@/lib/notebooks/processing";
 import { z } from "zod";
 import { consumeUsage, buildUpgradeErrorPayload } from "@/lib/billing/usage";
@@ -43,67 +43,32 @@ async function generateSummary(
   type: string,
   content: string,
   youtubeUrl?: string,
-  imageBase64?: string,
-  imageMimeType?: string
 ): Promise<string> {
   const userPrompt = "Summarize the following material for a university student:";
 
   try {
+    let textToSummarize: string;
+
     if (type === "youtube" && youtubeUrl) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                fileData: {
-                  mimeType: "video/*",
-                  fileUri: youtubeUrl,
-                },
-              },
-              { text: userPrompt },
-            ],
-          },
-        ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
-      });
-      return response.text?.trim() ?? "Could not generate summary.";
+      textToSummarize = `${userPrompt}\n\nYouTube video URL: ${youtubeUrl}\n\nNote: Please provide a general academic summary based on the URL context. Full transcript processing is not available; summarize the topic inferred from the URL.`;
+    } else {
+      if (!content) return "No content provided to summarize.";
+      const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
+      textToSummarize = `${userPrompt}\n\n${truncated}`;
     }
 
-    if (type === "image" && imageBase64 && imageMimeType) {
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64,
-                },
-              },
-              { text: userPrompt },
-            ],
-          },
-        ],
-        config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
-      });
-      return response.text?.trim() ?? "Could not generate summary.";
-    }
-
-    // Text-based (pdf, note, ppt)
-    if (!content) return "No content provided to summarize.";
-    const truncated = content.slice(0, MAX_CONTENT_LENGTH_FOR_SUMMARY);
-    const response = await gemini.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: `${userPrompt}\n\n${truncated}` }] }],
-      config: { systemInstruction: SUMMARY_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SUMMARY_SYSTEM_PROMPT },
+        { role: "user", content: textToSummarize },
+      ],
+      max_tokens: 1024,
     });
-    return response.text?.trim() ?? "Could not generate summary.";
+
+    return response.choices[0]?.message?.content?.trim() ?? "Could not generate summary.";
   } catch (error) {
-    console.error("Gemini summarization error:", error);
+    console.error("Groq summarization error:", error);
     return "Summary generation failed. Please try again.";
   }
 }
@@ -229,6 +194,7 @@ export async function POST(req: NextRequest) {
   } else if (data.type === "image") {
     imageBase64 = data.imageBase64;
     imageMimeType = data.imageMimeType;
+    textContent = `Image material titled "${data.title}" uploaded by the student. Provide a general academic summary placeholder noting that image content analysis is not available.`;
 
     // Upload image to Supabase Storage
     try {
@@ -247,7 +213,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const summary = await generateSummary(data.type, textContent, youtubeUrl, imageBase64, imageMimeType);
+  const summary = await generateSummary(data.type, textContent, youtubeUrl);
 
   const { data: material, error: insertError } = await supabase
     .from("materials")

@@ -1,7 +1,7 @@
 import { ErrorType } from "@/lib/db-types";
-import { gemini } from "@/lib/gemini";
+import { groq } from "@/lib/groq";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "llama-3.3-70b-versatile";
 
 type GradeResult = {
   isCorrect: boolean;
@@ -41,16 +41,14 @@ export async function gradeAnswer(
   ].join("\n");
 
   try {
-    const response = await gemini.models.generateContent({
+    const response = await groq.chat.completions.create({
       model: MODEL,
-      contents: prompt,
-      config: {
-        maxOutputTokens: 200,
-        responseMimeType: "application/json",
-      }
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 200,
+      response_format: { type: "json_object" },
     });
 
-    const text = response.text || "";
+    const text = response.choices[0]?.message?.content ?? "";
     const parsed = JSON.parse(extractJson(text));
 
     return {
@@ -80,16 +78,14 @@ export async function classifyError(
   ].join("\n");
 
   try {
-    const response = await gemini.models.generateContent({
+    const response = await groq.chat.completions.create({
       model: MODEL,
-      contents: prompt,
-      config: {
-        maxOutputTokens: 180,
-        responseMimeType: "application/json",
-      }
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 180,
+      response_format: { type: "json_object" },
     });
 
-    const text = response.text || "";
+    const text = response.choices[0]?.message?.content ?? "";
     const parsed = JSON.parse(extractJson(text));
 
     if (!Object.values(ErrorType).includes(parsed.errorType)) {
@@ -124,17 +120,16 @@ export async function generateElaborationPrompt(
   ].join("\n");
 
   try {
-    const response = await gemini.models.generateContent({
+    const response = await groq.chat.completions.create({
       model: MODEL,
-      contents: prompt,
-      config: {
-        maxOutputTokens: 80,
-      }
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 80,
     });
 
-    const text = response.text ? response.text.trim() : "";
+    const text = response.choices[0]?.message?.content?.trim() ?? "";
     return text || "Why does this method work in this problem setting?";
   } catch {
     return "What would change if one key assumption in this problem changed?";
   }
 }
+
