@@ -1,0 +1,146 @@
+[
+  {
+    "slug": "calculus",
+    "displayName": "Calculus",
+    "subtopics": [
+      { "slug": "limits-continuity", "displayName": "Limits & Continuity" },
+      { "slug": "differential-calculus", "displayName": "Differential Calculus" },
+      { "slug": "integral-calculus", "displayName": "Integral Calculus" },
+      { "slug": "multivariable-calculus", "displayName": "Multivariable Calculus" },
+      { "slug": "series-sequences", "displayName": "Series & Sequences" }
+    ]
+  },
+  {
+    "slug": "linear-algebra",
+    "displayName": "Linear Algebra",
+    "subtopics": [
+      { "slug": "vectors-vector-spaces", "displayName": "Vectors & Vector Spaces" },
+      { "slug": "matrices-determinants", "displayName": "Matrices & Determinants" },
+      { "slug": "linear-transformations", "displayName": "Linear Transformations" },
+      { "slug": "eigenvalues-eigenvectors", "displayName": "Eigenvalues & Eigenvectors" },
+      { "slug": "inner-product-spaces", "displayName": "Inner Product Spaces" }
+    ]
+  },
+  {
+    "slug": "statistics-probability",
+    "displayName": "Statistics & Probability",
+    "subtopics": [
+      { "slug": "descriptive-statistics", "displayName": "Descriptive Statistics" },
+      { "slug": "probability-theory", "displayName": "Probability Theory" },
+      { "slug": "distributions", "displayName": "Distributions" },
+      { "slug": "hypothesis-testing", "displayName": "Hypothesis Testing" },
+      { "slug": "bayesian-statistics", "displayName": "Bayesian Statistics" },
+      { "slug": "regression-analysis", "displayName": "Regression Analysis" }
+    ]
+  },
+  {
+    "slug": "discrete-mathematics",
+    "displayName": "Discrete Mathematics",
+    "subtopics": [
+      { "slug": "logic-proofs", "displayName": "Logic & Proofs" },
+      { "slug": "set-theory", "displayName": "Set Theory" },
+      { "slug": "combinatorics", "displayName": "Combinatorics" },
+      { "slug": "graph-theory", "displayName": "Graph Theory" },
+      { "slug": "number-theory", "displayName": "Number Theory" }
+    ]
+  },
+  {
+    "slug": "differential-equations",
+    "displayName": "Differential Equations",
+    "subtopics": [
+      { "slug": "first-order-odes", "displayName": "First-Order ODEs" },
+      { "slug": "second-order-odes", "displayName": "Second-Order ODEs" },
+      { "slug": "systems-of-odes", "displayName": "Systems of ODEs" },
+      { "slug": "laplace-transforms", "displayName": "Laplace Transforms" },
+      { "slug": "intro-to-pdes", "displayName": "Intro to PDEs" }
+    ]
+  },
+  {
+    "slug": "real-analysis",
+    "displayName": "Real Analysis",
+    "subtopics": [
+      { "slug": "sequences-series", "displayName": "Sequences & Series" },
+      { "slug": "limits-continuity-rigorous", "displayName": "Limits & Continuity (Rigorous)" },
+      { "slug": "differentiation", "displayName": "Differentiation" },
+      { "slug": "integration", "displayName": "Integration" },
+      { "slug": "metric-spaces", "displayName": "Metric Spaces" }
+    ]
+  },
+  {
+    "slug": "numerical-methods",
+    "displayName": "Numerical Methods",
+    "subtopics": [
+      { "slug": "root-finding", "displayName": "Root Finding" },
+      { "slug": "interpolation", "displayName": "Interpolation" },
+      { "slug": "numerical-integration", "displayName": "Numerical Integration" },
+      { "slug": "ode-solvers", "displayName": "ODE Solvers" },
+      { "slug": "numerical-linear-systems", "displayName": "Numerical Linear Systems" }
+    ]
+  },
+  {
+    "slug": "optimization",
+    "displayName": "Optimization",
+    "subtopics": [
+      { "slug": "unconstrained-optimization", "displayName": "Unconstrained Optimization" },
+      { "slug": "constrained-optimization", "displayName": "Constrained Optimization" },
+      { "slug": "linear-programming", "displayName": "Linear Programming" },
+      { "slug": "convex-optimization", "displayName": "Convex Optimization" },
+      { "slug": "gradient-descent", "displayName": "Gradient Descent" }
+    ]
+  },
+  {
+    "slug": "financial-mathematics",
+    "displayName": "Financial Mathematics",
+    "subtopics": [
+      { "slug": "time-value-of-money", "displayName": "Time Value of Money" },
+      { "slug": "interest-annuities", "displayName": "Interest & Annuities" },
+      { "slug": "portfolio-theory", "displayName": "Portfolio Theory" },
+      { "slug": "options-derivatives-pricing", "displayName": "Options & Derivatives Pricing" },
+      { "slug": "risk-return", "displayName": "Risk & Return" }
+    ]
+  },
+  {
+    "slug": "econometrics",
+    "displayName": "Econometrics",
+    "subtopics": [
+      { "slug": "simple-multiple-regression", "displayName": "Simple & Multiple Regression" },
+      { "slug": "ols-assumptions", "displayName": "OLS Assumptions" },
+      { "slug": "hypothesis-testing-in-regression", "displayName": "Hypothesis Testing in Regression" },
+      { "slug": "panel-data", "displayName": "Panel Data" },
+      { "slug": "time-series", "displayName": "Time Series" }
+    ]
+  },
+  {
+    "slug": "ml-mathematics",
+    "displayName": "ML Mathematics",
+    "subtopics": [
+      { "slug": "linear-algebra-for-ml", "displayName": "Linear Algebra for ML" },
+      { "slug": "probability-for-ml", "displayName": "Probability for ML" },
+      { "slug": "calculus-for-backpropagation", "displayName": "Calculus for Backpropagation" },
+      { "slug": "loss-functions-optimization", "displayName": "Loss Functions & Optimization" },
+      { "slug": "bayesian-inference", "displayName": "Bayesian Inference" }
+    ]
+  },
+  {
+    "slug": "abstract-algebra",
+    "displayName": "Abstract Algebra",
+    "subtopics": [
+      { "slug": "groups", "displayName": "Groups" },
+      { "slug": "rings-fields", "displayName": "Rings & Fields" },
+      { "slug": "homomorphisms", "displayName": "Homomorphisms" },
+      { "slug": "permutations", "displayName": "Permutations" },
+      { "slug": "applications-in-cryptography", "displayName": "Applications in Cryptography" }
+    ]
+  },
+  {
+    "slug": "information-theory",
+    "displayName": "Information Theory",
+    "subtopics": [
+      { "slug": "entropy-information", "displayName": "Entropy & Information" },
+      { "slug": "data-compression", "displayName": "Data Compression" },
+      { "slug": "channel-capacity", "displayName": "Channel Capacity" },
+      { "slug": "coding-theory", "displayName": "Coding Theory" },
+      { "slug": "kl-divergence", "displayName": "KL Divergence" }
+    ]
+  }
+]
