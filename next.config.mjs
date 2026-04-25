@@ -9,6 +9,15 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["bcryptjs"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/explore",
+        destination: "/topics",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
