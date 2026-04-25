@@ -8,9 +8,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Grid3x3,
-  Compass,
   Brain,
-  MessageSquare,
   AlertTriangle,
   BarChart3,
   Settings,
@@ -51,11 +49,6 @@ const navItems = [
     icon: Grid3x3,
   },
   {
-    title: "Explore",
-    href: "/explore",
-    icon: Compass,
-  },
-  {
     title: "Review",
     href: "/study",
     icon: Brain,
@@ -64,11 +57,6 @@ const navItems = [
     title: "AI Tutor",
     href: "/chat",
     icon: Bot,
-  },
-  {
-    title: "Reflections",
-    href: "/reflections",
-    icon: MessageSquare,
   },
   {
     title: "Error Log",

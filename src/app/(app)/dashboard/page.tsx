@@ -49,6 +49,13 @@ type Material = {
   created_at: string;
 };
 
+type RecentTopic = {
+  topic_slug: string;
+  first_explored_at: string;
+  displayName: string;
+  parentDisplayName: string | null;
+};
+
 type UploadType = "note" | "pdf" | "image" | "youtube";
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -88,6 +95,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const [recentTopic, setRecentTopic] = useState<RecentTopic | null | undefined>(undefined);
   const [uploadType, setUploadType] = useState<UploadType>("note");
   const [title, setTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -138,11 +146,22 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchRecentTopic = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dashboard/recent-topic");
+      if (res.ok) setRecentTopic(await res.json());
+      else setRecentTopic(null);
+    } catch {
+      setRecentTopic(null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchMaterials();
     fetchUserName();
-  }, [fetchStats, fetchMaterials, fetchUserName]);
+    fetchRecentTopic();
+  }, [fetchStats, fetchMaterials, fetchUserName, fetchRecentTopic]);
 
   const resetForm = () => {
     setTitle("");
@@ -232,6 +251,34 @@ export default function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">Your learning hub — upload material, review progress, or jump into practice.</p>
       </div>
+
+      {/* Recently Accessed */}
+      {recentTopic === undefined ? null : recentTopic === null ? (
+        <Card className="border-dashed">
+          <CardContent className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4 shrink-0" />
+            No activity yet — start exploring topics.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <BookOpen className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground font-medium">Continue where you left off</p>
+                <p className="font-semibold truncate">{recentTopic.displayName}</p>
+                {recentTopic.parentDisplayName && (
+                  <p className="text-xs text-muted-foreground truncate">{recentTopic.parentDisplayName}</p>
+                )}
+              </div>
+            </div>
+            <Link href={`/explore/${recentTopic.topic_slug}`} className="shrink-0">
+              <Button size="sm">Continue</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

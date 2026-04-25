@@ -1,85 +1,54 @@
-import { db } from "@/lib/db";
+export const dynamic = "force-dynamic";
+
 import { redirect } from "next/navigation";
-import { TopicTree } from "@/components/TopicTree";
 import { createServerClient } from "@/lib/supabase/server";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import { topicTaxonomy } from "@/lib/topic-taxonomy";
+import { TopicExplorerClient } from "@/components/explore/TopicExplorerClient";
+
+type UserTopicProgressRow = {
+  topic_slug: string;
+  review_count: number | null;
+};
 
 export default async function TopicsPage() {
   const supabase = createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
     redirect("/login");
   }
-  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
-  const userId = dbUser.id;
 
-  // Get all topics with their subtopics and problems
-  const topics = await db.topic.findMany({
-    where: {
-      parentId: null,
+  const { data: progressRows, error } = await supabase
+    .from("user_topic_progress")
+    .select("topic_slug, review_count")
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.warn("Failed to fetch topic progress", error);
+  }
+
+  const progressBySlug = ((progressRows ?? []) as UserTopicProgressRow[]).reduce(
+    (acc, row) => {
+      acc[row.topic_slug] = {
+        reviewCount: row.review_count ?? 0,
+      };
+      return acc;
     },
-    include: {
-      children: {
-        include: {
-          problems: true,
-        },
-      },
-      problems: true,
-    },
-    orderBy: {
-      order: "asc",
-    },
-  });
-
-  // Get user's progress for all problems
-  const userProblems = await db.userProblem.findMany({
-    where: {
-      userId,
-    },
-  });
-
-  const userProblemMap = new Map(userProblems.map((up) => [up.problemId, up]));
-
-  // Calculate progress for each topic
-  const topicsWithProgress = topics.map((topic) => {
-    const allProblems = [
-      ...topic.problems,
-      ...topic.children.flatMap((c) => c.problems),
-    ];
-
-    const masteredCount = allProblems.filter((p) => {
-      const up = userProblemMap.get(p.id);
-      return up?.status === "MASTERED";
-    }).length;
-
-    const totalCount = allProblems.length;
-
-    return {
-      ...topic,
-      children: topic.children.map((child) => ({
-        ...child,
-        children: [],
-      })),
-      progress: {
-        mastered: masteredCount,
-        total: totalCount,
-        percentage: totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0,
-      },
-    };
-  });
+    {} as Record<string, { reviewCount: number }>
+  );
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Topics</h1>
-        <p className="text-muted-foreground">
-          Browse all mathematical concepts and track your progress
+    <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Topic Explorer</h1>
+        <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          Explore the math curriculum, jump into a subtopic, and track your progress.
         </p>
       </div>
 
-      <div>
-        <TopicTree topics={topicsWithProgress} />
-      </div>
+      <TopicExplorerClient topics={topicTaxonomy} progressBySlug={progressBySlug} />
     </div>
   );
 }
