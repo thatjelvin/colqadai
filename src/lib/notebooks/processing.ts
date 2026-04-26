@@ -178,7 +178,7 @@ export function generateConcepts(chunks: ChunkWithId[]): GeneratedConcept[] {
       name,
       explanation:
         entry.snippets[0] ??
-        "This concept appears in your uploaded material and should be reviewed in practice sessions.",
+        "This concept appears in your source material and should be reviewed in practice sessions.",
       evidenceChunkIds: Array.from(entry.evidence),
       confidence: Math.min(1, 0.45 + entry.evidence.size * 0.15),
     }))

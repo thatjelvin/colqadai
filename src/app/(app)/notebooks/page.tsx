@@ -105,7 +105,7 @@ export default function NotebooksPage() {
         <div>
           <h1 className="mb-2 text-3xl font-bold">Notebooks</h1>
           <p className="text-muted-foreground mt-1">
-            Upload source material, generate summaries, and extract concepts for spaced mixed
+            Organize source material, generate summaries, and extract concepts for spaced mixed
             review.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function NotebooksPage() {
       ) : notebooks.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-sm text-muted-foreground">
-            No notebooks yet. Create one to start source ingestion, summaries, and concept extraction.
+            No notebooks yet. Create one to start source organization, summaries, and concept extraction.
           </CardContent>
         </Card>
       ) : (
