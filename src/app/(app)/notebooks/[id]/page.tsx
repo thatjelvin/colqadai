@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 type NotebookDocument = {
   id: string;
@@ -47,10 +46,6 @@ export default function NotebookDetailPage() {
   const notebookId = params.id as string;
 
   const [notebook, setNotebook] = useState<NotebookResponse | null>(null);
-  const [textTitle, setTextTitle] = useState("");
-  const [textSource, setTextSource] = useState("");
-  const [pdfTitle, setPdfTitle] = useState("");
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,65 +69,6 @@ export default function NotebookDetailPage() {
   useEffect(() => {
     void loadNotebook();
   }, [loadNotebook]);
-
-  const uploadTextSource = async () => {
-    if (!textTitle.trim() || !textSource.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/notebooks/${notebookId}/documents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceType: "TEXT",
-          title: textTitle,
-          textContent: textSource,
-          mimeType: "text/plain",
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to upload text source");
-      setTextTitle("");
-      setTextSource("");
-      await loadNotebook();
-    } catch (error) {
-      console.error("Error uploading text source:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const uploadPdfSource = async () => {
-    if (!pdfTitle.trim() || !pdfFile || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const arrayBuffer = await pdfFile.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let index = 0; index < bytes.length; index++) {
-        binary += String.fromCharCode(bytes[index]);
-      }
-      const base64 = btoa(binary);
-
-      const response = await fetch(`/api/notebooks/${notebookId}/documents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceType: "PDF",
-          title: pdfTitle,
-          pdfBase64: base64,
-          mimeType: pdfFile.type || "application/pdf",
-          byteSize: pdfFile.size,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to upload PDF source");
-      setPdfTitle("");
-      setPdfFile(null);
-      await loadNotebook();
-    } catch (error) {
-      console.error("Error uploading PDF source:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const generateSummaryAndConcepts = async () => {
     if (isSubmitting) return;
@@ -169,59 +105,12 @@ export default function NotebookDetailPage() {
         <div>
           <h1 className="text-3xl font-bold">{notebook.title}</h1>
           <p className="text-muted-foreground mt-2">
-            {notebook.description || "Add source materials, then generate summaries and concepts."}
+            {notebook.description || "Generate summaries and concepts from existing notebook sources."}
           </p>
         </div>
         <Button variant="outline" asChild>
           <Link href="/notebooks">All Notebooks</Link>
         </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add text source</CardTitle>
-            <CardDescription>Paste notes or transcripts to ingest and chunk.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Input
-              value={textTitle}
-              onChange={(event) => setTextTitle(event.target.value)}
-              placeholder="Document title"
-            />
-            <textarea
-              className="w-full min-h-[140px] rounded-md border bg-background p-3 text-sm"
-              value={textSource}
-              onChange={(event) => setTextSource(event.target.value)}
-              placeholder="Paste source text"
-            />
-            <Button onClick={uploadTextSource} disabled={isSubmitting || !textTitle || !textSource}>
-              Upload Text
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Add PDF source</CardTitle>
-            <CardDescription>Upload a PDF and ingest extracted source text.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Input
-              value={pdfTitle}
-              onChange={(event) => setPdfTitle(event.target.value)}
-              placeholder="PDF title"
-            />
-            <Input
-              type="file"
-              accept="application/pdf"
-              onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)}
-            />
-            <Button onClick={uploadPdfSource} disabled={isSubmitting || !pdfTitle || !pdfFile}>
-              Upload PDF
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -239,7 +128,7 @@ export default function NotebookDetailPage() {
         </CardHeader>
         <CardContent>
           {notebook.documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
+            <p className="text-sm text-muted-foreground">No notebook source documents available.</p>
           ) : (
             <div className="space-y-2">
               {notebook.documents.map((document) => (
@@ -263,7 +152,7 @@ export default function NotebookDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle>Summary</CardTitle>
-            <CardDescription>Grounded in uploaded source chunks.</CardDescription>
+            <CardDescription>Grounded in notebook source chunks.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {latestSummary ? (
@@ -282,7 +171,7 @@ export default function NotebookDetailPage() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No summary generated yet. Upload sources and generate one.
+                No summary generated yet. Generate one when notebook documents are available.
               </p>
             )}
           </CardContent>

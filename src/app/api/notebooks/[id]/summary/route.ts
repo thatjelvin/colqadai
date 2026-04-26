@@ -41,7 +41,7 @@ export async function POST(_: Request, { params }: Context) {
   });
 
   if (chunks.length === 0) {
-    return NextResponse.json({ error: "Upload at least one source document first" }, { status: 400 });
+    return NextResponse.json({ error: "Add at least one source document first" }, { status: 400 });
   }
 
   const chunkData: ChunkWithId[] = chunks.map((chunk) => ({ id: chunk.id, content: chunk.content }));
