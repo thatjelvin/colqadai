@@ -73,7 +73,7 @@ Beginner questions should test direct application of definitions and basic calcu
 Intermediate questions should require combining multiple concepts or multi-step reasoning.
 Advanced questions should resemble past university exam questions — proof-based, abstract, or multi-part.
 
-Also search for 1-2 real past exam or textbook questions on this topic from universities or well-known sources (MIT OpenCourseWare, Khan Academy, past papers) and include them in the advanced tier with a note indicating the source.
+Also search for 1-2 real past exam or textbook questions on this topic from universities or well-known sources (MIT OpenCourseWare, Khan Academy, past papers) and include them in the advanced tier with a note indicating the source. Do not copy questions verbatim—paraphrase and generate original variants inspired by those sources.
 
 Return only valid JSON. No markdown. No preamble.`,
     },

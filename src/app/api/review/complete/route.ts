@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 
+const HIGH_CONFIDENCE_INTERVALS = [1, 3, 7, 21] as const;
+const MEDIUM_CONFIDENCE_INTERVALS = [1, 2, 5, 14] as const;
+const LOW_CONFIDENCE_INTERVALS = [1, 2, 4, 7] as const;
+
 const requestSchema = z.object({
   topicSlug: z.string().min(1),
   ratings: z.object({
@@ -13,14 +17,14 @@ const requestSchema = z.object({
 
 function getReminderIntervals(ratings: { got_it: number; almost: number; didnt_get_it: number }) {
   if (ratings.got_it >= ratings.almost && ratings.got_it >= ratings.didnt_get_it) {
-    return [1, 3, 7, 21];
+    return HIGH_CONFIDENCE_INTERVALS;
   }
 
   if (ratings.almost >= ratings.got_it && ratings.almost >= ratings.didnt_get_it) {
-    return [1, 2, 5, 14];
+    return MEDIUM_CONFIDENCE_INTERVALS;
   }
 
-  return [1, 2, 4, 7];
+  return LOW_CONFIDENCE_INTERVALS;
 }
 
 export async function POST(req: NextRequest) {
