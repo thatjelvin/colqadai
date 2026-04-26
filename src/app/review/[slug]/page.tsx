@@ -42,6 +42,8 @@ type UserReviewResponseRow = {
   topic_review_questions: { difficulty: ReviewDifficulty } | null;
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 function isMissingTableError(error: unknown) {
   if (!error || typeof error !== "object") {
     return false;
@@ -49,6 +51,16 @@ function isMissingTableError(error: unknown) {
   const code = "code" in error ? String(error.code) : "";
   const message = "message" in error ? String(error.message).toLowerCase() : "";
   return code === "42P01" || message.includes("does not exist");
+}
+
+function formatLastReviewedLabel(daysSinceLastReview: number, hasHistory: boolean) {
+  if (!hasHistory) {
+    return "You haven't reviewed this topic before";
+  }
+  if (daysSinceLastReview === 0) {
+    return "Last reviewed today";
+  }
+  return `Last reviewed ${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago`;
 }
 
 function extractJsonContent(rawContent: string) {
@@ -335,7 +347,7 @@ async function getBriefingData(
   const history = (rows ?? []) as UserReviewResponseRow[];
   const lastReviewedAt = history[0]?.reviewed_at ?? null;
   const daysSinceLastReview = lastReviewedAt
-    ? Math.max(0, Math.floor((Date.now() - new Date(lastReviewedAt).getTime()) / (24 * 60 * 60 * 1000)))
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastReviewedAt).getTime()) / MS_PER_DAY))
     : 0;
 
   const lastSessionRatings = history.reduce(
@@ -356,9 +368,7 @@ async function getBriefingData(
 
   return {
     parentTopicName,
-    lastReviewedLabel: lastReviewedAt
-      ? `Last reviewed ${daysSinceLastReview === 0 ? "today" : `${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago`}`
-      : "You haven't reviewed this topic before",
+    lastReviewedLabel: formatLastReviewedLabel(daysSinceLastReview, history.length > 0),
     lastSessionRatings: history.length > 0 ? lastSessionRatings : null,
     warmupMessage,
     struggledDifficulty,

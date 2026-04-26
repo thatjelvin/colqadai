@@ -7,9 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Message = {
+  id: string;
   role: "user" | "assistant";
   content: string;
 };
+
+function newMessageId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: string }) {
   const [open, setOpen] = useState(false);
@@ -26,7 +31,7 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
 
     setInput("");
     setIsLoading(true);
-    setMessages((prev) => [...prev, { role: "user", content }]);
+    setMessages((prev) => [...prev, { id: newMessageId(), role: "user", content }]);
 
     try {
       const response = await fetch("/api/tutor-help", {
@@ -41,11 +46,12 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
 
       const payload = await response.json();
       const assistantMessage = typeof payload?.message === "string" ? payload.message : "I couldn’t answer that yet.";
-      setMessages((prev) => [...prev, { role: "assistant", content: assistantMessage }]);
+      setMessages((prev) => [...prev, { id: newMessageId(), role: "assistant", content: assistantMessage }]);
     } catch {
       setMessages((prev) => [
         ...prev,
         {
+          id: newMessageId(),
           role: "assistant",
           content: "Sorry — I’m having trouble right now. Please try again.",
         },
@@ -70,9 +76,9 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
               {messages.length === 0 ? (
                 <p className="text-muted-foreground">Ask a question about this topic.</p>
               ) : (
-                messages.map((message, index) => (
+                messages.map((message) => (
                   <div
-                    key={`${message.role}-${index}`}
+                    key={message.id}
                     className={message.role === "user" ? "text-right" : "text-left"}
                   >
                     <span

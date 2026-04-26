@@ -70,9 +70,6 @@ export default async function KnowledgeGapsPage() {
       }
 
       const item = acc[row.topic_slug];
-      if (!item.lastReviewed || new Date(row.reviewed_at) > new Date(item.lastReviewed)) {
-        item.lastReviewed = row.reviewed_at;
-      }
 
       if (row.rating === "didnt_get_it") {
         item.didntCount += 1;
