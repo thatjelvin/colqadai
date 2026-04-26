@@ -243,7 +243,7 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
           <CardContent className="space-y-4">
             {summary.key_formulas.map((formula) => (
               <div key={formula.label} className="rounded-md border bg-background p-4">
-                <p className="mb-3 text-sm font-semibold text-foreground">{formula.label}</p>
+                <MathRenderer content={formula.label} className="mb-3 text-sm font-semibold text-foreground" />
                 <MathRenderer content={`$$${formula.latex}$$`} className="text-sm text-foreground" />
               </div>
             ))}
