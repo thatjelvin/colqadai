@@ -16,11 +16,28 @@ const requestSchema = z.object({
 });
 
 function getReminderIntervals(ratings: { got_it: number; almost: number; didnt_get_it: number }) {
-  if (ratings.got_it >= ratings.almost && ratings.got_it >= ratings.didnt_get_it) {
+  const max = Math.max(ratings.got_it, ratings.almost, ratings.didnt_get_it);
+  const topRatings = [
+    ratings.got_it === max ? "got_it" : null,
+    ratings.almost === max ? "almost" : null,
+    ratings.didnt_get_it === max ? "didnt_get_it" : null,
+  ].filter((value): value is "got_it" | "almost" | "didnt_get_it" => Boolean(value));
+
+  // Tie-break conservatively: if struggling is tied for highest, prioritize shorter intervals.
+  if (topRatings.includes("didnt_get_it")) {
+    return LOW_CONFIDENCE_INTERVALS;
+  }
+
+  // If "got_it" and "almost" tie, choose medium spacing over optimistic spacing.
+  if (topRatings.length > 1 && topRatings.includes("almost")) {
+    return MEDIUM_CONFIDENCE_INTERVALS;
+  }
+
+  if (topRatings[0] === "got_it") {
     return HIGH_CONFIDENCE_INTERVALS;
   }
 
-  if (ratings.almost >= ratings.got_it && ratings.almost >= ratings.didnt_get_it) {
+  if (topRatings[0] === "almost") {
     return MEDIUM_CONFIDENCE_INTERVALS;
   }
 
