@@ -296,7 +296,7 @@ async function generateWarmupNote(
   hasHistory: boolean
 ) {
   const reviewTimingText = hasHistory
-    ? `They last studied this ${daysSinceLastReview} days ago.`
+    ? `They last studied this ${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago.`
     : "They have not studied this topic before.";
   const safeSubtopicName = sanitizePromptText(subtopicName);
   const safeParentTopicName = sanitizePromptText(parentTopicName);
@@ -363,7 +363,13 @@ async function getBriefingData(
     ? Math.max(0, Math.floor((Date.now() - new Date(lastReviewedAt).getTime()) / MS_PER_DAY))
     : 0;
 
-  const lastSessionRatings = history.reduce(
+  const latestTimestamp = lastReviewedAt ? new Date(lastReviewedAt).getTime() : 0;
+  const sessionWindowMs = 2 * 60 * 60 * 1000;
+  const lastSessionRows = history.filter(
+    (item) => latestTimestamp - new Date(item.reviewed_at).getTime() <= sessionWindowMs
+  );
+
+  const lastSessionRatings = lastSessionRows.reduce(
     (acc, item) => {
       acc[item.rating] += 1;
       return acc;
