@@ -1,11 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import { AlertTriangle } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ReviewSessionClient,
+  type BriefingDetails,
   type ReviewDifficulty,
   type ReviewQuestion,
 } from "@/components/review/ReviewSessionClient";
@@ -32,6 +35,39 @@ type TopicReviewQuestionRow = {
   source: string | null;
   created_at: string;
 };
+
+type UserReviewResponseRow = {
+  rating: "got_it" | "almost" | "didnt_get_it";
+  reviewed_at: string;
+  topic_review_questions: { difficulty: ReviewDifficulty } | null;
+};
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const WARMUP_NOTE_FALLBACK_MESSAGE =
+  "Take a breath and focus on the core ideas before jumping in. Work each question first, then use hints only when needed.";
+
+function isMissingTableError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const code = "code" in error ? String(error.code) : "";
+  const message = "message" in error ? String(error.message).toLowerCase() : "";
+  return code === "42P01" || message.includes("does not exist");
+}
+
+function formatLastReviewedLabel(daysSinceLastReview: number, hasHistory: boolean) {
+  if (!hasHistory) {
+    return "You haven't reviewed this topic before";
+  }
+  if (daysSinceLastReview === 0) {
+    return "Last reviewed today";
+  }
+  return `Last reviewed ${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago`;
+}
+
+function sanitizePromptText(value: string) {
+  return value.replace(/[\r\n\t]+/g, " ").trim();
+}
 
 function extractJsonContent(rawContent: string) {
   return rawContent
@@ -175,6 +211,9 @@ async function getOrCreateReviewQuestions(topicSlug: string, subtopicName: strin
     .eq("topic_slug", topicSlug);
 
   if (readError) {
+    if (isMissingTableError(readError)) {
+      throw new Error("MISSING_REVIEW_TABLES");
+    }
     console.warn("Failed to read topic review questions", readError);
   }
 
@@ -197,7 +236,10 @@ async function getOrCreateReviewQuestions(topicSlug: string, subtopicName: strin
   }
 
   if (existing.length > 0) {
-    await supabase.from("topic_review_questions").delete().eq("topic_slug", topicSlug);
+    const { error: deleteError } = await supabase.from("topic_review_questions").delete().eq("topic_slug", topicSlug);
+    if (deleteError) {
+      throw new Error(`Failed to reset stale questions: ${deleteError.message}`);
+    }
   }
 
   const generated = await generateQuestions(subtopicName, parentTopicName);
@@ -226,6 +268,9 @@ async function getOrCreateReviewQuestions(topicSlug: string, subtopicName: strin
 
   const { error: insertError } = await supabase.from("topic_review_questions").insert(rowsToInsert);
   if (insertError) {
+    if (isMissingTableError(insertError)) {
+      throw new Error("MISSING_REVIEW_TABLES");
+    }
     throw new Error(`Failed to store review questions: ${insertError.message}`);
   }
 
@@ -235,10 +280,121 @@ async function getOrCreateReviewQuestions(topicSlug: string, subtopicName: strin
     .eq("topic_slug", topicSlug);
 
   if (fetchStoredError) {
+    if (isMissingTableError(fetchStoredError)) {
+      throw new Error("MISSING_REVIEW_TABLES");
+    }
     throw new Error(`Failed to read stored review questions: ${fetchStoredError.message}`);
   }
 
   return orderQuestions((storedRows ?? []) as TopicReviewQuestionRow[]);
+}
+
+async function generateWarmupNote(
+  subtopicName: string,
+  parentTopicName: string,
+  daysSinceLastReview: number,
+  hasHistory: boolean
+) {
+  const reviewTimingText = hasHistory
+    ? `They last studied this ${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago.`
+    : "They have not studied this topic before.";
+  const safeSubtopicName = sanitizePromptText(subtopicName);
+  const safeParentTopicName = sanitizePromptText(parentTopicName);
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.4,
+      max_tokens: 250,
+      messages: [
+        {
+          role: "user",
+          content: `The student is about to review "${safeSubtopicName}" (part of "${safeParentTopicName}"). ${reviewTimingText}
+
+Write a 2-3 sentence warm-up message that:
+- Briefly reminds them of the core idea of this topic without giving away answers
+- References how long it has been since they last studied it
+- Encourages them to focus and attempt each question before revealing hints
+
+Do not list formulas. Do not give examples. Keep it motivational and contextual.`,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(`Warmup note generation failed with status ${response.status}`);
+    return WARMUP_NOTE_FALLBACK_MESSAGE;
+  }
+
+  const data = await response.json();
+  return (
+    data?.choices?.[0]?.message?.content?.trim() ?? WARMUP_NOTE_FALLBACK_MESSAGE
+  );
+}
+
+async function getBriefingData(
+  userId: string,
+  topicSlug: string,
+  subtopicName: string,
+  parentTopicName: string
+): Promise<BriefingDetails> {
+  const supabase = createServerClient();
+  const { data: rows, error } = await supabase
+    .from("user_review_responses")
+    .select("rating, reviewed_at, topic_review_questions(difficulty)")
+    .eq("user_id", userId)
+    .eq("topic_slug", topicSlug)
+    .order("reviewed_at", { ascending: false })
+    .limit(12);
+
+  if (error && isMissingTableError(error)) {
+    throw new Error("MISSING_REVIEW_TABLES");
+  }
+
+  const history = (rows ?? []) as UserReviewResponseRow[];
+  const hasHistory = history.length > 0;
+  const lastReviewedAt = history[0]?.reviewed_at ?? null;
+  const daysSinceLastReview = lastReviewedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastReviewedAt).getTime()) / MS_PER_DAY))
+    : 0;
+
+  const latestTimestamp = lastReviewedAt ? new Date(lastReviewedAt).getTime() : 0;
+  const sessionWindowMs = 2 * 60 * 60 * 1000;
+  const lastSessionRows = history.filter(
+    (item) => latestTimestamp - new Date(item.reviewed_at).getTime() <= sessionWindowMs
+  );
+
+  const lastSessionRatings = lastSessionRows.reduce(
+    (acc, item) => {
+      acc[item.rating] += 1;
+      return acc;
+    },
+    { got_it: 0, almost: 0, didnt_get_it: 0 }
+  );
+
+  const struggledDifficulty =
+    hasHistory
+      ? history.find((item) => item.rating === "didnt_get_it")?.topic_review_questions?.difficulty ??
+        history.find((item) => item.rating === "almost")?.topic_review_questions?.difficulty ??
+        history[0]?.topic_review_questions?.difficulty ??
+        null
+      : null;
+
+  const warmupMessage = await generateWarmupNote(subtopicName, parentTopicName, daysSinceLastReview, hasHistory);
+
+  return {
+    parentTopicName,
+    lastReviewedLabel: formatLastReviewedLabel(daysSinceLastReview, hasHistory),
+    lastSessionRatings: hasHistory ? lastSessionRatings : null,
+    warmupMessage,
+    struggledDifficulty,
+  };
 }
 
 export default async function ReviewPage({ params }: { params: { slug: string } }) {
@@ -256,19 +412,43 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
     redirect("/login");
   }
 
-  const questions = await getOrCreateReviewQuestions(
-    lookup.subtopic.slug,
-    lookup.subtopic.displayName,
-    lookup.parentTopic.displayName
-  );
+  try {
+    const [questions, briefing] = await Promise.all([
+      getOrCreateReviewQuestions(lookup.subtopic.slug, lookup.subtopic.displayName, lookup.parentTopic.displayName),
+      getBriefingData(user.id, lookup.subtopic.slug, lookup.subtopic.displayName, lookup.parentTopic.displayName),
+    ]);
 
-  return (
-    <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
-      <ReviewSessionClient
-        topicSlug={lookup.subtopic.slug}
-        topicName={lookup.subtopic.displayName}
-        questions={questions}
-      />
-    </div>
-  );
+    return (
+      <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+        <ReviewSessionClient
+          topicSlug={lookup.subtopic.slug}
+          topicName={lookup.subtopic.displayName}
+          questions={questions}
+          briefing={briefing}
+        />
+      </div>
+    );
+  } catch (error) {
+    const isMissingTables = error instanceof Error && error.message === "MISSING_REVIEW_TABLES";
+    if (!isMissingTables) {
+      throw error;
+    }
+
+    return (
+      <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Review setup required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>The review tables are missing in Supabase, so this review session can&apos;t start yet.</p>
+            <p>Please run the provided review migrations in your Supabase dashboard, then refresh this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }

@@ -16,11 +16,11 @@ import {
   Flame,
   Target,
   BookOpen,
-  Bot,
   Grid3x3,
   BarChart3,
   Clock,
 } from "lucide-react";
+import { CollyAgent } from "@/components/dashboard/CollyAgent";
 
 type OverviewStats = {
   totalSeen: number;
@@ -97,6 +97,8 @@ export default function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">Your learning hub — review progress or jump into practice.</p>
       </div>
+
+      <CollyAgent />
 
       {recentTopic === undefined ? null : recentTopic === null ? (
         <Card className="border-dashed">
@@ -192,9 +194,8 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold">Quick Access</h2>
           <div className="space-y-2">
             {[
-              { href: "/study", icon: Brain, label: "Spaced Review", desc: "Review due problems" },
+              { href: "/review", icon: Brain, label: "Spaced Review", desc: "Review due problems" },
               { href: "/topics", icon: Grid3x3, label: "Topics", desc: "Browse all math topics" },
-              { href: "/chat", icon: Bot, label: "AI Tutor", desc: "Ask a math question" },
               { href: "/notebooks", icon: BookOpen, label: "Notebooks", desc: "Deep-dive source workspace", premium: true },
               { href: "/analytics", icon: BarChart3, label: "Analytics", desc: "Track your performance", premium: true },
             ].map((item) => (
@@ -225,7 +226,7 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   You have {stats.dueCount} problem{stats.dueCount !== 1 ? "s" : ""} due for review.
                 </p>
-                <Link href="/study">
+                <Link href="/review">
                   <Button size="sm" className="mt-2 w-full animate-pulse">
                     Start Review →
                   </Button>

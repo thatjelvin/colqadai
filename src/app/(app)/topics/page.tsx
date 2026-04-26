@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { topicTaxonomy } from "@/lib/topic-taxonomy";
 import { TopicExplorerClient } from "@/components/explore/TopicExplorerClient";
+import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
 
 type UserTopicProgressRow = {
   topic_slug: string;
@@ -49,6 +50,7 @@ export default async function TopicsPage() {
       </div>
 
       <TopicExplorerClient topics={topicTaxonomy} progressBySlug={progressBySlug} />
+      <FloatingTutorHelp currentTopicName="Math Topics" />
     </div>
   );
 }
