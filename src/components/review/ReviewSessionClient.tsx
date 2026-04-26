@@ -149,7 +149,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
           }),
         });
         if (!completeResponse.ok) {
-          throw new Error("Failed to complete review session");
+          throw new Error(`Failed to complete review session (${completeResponse.status})`);
         }
 
         setSessionComplete(true);
@@ -161,7 +161,8 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
       setShowSolution(false);
     } catch (error) {
       console.error(error);
-      alert("Could not save your rating. Please try again.");
+      const message = error instanceof Error ? error.message : "Could not save your rating. Please try again.";
+      alert(message);
     } finally {
       setSubmittingRating(false);
     }

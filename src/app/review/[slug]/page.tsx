@@ -43,6 +43,8 @@ type UserReviewResponseRow = {
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const WARMUP_FALLBACK_MESSAGE =
+  "Take a breath and focus on the core ideas before jumping in. Work each question first, then use hints only when needed.";
 
 function isMissingTableError(error: unknown) {
   if (!error || typeof error !== "object") {
@@ -61,6 +63,10 @@ function formatLastReviewedLabel(daysSinceLastReview: number, hasHistory: boolea
     return "Last reviewed today";
   }
   return `Last reviewed ${daysSinceLastReview} day${daysSinceLastReview === 1 ? "" : "s"} ago`;
+}
+
+function sanitizePromptText(value: string) {
+  return value.replace(/[\r\n\t]+/g, " ").trim();
 }
 
 function extractJsonContent(rawContent: string) {
@@ -292,6 +298,8 @@ async function generateWarmupNote(
   const reviewTimingText = hasHistory
     ? `They last studied this ${daysSinceLastReview} days ago.`
     : "They have not studied this topic before.";
+  const safeSubtopicName = sanitizePromptText(subtopicName);
+  const safeParentTopicName = sanitizePromptText(parentTopicName);
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -306,7 +314,7 @@ async function generateWarmupNote(
       messages: [
         {
           role: "user",
-          content: `The student is about to review "${subtopicName}" (part of "${parentTopicName}"). ${reviewTimingText}
+          content: `The student is about to review "${safeSubtopicName}" (part of "${safeParentTopicName}"). ${reviewTimingText}
 
 Write a 2-3 sentence warm-up message that:
 - Briefly reminds them of the core idea of this topic without giving away answers
@@ -320,13 +328,12 @@ Do not list formulas. Do not give examples. Keep it motivational and contextual.
   });
 
   if (!response.ok) {
-    return "Take a breath and focus on the core ideas before jumping in. Work each question first, then use hints only when needed.";
+    return WARMUP_FALLBACK_MESSAGE;
   }
 
   const data = await response.json();
   return (
-    data?.choices?.[0]?.message?.content?.trim() ??
-    "Take a breath and focus on the core ideas before jumping in. Work each question first, then use hints only when needed."
+    data?.choices?.[0]?.message?.content?.trim() ?? WARMUP_FALLBACK_MESSAGE
   );
 }
 

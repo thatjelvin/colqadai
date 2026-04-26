@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       .eq("topic_slug", topicSlug)
       .eq("sent", false);
 
+    // PGRST116 means no matching rows were found, which is expected when there are no pending reminders.
     if (deleteError && deleteError.code !== "PGRST116") {
       if (deleteError.code === "42P01") {
         return NextResponse.json(
