@@ -3,30 +3,32 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MathRenderer } from "@/components/MathRenderer";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
-import { db } from "@/lib/db";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
-const keyConceptSchema = z.object({
-  name: z.string().min(1),
-  explanation: z.string().min(1),
-  example: z.string().min(1),
+const summarySectionSchema = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+  type: z.enum(["definition", "theorem", "example", "explanation"]),
+});
+
+const keyFormulaSchema = z.object({
+  label: z.string().min(1),
+  latex: z.string().min(1),
 });
 
 const topicSummarySchema = z.object({
   summary: z.string().min(1),
   prerequisites: z.array(z.string().min(1)).min(2).max(4),
-  key_concepts: z.array(keyConceptSchema).min(4).max(6),
+  sections: z.array(summarySectionSchema).min(5),
+  key_formulas: z.array(keyFormulaSchema).min(1),
   common_mistakes: z.array(z.string().min(1)).min(2).max(3),
   practice_tip: z.string().min(1),
 });
-
-type TopicSummary = z.infer<typeof topicSummarySchema>;
-type KeyConcept = z.infer<typeof keyConceptSchema>;
 
 type TopicSummaryRow = {
   summary_data: unknown;
@@ -46,27 +48,44 @@ async function generateSummaryWithGroq(subtopicName: string, parentTopicName: st
         {
           role: "system",
           content:
-            "You are a university math tutor. Return only valid JSON. No markdown. No preamble. No explanation outside the JSON object.",
+            "You are a university mathematics textbook author. Generate a structured topic summary in JSON. Use LaTeX notation for all mathematical expressions (e.g. \\\\langle u, v \\\\rangle, \\\\|u\\|, \\\\in, \\\\sum, \\\\int). Return only valid JSON. No markdown. No preamble.",
         },
         {
           role: "user",
-          content: `Generate a structured learning summary for the subtopic "${subtopicName}" which is part of the parent topic "${parentTopicName}". Return a JSON object with exactly this structure:
+          content: `Generate a detailed university-level summary for the topic "${subtopicName}" which is part of "${parentTopicName}".
+
+Return a JSON object with exactly this structure:
 {
   "summary": "2-3 sentence plain-English overview of what this topic is and why it matters",
-  "prerequisites": ["array of 2-4 topic names the student should know first"],
-  "key_concepts": [
+  "prerequisites": ["2-4 topic names the student should know first"],
+  "sections": [
     {
-      "name": "concept name",
-      "explanation": "clear 2-3 sentence explanation",
-      "example": "one concrete worked example or formula with a brief step-by-step walkthrough"
+      "title": "section title (e.g. 'Formal Definition', 'Key Properties', 'Worked Examples')",
+      "content": "full explanatory text for this section. Use LaTeX for all math. For worked examples, show full step-by-step reasoning labelled Step 1, Step 2, etc. Include the reasoning behind each step.",
+      "type": "definition | theorem | example | explanation"
     }
   ],
-  "common_mistakes": ["array of 2-3 common errors students make on this topic"],
-  "practice_tip": "one actionable tip for studying this topic effectively"
+  "key_formulas": [
+    {
+      "label": "formula name (e.g. 'Cauchy-Schwarz Inequality')",
+      "latex": "LaTeX string of the formula"
+    }
+  ],
+  "common_mistakes": ["2-3 common errors students make"],
+  "practice_tip": "one actionable study tip"
 }
-Aim for 4-6 key concepts. Keep language accessible to a first or second year university student.`,
+
+Structure the sections as follows, in order:
+1. Concept Explanation — formal definition, then intuitive explanation, then why it matters
+2. Key Properties & Theorems — list each property with a name, statement, and brief explanation
+3. Worked Example (Basic) — a simple numerical example with full step-by-step solution and reasoning
+4. Worked Example (Intermediate) — a moderately complex example with full step-by-step solution and reasoning
+5. Worked Example (Advanced) — a more complex or abstract example with full step-by-step solution and reasoning
+
+Keep language accessible to a first or second year university student. Be thorough — this is a learning reference, not a quick summary.`,
         },
       ],
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -158,145 +177,6 @@ async function markTopicExplored(slug: string) {
   }
 }
 
-async function startReviewAction(formData: FormData) {
-  "use server";
-
-  const slug = formData.get("slug");
-  const keyConceptsRaw = formData.get("keyConcepts");
-
-  if (typeof slug !== "string" || typeof keyConceptsRaw !== "string") {
-    throw new Error("Invalid form submission payload");
-  }
-
-  const lookup = findSubtopicBySlug(slug);
-  if (!lookup) {
-    throw new Error("Unknown topic slug");
-  }
-
-  const parsedConcepts = z.array(keyConceptSchema).safeParse(JSON.parse(keyConceptsRaw));
-  if (!parsedConcepts.success) {
-    throw new Error("Invalid key concepts payload");
-  }
-
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.email) {
-    redirect("/login");
-  }
-
-  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email);
-  const now = new Date();
-
-  let parentTopic = await db.topic.findFirst({
-    where: {
-      slug: lookup.parentTopic.slug,
-      parentId: null,
-    },
-  });
-
-  if (!parentTopic) {
-    parentTopic = await db.topic.create({
-      data: {
-        name: lookup.parentTopic.displayName,
-        slug: lookup.parentTopic.slug,
-        description: `Auto-generated parent topic for ${lookup.parentTopic.displayName}`,
-        order: 0,
-      },
-    });
-  }
-
-  let subtopicTopic = await db.topic.findFirst({
-    where: {
-      slug: lookup.subtopic.slug,
-    },
-  });
-
-  if (!subtopicTopic) {
-    subtopicTopic = await db.topic.create({
-      data: {
-        name: lookup.subtopic.displayName,
-        slug: lookup.subtopic.slug,
-        description: `Auto-generated topic for ${lookup.subtopic.displayName}`,
-        parentId: parentTopic.id,
-        order: 0,
-      },
-    });
-  }
-
-  for (const concept of parsedConcepts.data) {
-    let problem = await db.problem.findFirst({
-      where: {
-        topicId: subtopicTopic.id,
-        title: concept.name,
-      },
-    });
-
-    if (!problem) {
-      problem = await db.problem.create({
-        data: {
-          topicId: subtopicTopic.id,
-          title: concept.name,
-          body: `Recall and explain this concept: ${concept.name}`,
-          solution: `${concept.explanation}\n\nWorked example:\n${concept.example}`,
-          topicTag: slug,
-          difficulty: "MEDIUM",
-        },
-      });
-    }
-
-    await db.userProblem.upsert({
-      where: {
-        userId_problemId: {
-          userId: dbUser.id,
-          problemId: problem.id,
-        },
-      },
-      create: {
-        userId: dbUser.id,
-        problemId: problem.id,
-        easeFactor: 2.5,
-        interval: 1,
-        repetitions: 0,
-        nextReviewAt: now,
-        status: "LEARNING",
-      },
-      update: {
-        nextReviewAt: now,
-      },
-    });
-  }
-
-  const { data: currentProgress } = await supabase
-    .from("user_topic_progress")
-    .select("review_count")
-    .eq("user_id", user.id)
-    .eq("topic_slug", slug)
-    .maybeSingle();
-
-  const newReviewCount = (currentProgress?.review_count ?? 0) + 1;
-
-  const { error: progressError } = await supabase.from("user_topic_progress").upsert(
-    {
-      user_id: user.id,
-      topic_slug: slug,
-      first_explored_at: now.toISOString(),
-      review_count: newReviewCount,
-    },
-    {
-      onConflict: "user_id,topic_slug",
-    }
-  );
-
-  if (progressError) {
-    console.warn("Failed to increment topic review count", progressError);
-  }
-
-  redirect("/study");
-}
-
 export default async function TopicSummaryPage({ params }: { params: { slug: string } }) {
   const lookup = findSubtopicBySlug(params.slug);
   if (!lookup) {
@@ -324,9 +204,12 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
   return (
     <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
       <div className="mb-6 space-y-2">
-        <Link href="/explore" className="text-sm text-primary hover:underline">
-          Explore / {lookup.parentTopic.displayName}
-        </Link>
+        <div className="text-sm text-muted-foreground">
+          <Link href="/topics" className="text-primary hover:underline">
+            Topics
+          </Link>{" "}
+          / {lookup.parentTopic.displayName}
+        </div>
         <h1 className="text-3xl font-bold tracking-tight">{lookup.subtopic.displayName}</h1>
       </div>
 
@@ -336,7 +219,7 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
             <CardTitle>Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-7 text-foreground sm:text-base">{summary.summary}</p>
+            <MathRenderer content={summary.summary} className="text-sm text-foreground sm:text-base" />
           </CardContent>
         </Card>
 
@@ -346,34 +229,45 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {summary.prerequisites.map((item) => (
-              <Badge key={item} variant="secondary">
-                {item}
+              <Badge key={item} variant="secondary" className="py-1">
+                <MathRenderer content={item} className="text-xs leading-5" />
               </Badge>
             ))}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary/30 bg-primary/5">
           <CardHeader>
-            <CardTitle>Key Concepts</CardTitle>
+            <CardTitle>Key Formulas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {summary.key_concepts.map((concept: KeyConcept) => (
-              <details key={concept.name} className="rounded-md border border-border px-4 py-3">
-                <summary className="cursor-pointer text-sm font-medium sm:text-base">
-                  {concept.name}
-                </summary>
-                <div className="mt-3 space-y-3 text-sm text-muted-foreground sm:text-base">
-                  <p>{concept.explanation}</p>
-                  <div className="rounded-md bg-muted/50 p-3">
-                    <p className="font-medium text-foreground">Worked example</p>
-                    <p className="mt-1">{concept.example}</p>
-                  </div>
-                </div>
-              </details>
+          <CardContent className="space-y-4">
+            {summary.key_formulas.map((formula) => (
+              <div key={formula.label} className="rounded-md border bg-background p-4">
+                <p className="mb-3 text-sm font-semibold text-foreground">{formula.label}</p>
+                <MathRenderer content={`$$${formula.latex}$$`} className="text-sm text-foreground" />
+              </div>
             ))}
           </CardContent>
         </Card>
+
+        <div className="space-y-4">
+          {summary.sections.map((section) => {
+            const isExample = section.type === "example";
+            return (
+              <Card
+                key={`${section.title}-${section.type}`}
+                className={isExample ? "border-blue-200 bg-blue-50/60" : ""}
+              >
+                <CardHeader>
+                  <CardTitle className="text-xl">{section.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MathRenderer content={section.content} className="text-sm text-foreground sm:text-base" />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
         <Card>
           <CardHeader>
@@ -382,28 +276,28 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
           <CardContent>
             <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground sm:text-base">
               {summary.common_mistakes.map((mistake) => (
-                <li key={mistake}>{mistake}</li>
+                <li key={mistake}>
+                  <MathRenderer content={mistake} />
+                </li>
               ))}
             </ul>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-amber-300 bg-amber-50">
           <CardHeader>
             <CardTitle>Practice Tip</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-7 text-muted-foreground sm:text-base">{summary.practice_tip}</p>
+            <MathRenderer content={summary.practice_tip} className="text-sm text-foreground sm:text-base" />
           </CardContent>
         </Card>
 
-        <form action={startReviewAction}>
-          <input type="hidden" name="slug" value={lookup.subtopic.slug} />
-          <input type="hidden" name="keyConcepts" value={JSON.stringify(summary.key_concepts)} />
+        <Link href={`/review/${lookup.subtopic.slug}`}>
           <Button size="lg" className="h-12 w-full text-base font-semibold sm:w-auto sm:min-w-56">
             Start Review
           </Button>
-        </form>
+        </Link>
       </div>
     </div>
   );

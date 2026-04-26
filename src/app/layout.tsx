@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 import "@/lib/env";
 
@@ -34,4 +35,3 @@ export default function RootLayout({
     </html>
   );
 }
-
