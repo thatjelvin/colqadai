@@ -24,6 +24,7 @@ If the user is new or unsure what to do, guide them to search for a topic they w
 If no app action is needed, just respond conversationally.
 
 Always be concise, warm, and encouraging. You are talking to a university student.`;
+const topicsContext = JSON.stringify(topicsData);
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         },
         {
           role: "user",
-          content: `Known topics list (full context): ${JSON.stringify(topicsData)}\n\nUser message: ${parsed.data.message}`,
+          content: `Known topics list (full context): ${topicsContext}\n\nUser message: ${parsed.data.message}`,
         },
       ],
     });

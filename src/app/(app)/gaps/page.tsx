@@ -123,7 +123,7 @@ export default async function KnowledgeGapsPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-3xl font-bold mb-2">Knowledge Gaps</h1>
         <p className="text-muted-foreground">Topics where you need the most practice.</p>

@@ -17,7 +17,7 @@ export type BriefingDetails = {
     didnt_get_it: number;
   } | null;
   warmupMessage: string;
-  struggledDifficulty: ReviewDifficulty;
+  struggledDifficulty: ReviewDifficulty | null;
 };
 
 export type ReviewQuestion = {
@@ -205,7 +205,11 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
                 {briefing.lastSessionRatings.didnt_get_it} didn&apos;t get it
               </p>
             ) : null}
-            <p>Struggled most at: <span className="capitalize">{briefing.struggledDifficulty}</span></p>
+            {briefing.struggledDifficulty ? (
+              <p>
+                Struggled most at: <span className="capitalize">{briefing.struggledDifficulty}</span>
+              </p>
+            ) : null}
             <div className="rounded-md border bg-muted/20 p-3">
               <p className="text-sm">{briefing.warmupMessage}</p>
             </div>

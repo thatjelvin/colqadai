@@ -45,7 +45,10 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
       }
 
       const payload = await response.json();
-      const assistantMessage = typeof payload?.message === "string" ? payload.message : "I couldn’t answer that yet.";
+      const assistantMessage =
+        typeof payload?.message === "string"
+          ? payload.message
+          : "I encountered an issue processing your question. Please try again.";
       setMessages((prev) => [...prev, { id: newMessageId(), role: "assistant", content: assistantMessage }]);
     } catch {
       setMessages((prev) => [

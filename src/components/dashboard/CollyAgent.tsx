@@ -73,7 +73,11 @@ export function CollyAgent() {
         }, 400);
       }
     } catch {
-      setResponseText("Sorry — I ran into an issue. Please try again in a moment.");
+      setResponseText(
+        typeof navigator !== "undefined" && !navigator.onLine
+          ? "Network error — please check your connection and try again."
+          : "Server error — please try again in a moment."
+      );
     } finally {
       setIsLoading(false);
     }

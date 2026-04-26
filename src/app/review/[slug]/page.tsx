@@ -286,8 +286,13 @@ async function getOrCreateReviewQuestions(topicSlug: string, subtopicName: strin
 async function generateWarmupNote(
   subtopicName: string,
   parentTopicName: string,
-  daysSinceLastReview: number
+  daysSinceLastReview: number,
+  hasHistory: boolean
 ) {
+  const reviewTimingText = hasHistory
+    ? `They last studied this ${daysSinceLastReview} days ago.`
+    : "They have not studied this topic before.";
+
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -301,7 +306,7 @@ async function generateWarmupNote(
       messages: [
         {
           role: "user",
-          content: `The student is about to review "${subtopicName}" (part of "${parentTopicName}"). They last studied this ${daysSinceLastReview} days ago.
+          content: `The student is about to review "${subtopicName}" (part of "${parentTopicName}"). ${reviewTimingText}
 
 Write a 2-3 sentence warm-up message that:
 - Briefly reminds them of the core idea of this topic without giving away answers
@@ -345,6 +350,7 @@ async function getBriefingData(
   }
 
   const history = (rows ?? []) as UserReviewResponseRow[];
+  const hasHistory = history.length > 0;
   const lastReviewedAt = history[0]?.reviewed_at ?? null;
   const daysSinceLastReview = lastReviewedAt
     ? Math.max(0, Math.floor((Date.now() - new Date(lastReviewedAt).getTime()) / MS_PER_DAY))
@@ -359,17 +365,19 @@ async function getBriefingData(
   );
 
   const struggledDifficulty =
-    history.find((item) => item.rating === "didnt_get_it")?.topic_review_questions?.difficulty ??
-    history.find((item) => item.rating === "almost")?.topic_review_questions?.difficulty ??
-    history[0]?.topic_review_questions?.difficulty ??
-    "beginner";
+    hasHistory
+      ? history.find((item) => item.rating === "didnt_get_it")?.topic_review_questions?.difficulty ??
+        history.find((item) => item.rating === "almost")?.topic_review_questions?.difficulty ??
+        history[0]?.topic_review_questions?.difficulty ??
+        null
+      : null;
 
-  const warmupMessage = await generateWarmupNote(subtopicName, parentTopicName, daysSinceLastReview);
+  const warmupMessage = await generateWarmupNote(subtopicName, parentTopicName, daysSinceLastReview, hasHistory);
 
   return {
     parentTopicName,
-    lastReviewedLabel: formatLastReviewedLabel(daysSinceLastReview, history.length > 0),
-    lastSessionRatings: history.length > 0 ? lastSessionRatings : null,
+    lastReviewedLabel: formatLastReviewedLabel(daysSinceLastReview, hasHistory),
+    lastSessionRatings: hasHistory ? lastSessionRatings : null,
     warmupMessage,
     struggledDifficulty,
   };
