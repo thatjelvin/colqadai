@@ -1,145 +1,85 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import { Fragment } from "react";
+import { BlockMath, InlineMath } from "react-katex";
+import { cn } from "@/lib/utils";
 
 interface MathRendererProps {
   content: string;
   className?: string;
 }
 
-export function MathRenderer({ content, className = "" }: MathRendererProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+type MathToken =
+  | { type: "text"; value: string }
+  | { type: "inline"; value: string }
+  | { type: "block"; value: string };
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+function tokenizeMath(content: string): MathToken[] {
+  if (!content) {
+    return [{ type: "text", value: "" }];
+  }
 
-    const renderMath = () => {
-      const container = containerRef.current;
-      if (!container) return;
+  const matches = [...content.matchAll(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g)];
+  if (matches.length === 0) {
+    return [{ type: "text", value: content }];
+  }
 
-      // Clear container
-      container.innerHTML = "";
+  const tokens: MathToken[] = [];
+  let cursor = 0;
 
-      // Parse content and render math
-      const parts = parseContent(content);
-      
-      parts.forEach((part) => {
-        if (part.type === "text") {
-          const textNode = document.createTextNode(part.content);
-          container.appendChild(textNode);
-        } else if (part.type === "inline-math") {
-          const span = document.createElement("span");
-          try {
-            katex.render(part.content, span, {
-              throwOnError: false,
-              displayMode: false,
-            });
-          } catch {
-            span.textContent = `$${part.content}$`;
-          }
-          container.appendChild(span);
-        } else if (part.type === "display-math") {
-          const div = document.createElement("div");
-          div.className = "my-4";
-          try {
-            katex.render(part.content, div, {
-              throwOnError: false,
-              displayMode: true,
-            });
-          } catch {
-            div.textContent = `$$${part.content}$$`;
-          }
-          container.appendChild(div);
-        }
-      });
-    };
+  for (const match of matches) {
+    const index = match.index ?? 0;
 
-    renderMath();
-  }, [content]);
+    if (index > cursor) {
+      tokens.push({ type: "text", value: content.slice(cursor, index) });
+    }
 
-  return (
-    <div
-      ref={containerRef}
-      className={`prose prose-slate max-w-none ${className}`}
-    />
-  );
+    if (typeof match[1] === "string") {
+      tokens.push({ type: "block", value: match[1].trim() });
+    } else if (typeof match[2] === "string") {
+      tokens.push({ type: "inline", value: match[2].trim() });
+    }
+
+    cursor = index + match[0].length;
+  }
+
+  if (cursor < content.length) {
+    tokens.push({ type: "text", value: content.slice(cursor) });
+  }
+
+  return tokens;
 }
 
-type Part =
-  | { type: "text"; content: string }
-  | { type: "inline-math"; content: string }
-  | { type: "display-math"; content: string };
+export function MathRenderer({ content, className }: MathRendererProps) {
+  const tokens = tokenizeMath(content);
 
-function parseContent(content: string): Part[] {
-  const parts: Part[] = [];
-  // Regular expressions for LaTeX delimiters
-  const displayMathRegex = /\$\$([\s\S]*?)\$\$/g;
-  const inlineMathRegex = /\$([^$\n]+?)\$/g;
+  return (
+    <div className={cn("leading-7", className)}>
+      {tokens.map((token, index) => {
+        if (token.type === "block") {
+          return (
+            <div key={`math-block-${index}`} className="my-4 overflow-x-auto">
+              <BlockMath math={token.value} errorColor="#dc2626" />
+            </div>
+          );
+        }
 
-  // Find all math expressions
-  const matches: Array<{
-    type: "inline" | "display";
-    content: string;
-    index: number;
-    length: number;
-  }> = [];
+        if (token.type === "inline") {
+          return (
+            <InlineMath key={`math-inline-${index}`} math={token.value} errorColor="#dc2626" />
+          );
+        }
 
-  let match;
-  while ((match = displayMathRegex.exec(content)) !== null) {
-    matches.push({
-      type: "display",
-      content: match[1].trim(),
-      index: match.index,
-      length: match[0].length,
-    });
-  }
-
-  while ((match = inlineMathRegex.exec(content)) !== null) {
-    // Check if this match is inside a display math block
-    const isInsideDisplay = matches.some(
-      (m) =>
-        m.type === "display" &&
-        match!.index >= m.index &&
-        match!.index < m.index + m.length
-    );
-
-    if (!isInsideDisplay) {
-      matches.push({
-        type: "inline",
-        content: match[1].trim(),
-        index: match.index,
-        length: match[0].length,
-      });
-    }
-  }
-
-  // Sort matches by index
-  matches.sort((a, b) => a.index - b.index);
-
-  // Build parts array
-  let lastIndex = 0;
-  for (const m of matches) {
-    if (m.index > lastIndex) {
-      parts.push({
-        type: "text",
-        content: content.slice(lastIndex, m.index),
-      });
-    }
-    parts.push({
-      type: m.type === "inline" ? "inline-math" : "display-math",
-      content: m.content,
-    });
-    lastIndex = m.index + m.length;
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({
-      type: "text",
-      content: content.slice(lastIndex),
-    });
-  }
-
-  return parts.length > 0 ? parts : [{ type: "text", content }];
+        const lines = token.value.split("\n");
+        return (
+          <Fragment key={`math-text-${index}`}>
+            {lines.map((line, lineIndex) => (
+              <Fragment key={`line-${lineIndex}`}>
+                {line}
+                {lineIndex < lines.length - 1 ? <br /> : null}
+              </Fragment>
+            ))}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
 }
