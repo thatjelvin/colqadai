@@ -4,9 +4,21 @@ import { useMemo, useState } from "react";
 import { MathRenderer } from "@/components/MathRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
 
 export type ReviewDifficulty = "beginner" | "intermediate" | "advanced";
 export type ReviewRating = "got_it" | "almost" | "didnt_get_it";
+export type BriefingDetails = {
+  parentTopicName: string;
+  lastReviewedLabel: string;
+  lastSessionRatings: {
+    got_it: number;
+    almost: number;
+    didnt_get_it: number;
+  } | null;
+  warmupMessage: string;
+  struggledDifficulty: ReviewDifficulty;
+};
 
 export type ReviewQuestion = {
   id: string;
@@ -21,6 +33,7 @@ type ReviewSessionClientProps = {
   topicSlug: string;
   topicName: string;
   questions: ReviewQuestion[];
+  briefing: BriefingDetails;
 };
 
 type RatingsCount = {
@@ -35,12 +48,13 @@ const initialRatingsCount: RatingsCount = {
   didnt_get_it: 0,
 };
 
-export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewSessionClientProps) {
+export function ReviewSessionClient({ topicSlug, topicName, questions, briefing }: ReviewSessionClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [ratingsByQuestionId, setRatingsByQuestionId] = useState<Record<string, ReviewRating>>({});
 
   const currentQuestion = questions[currentIndex];
@@ -124,7 +138,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewS
           { ...initialRatingsCount }
         );
 
-        await fetch("/api/review/complete", {
+        const completeResponse = await fetch("/api/review/complete", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -134,6 +148,9 @@ export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewS
             ratings: finalCounts,
           }),
         });
+        if (!completeResponse.ok) {
+          throw new Error("Failed to complete review session");
+        }
 
         setSessionComplete(true);
         return;
@@ -160,6 +177,52 @@ export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewS
     );
   }
 
+  if (!hasStarted) {
+    const totalsByDifficulty = questions.reduce<Record<ReviewDifficulty, number>>(
+      (acc, question) => {
+        acc[question.difficulty] += 1;
+        return acc;
+      },
+      {
+        beginner: 0,
+        intermediate: 0,
+        advanced: 0,
+      }
+    );
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{topicName}</CardTitle>
+            <p className="text-sm text-muted-foreground">{briefing.parentTopicName}</p>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <p>{briefing.lastReviewedLabel}</p>
+            {briefing.lastSessionRatings ? (
+              <p>
+                Last session: {briefing.lastSessionRatings.got_it} got it, {briefing.lastSessionRatings.almost} almost,{" "}
+                {briefing.lastSessionRatings.didnt_get_it} didn&apos;t get it
+              </p>
+            ) : null}
+            <p>Struggled most at: <span className="capitalize">{briefing.struggledDifficulty}</span></p>
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="text-sm">{briefing.warmupMessage}</p>
+            </div>
+            <p className="text-muted-foreground">
+              {totalsByDifficulty.beginner} beginner · {totalsByDifficulty.intermediate} intermediate ·{" "}
+              {totalsByDifficulty.advanced} advanced
+            </p>
+            <Button onClick={() => setHasStarted(true)} className="w-full sm:w-auto">
+              Start Practice
+            </Button>
+          </CardContent>
+        </Card>
+        <FloatingTutorHelp currentTopicName={topicName} />
+      </div>
+    );
+  }
+
   if (sessionComplete) {
     return (
       <div className="space-y-6">
@@ -176,7 +239,18 @@ export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewS
             </p>
           </CardContent>
         </Card>
+        <FloatingTutorHelp currentTopicName={topicName} />
       </div>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading question...</CardTitle>
+        </CardHeader>
+      </Card>
     );
   }
 
@@ -252,6 +326,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions }: ReviewS
           )}
         </CardContent>
       </Card>
+      <FloatingTutorHelp currentTopicName={topicName} />
     </div>
   );
 }

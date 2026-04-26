@@ -65,12 +65,22 @@ export async function POST(req: NextRequest) {
     const { topicSlug, ratings } = parsed.data;
     const intervals = getReminderIntervals(ratings);
 
-    await supabase
+    const { error: deleteError } = await supabase
       .from("review_reminders")
       .delete()
       .eq("user_id", user.id)
       .eq("topic_slug", topicSlug)
       .eq("sent", false);
+
+    if (deleteError && deleteError.code !== "PGRST116") {
+      if (deleteError.code === "42P01") {
+        return NextResponse.json(
+          { error: "Review tables are missing. Run the required Supabase migrations first." },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
 
     const now = new Date();
     const remindersToInsert = intervals.map((days) => ({
@@ -83,6 +93,12 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from("review_reminders").insert(remindersToInsert);
 
     if (error) {
+      if (error.code === "42P01") {
+        return NextResponse.json(
+          { error: "Review tables are missing. Run the required Supabase migrations first." },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

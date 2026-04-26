@@ -36,6 +36,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
+      if (error.code === "42P01") {
+        return NextResponse.json(
+          { error: "Review tables are missing. Run the required Supabase migrations first." },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

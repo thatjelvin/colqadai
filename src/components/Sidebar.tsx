@@ -6,17 +6,13 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import {
   LayoutDashboard,
-  BookOpen,
   Grid3x3,
   Brain,
-  AlertTriangle,
-  BarChart3,
   Settings,
   LogOut,
   Menu,
   X,
-  Lock,
-  Bot,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,36 +34,19 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Notebooks",
-    href: "/notebooks",
-    icon: BookOpen,
-    premium: true,
-  },
-  {
     title: "Topics",
     href: "/topics",
     icon: Grid3x3,
   },
   {
     title: "Review",
-    href: "/study",
+    href: "/review",
     icon: Brain,
   },
   {
-    title: "AI Tutor",
-    href: "/chat",
-    icon: Bot,
-  },
-  {
-    title: "Error Log",
-    href: "/error-log",
+    title: "Knowledge Gaps",
+    href: "/gaps",
     icon: AlertTriangle,
-  },
-  {
-    title: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-    premium: true,
   },
   {
     title: "Settings",
@@ -126,8 +105,7 @@ export function Sidebar({ user, plan }: SidebarProps) {
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}`));
               const Icon = item.icon;
-              const isLocked = item.premium && plan === "FREE";
-              const href = isLocked ? "/pricing" : item.href;
+              const href = item.href;
 
               return (
                 <Link
@@ -143,7 +121,6 @@ export function Sidebar({ user, plan }: SidebarProps) {
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.title}
-                  {isLocked && <Lock className="ml-auto h-3.5 w-3.5 opacity-70" />}
                 </Link>
               );
             })}

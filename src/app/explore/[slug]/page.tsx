@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MathRenderer } from "@/components/MathRenderer";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
+import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
 
 const summarySectionSchema = z.object({
   title: z.string().min(1),
@@ -81,11 +82,17 @@ Structure the sections as follows, in order:
 3. Worked Example (Basic) — a simple numerical example with full step-by-step solution and reasoning
 4. Worked Example (Intermediate) — a moderately complex example with full step-by-step solution and reasoning
 5. Worked Example (Advanced) — a more complex or abstract example with full step-by-step solution and reasoning
+ 
+Each section in the sections array must be substantially detailed — not brief overviews. Concept Explanation should be at least 4-6 sentences. Key Properties should explain not just what each property says but why it is true and why it matters. Worked examples must show every single step with full reasoning — do not skip steps.
+The Intermediate and Advanced worked examples should be genuinely challenging — not just scaled-up versions of the basic example.
+For the Key Properties section, include at least 3-5 properties or theorems, each with a name, formal statement in LaTeX, and a 2-3 sentence explanation of its significance.
+The tone should match a well-written university textbook — thorough, precise, and educational.
 
 Keep language accessible to a first or second year university student. Be thorough — this is a learning reference, not a quick summary.`,
         },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 4000,
     }),
   });
 
@@ -299,6 +306,7 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
           </Button>
         </Link>
       </div>
+      <FloatingTutorHelp currentTopicName={lookup.subtopic.displayName} />
     </div>
   );
 }
