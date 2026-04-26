@@ -43,7 +43,7 @@ type UserReviewResponseRow = {
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const WARMUP_FALLBACK_MESSAGE =
+const WARMUP_NOTE_FALLBACK_MESSAGE =
   "Take a breath and focus on the core ideas before jumping in. Work each question first, then use hints only when needed.";
 
 function isMissingTableError(error: unknown) {
@@ -328,12 +328,13 @@ Do not list formulas. Do not give examples. Keep it motivational and contextual.
   });
 
   if (!response.ok) {
-    return WARMUP_FALLBACK_MESSAGE;
+    console.warn(`Warmup note generation failed with status ${response.status}`);
+    return WARMUP_NOTE_FALLBACK_MESSAGE;
   }
 
   const data = await response.json();
   return (
-    data?.choices?.[0]?.message?.content?.trim() ?? WARMUP_FALLBACK_MESSAGE
+    data?.choices?.[0]?.message?.content?.trim() ?? WARMUP_NOTE_FALLBACK_MESSAGE
   );
 }
 

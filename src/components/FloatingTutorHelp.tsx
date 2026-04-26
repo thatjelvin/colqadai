@@ -12,11 +12,14 @@ type Message = {
   content: string;
 };
 
+let fallbackMessageCounter = 0;
+
 function newMessageId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  fallbackMessageCounter += 1;
+  return `${Date.now()}-${fallbackMessageCounter}`;
 }
 
 export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: string }) {

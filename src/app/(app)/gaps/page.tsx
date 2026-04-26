@@ -124,10 +124,10 @@ export default async function KnowledgeGapsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
-      <div>
+      <header>
         <h1 className="text-3xl font-bold mb-2">Knowledge Gaps</h1>
         <p className="text-muted-foreground">Topics where you need the most practice.</p>
-      </div>
+      </header>
 
       <section className="space-y-3">
         <CardHeader className="px-0">
