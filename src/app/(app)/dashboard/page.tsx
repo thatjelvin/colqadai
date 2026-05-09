@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Brain,
   Flame,
   Target,
   BookOpen,
@@ -124,7 +125,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-800/40 dark:bg-orange-900/10">
           <CardHeader className="pb-2">
