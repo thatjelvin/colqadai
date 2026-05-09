@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import type { TopicNode } from "@/lib/topic-taxonomy";
 
 type TopicProgressRecord = {
   reviewCount: number;
+  masteryPercent: number;
 };
 
 type TopicExplorerClientProps = {
@@ -50,21 +52,31 @@ function fuzzyMatch(query: string, candidate: string) {
   return isSubsequence(normalizedQuery, normalizedCandidate);
 }
 
-function getProgressDotClass(record?: TopicProgressRecord) {
+function getProgressClass(record?: TopicProgressRecord) {
   if (!record) {
-    return "bg-slate-400";
+    return "text-red-600";
   }
-  if (record.reviewCount >= 3) {
-    return "bg-emerald-500";
+  if (record.masteryPercent >= 80) {
+    return "text-green-600";
   }
-  return "bg-sky-500";
+  if (record.masteryPercent >= 50) {
+    return "text-amber-600";
+  }
+  return "text-red-600";
 }
 
 export function TopicExplorerClient({ topics, progressBySlug }: TopicExplorerClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
+  const [isNavigating, setIsNavigating] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(topics.map((topic) => [topic.slug, true]))
   );
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
 
   const filteredTopics = useMemo<FilteredTopic[]>(() => {
     if (!query.trim()) {
@@ -101,6 +113,11 @@ export function TopicExplorerClient({ topics, progressBySlug }: TopicExplorerCli
 
   return (
     <div className="space-y-6">
+      {isNavigating ? (
+        <div className="fixed inset-x-0 top-0 z-[60] h-1 overflow-hidden bg-muted">
+          <div className="h-full w-1/3 animate-topic-load rounded-r-full bg-primary" />
+        </div>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Search Topics</CardTitle>
@@ -154,28 +171,25 @@ export function TopicExplorerClient({ topics, progressBySlug }: TopicExplorerCli
                   <ul className="space-y-2">
                     {topic.subtopics.map((subtopic) => {
                       const progress = progressBySlug[subtopic.slug];
-                      const progressState = !progress
-                        ? "Not started"
-                        : progress.reviewCount >= 3
-                          ? "Reviewed"
-                          : "Explored";
+                      const masteryPercent = progress?.masteryPercent ?? 0;
 
                       return (
                         <li key={subtopic.slug}>
                           <Link
                             href={`/explore/${subtopic.slug}`}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              if (isNavigating) return;
+                              setIsNavigating(true);
+                              router.push(`/explore/${subtopic.slug}`);
+                            }}
                             className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-accent"
                           >
                             <span className="truncate pr-3">{subtopic.displayName}</span>
                             <span className="flex items-center gap-2">
-                              <span
-                                className={cn(
-                                  "inline-block h-2.5 w-2.5 rounded-full",
-                                  getProgressDotClass(progress)
-                                )}
-                                aria-label={progressState}
-                                title={progressState}
-                              />
+                              <span className={cn("text-xs font-semibold", getProgressClass(progress))}>
+                                {masteryPercent}%
+                              </span>
                               <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             </span>
                           </Link>

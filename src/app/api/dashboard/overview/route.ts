@@ -1,10 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-
-const MS_PER_DAY = 86400000;
+import { HIGH_MASTERY_PERCENT } from "@/lib/review-metrics";
 
 export async function GET() {
   try {
@@ -15,27 +12,41 @@ export async function GET() {
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
-    const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
-    const userId = dbUser.id;
 
-    const userProblems = await db.userProblem.findMany({
-      where: { userId },
-      select: { status: true, lastReviewedAt: true },
-    });
+    const nowTs = Date.now();
 
-    const totalSeen = userProblems.length;
-    const masteredCount = userProblems.filter((up) => up.status === "MASTERED").length;
-    const masteryPercentage =
-      totalSeen > 0 ? Math.round((masteredCount / totalSeen) * 100) : 0;
+    const [{ data: progressRows, error: progressError }, { data: streakRow, error: streakError }] =
+      await Promise.all([
+        supabase
+          .from("user_topic_progress")
+          .select("review_count, mastery_percent, next_review_due")
+          .eq("user_id", user.id),
+        supabase
+          .from("user_streaks")
+          .select("current_streak")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
 
-    const dueCount = await db.userProblem.count({
-      where: { userId, nextReviewAt: { lte: new Date() } },
-    });
+    if (progressError) {
+      throw new Error(progressError.message);
+    }
+    if (streakError && streakError.code !== "PGRST116") {
+      throw new Error(streakError.message);
+    }
 
-    const streak = calculateStreak(userProblems);
+    const reviewedRows = (progressRows ?? []).filter((row) => (row.review_count ?? 0) > 0);
+    const masterySum = reviewedRows.reduce((acc, row) => acc + (row.mastery_percent ?? 0), 0);
+    const masteryPercentage = reviewedRows.length > 0 ? Math.round(masterySum / reviewedRows.length) : 0;
+    const masteredCount = reviewedRows.filter((row) => (row.mastery_percent ?? 0) >= HIGH_MASTERY_PERCENT).length;
+    const dueTimestamps = reviewedRows.map((row) =>
+      row.next_review_due ? new Date(row.next_review_due).getTime() : null
+    );
+    const dueCount = dueTimestamps.filter((dueTimestamp) => dueTimestamp !== null && dueTimestamp <= nowTs).length;
+    const streak = streakRow?.current_streak ?? 0;
 
     return NextResponse.json({
-      totalSeen,
+      totalSeen: reviewedRows.length,
       masteredCount,
       masteryPercentage,
       dueCount,
@@ -48,34 +59,4 @@ export async function GET() {
       { status: 200 }
     );
   }
-}
-
-function calculateStreak(userProblems: { lastReviewedAt: Date | null }[]): number {
-  if (userProblems.length === 0) return 0;
-
-  const reviewDates = new Set<string>();
-  for (const up of userProblems) {
-    if (up.lastReviewedAt) {
-      reviewDates.add(new Date(up.lastReviewedAt).toISOString().split("T")[0]);
-    }
-  }
-  if (reviewDates.size === 0) return 0;
-
-  const sortedDates = Array.from(reviewDates).sort().reverse();
-  const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - MS_PER_DAY).toISOString().split("T")[0];
-
-  if (sortedDates[0] !== today && sortedDates[0] !== yesterday) return 0;
-
-  let streak = 1;
-  for (let i = 1; i < sortedDates.length; i++) {
-    const curr = new Date(sortedDates[i - 1]).getTime();
-    const prev = new Date(sortedDates[i]).getTime();
-    if (Math.round((curr - prev) / 86400000) === 1) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
 }

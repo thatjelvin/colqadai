@@ -12,6 +12,7 @@ import {
   type ReviewDifficulty,
   type ReviewQuestion,
 } from "@/components/review/ReviewSessionClient";
+import { AppHamburgerDrawer } from "@/components/navigation/AppHamburgerDrawer";
 
 const questionSchema = z.object({
   question: z.string().min(1),
@@ -420,11 +421,13 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
     return (
       <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+        <AppHamburgerDrawer />
         <ReviewSessionClient
           topicSlug={lookup.subtopic.slug}
           topicName={lookup.subtopic.displayName}
           questions={questions}
           briefing={briefing}
+          backHref={`/explore/${lookup.subtopic.slug}`}
         />
       </div>
     );
@@ -436,6 +439,7 @@ export default async function ReviewPage({ params }: { params: { slug: string } 
 
     return (
       <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-8">
+        <AppHamburgerDrawer />
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

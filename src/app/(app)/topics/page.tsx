@@ -9,6 +9,7 @@ import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
 type UserTopicProgressRow = {
   topic_slug: string;
   review_count: number | null;
+  mastery_percent: number | null;
 };
 
 export default async function TopicsPage() {
@@ -23,7 +24,7 @@ export default async function TopicsPage() {
 
   const { data: progressRows, error } = await supabase
     .from("user_topic_progress")
-    .select("topic_slug, review_count")
+    .select("topic_slug, review_count, mastery_percent")
     .eq("user_id", user.id);
 
   if (error) {
@@ -34,10 +35,11 @@ export default async function TopicsPage() {
     (acc, row) => {
       acc[row.topic_slug] = {
         reviewCount: row.review_count ?? 0,
+        masteryPercent: row.mastery_percent ?? 0,
       };
       return acc;
     },
-    {} as Record<string, { reviewCount: number }>
+    {} as Record<string, { reviewCount: number; masteryPercent: number }>
   );
 
   return (

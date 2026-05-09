@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
+import { HIGH_MASTERY_PERCENT, MEDIUM_MASTERY_PERCENT, calculateMasteryPercent } from "@/lib/review-metrics";
 
-const HIGH_CONFIDENCE_INTERVALS = [1, 3, 7, 21] as const;
-const MEDIUM_CONFIDENCE_INTERVALS = [1, 2, 5, 14] as const;
-const LOW_CONFIDENCE_INTERVALS = [1, 2, 4, 7] as const;
+const LONG_INTERVAL_DAYS = 21;
+const MID_INTERVAL_DAYS = 7;
+const SHORT_INTERVAL_DAYS = 3;
+const NEXT_DAY_INTERVAL_DAYS = 1;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const requestSchema = z.object({
   topicSlug: z.string().min(1),
@@ -15,33 +18,17 @@ const requestSchema = z.object({
   }),
 });
 
-function getReminderIntervals(ratings: { got_it: number; almost: number; didnt_get_it: number }) {
-  const max = Math.max(ratings.got_it, ratings.almost, ratings.didnt_get_it);
-  const topRatings = [
-    ratings.got_it === max ? "got_it" : null,
-    ratings.almost === max ? "almost" : null,
-    ratings.didnt_get_it === max ? "didnt_get_it" : null,
-  ].filter((value): value is "got_it" | "almost" | "didnt_get_it" => Boolean(value));
-
-  // Tie-break conservatively: if struggling is tied for highest, prioritize shorter intervals.
-  if (topRatings.includes("didnt_get_it")) {
-    return LOW_CONFIDENCE_INTERVALS;
+function getNextReviewIntervalDays(sessionMasteryPercent: number, reviewCount: number) {
+  if (sessionMasteryPercent >= HIGH_MASTERY_PERCENT && reviewCount >= 3) {
+    return LONG_INTERVAL_DAYS;
   }
-
-  // If "got_it" and "almost" tie, choose medium spacing over optimistic spacing.
-  if (topRatings.length > 1 && topRatings.includes("almost")) {
-    return MEDIUM_CONFIDENCE_INTERVALS;
+  if (sessionMasteryPercent >= HIGH_MASTERY_PERCENT && reviewCount < 3) {
+    return MID_INTERVAL_DAYS;
   }
-
-  if (topRatings[0] === "got_it") {
-    return HIGH_CONFIDENCE_INTERVALS;
+  if (sessionMasteryPercent >= MEDIUM_MASTERY_PERCENT) {
+    return SHORT_INTERVAL_DAYS;
   }
-
-  if (topRatings[0] === "almost") {
-    return MEDIUM_CONFIDENCE_INTERVALS;
-  }
-
-  return LOW_CONFIDENCE_INTERVALS;
+  return NEXT_DAY_INTERVAL_DAYS;
 }
 
 export async function POST(req: NextRequest) {
@@ -63,46 +50,112 @@ export async function POST(req: NextRequest) {
     }
 
     const { topicSlug, ratings } = parsed.data;
-    const intervals = getReminderIntervals(ratings);
+    const totalQuestions = ratings.got_it + ratings.almost + ratings.didnt_get_it;
+    const sessionMasteryPercent = calculateMasteryPercent(ratings.got_it, ratings.almost, totalQuestions);
 
-    const { error: deleteError } = await supabase
-      .from("review_reminders")
-      .delete()
+    const { data: progress, error: progressFetchError } = await supabase
+      .from("user_topic_progress")
+      .select("review_count")
       .eq("user_id", user.id)
       .eq("topic_slug", topicSlug)
-      .eq("sent", false);
+      .maybeSingle();
 
-    if (deleteError) {
-      if (deleteError.code === "42P01") {
+    if (progressFetchError) {
+      if (progressFetchError.code === "42P01") {
         return NextResponse.json(
           { error: "Review tables are missing. Run the required Supabase migrations first." },
           { status: 500 }
         );
       }
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      return NextResponse.json({ error: progressFetchError.message }, { status: 500 });
     }
 
     const now = new Date();
-    const remindersToInsert = intervals.map((days) => ({
-      user_id: user.id,
-      topic_slug: topicSlug,
-      scheduled_for: new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString(),
-      sent: false,
-    }));
+    const nextReviewCount = (progress?.review_count ?? 0) + 1;
+    const intervalDays = getNextReviewIntervalDays(sessionMasteryPercent, nextReviewCount);
+    const nextReviewDue = new Date(now.getTime() + intervalDays * MS_PER_DAY);
 
-    const { error } = await supabase.from("review_reminders").insert(remindersToInsert);
+    const { error: progressUpsertError } = await supabase.from("user_topic_progress").upsert(
+      {
+        user_id: user.id,
+        topic_slug: topicSlug,
+        review_count: nextReviewCount,
+        mastery_percent: sessionMasteryPercent,
+        last_reviewed_at: now.toISOString(),
+        next_review_due: nextReviewDue.toISOString(),
+      },
+      {
+        onConflict: "user_id,topic_slug",
+      }
+    );
 
-    if (error) {
-      if (error.code === "42P01") {
+    if (progressUpsertError) {
+      if (progressUpsertError.code === "42P01") {
         return NextResponse.json(
           { error: "Review tables are missing. Run the required Supabase migrations first." },
           { status: 500 }
         );
       }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: progressUpsertError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, intervals });
+    const today = now.toISOString().split("T")[0];
+    const yesterday = new Date(now.getTime() - MS_PER_DAY).toISOString().split("T")[0];
+
+    const { data: streakRow, error: streakFetchError } = await supabase
+      .from("user_streaks")
+      .select("current_streak, longest_streak, last_activity_date")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (streakFetchError && streakFetchError.code !== "PGRST116") {
+      if (streakFetchError.code === "42P01") {
+        return NextResponse.json(
+          { error: "Review tables are missing. Run the required Supabase migrations first." },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: streakFetchError.message }, { status: 500 });
+    }
+
+    const previousDate = streakRow?.last_activity_date ?? null;
+    let nextCurrentStreak = 1;
+
+    if (previousDate === today) {
+      nextCurrentStreak = streakRow?.current_streak ?? 1;
+    } else if (previousDate === yesterday) {
+      nextCurrentStreak = (streakRow?.current_streak ?? 0) + 1;
+    }
+
+    const nextLongestStreak = Math.max(streakRow?.longest_streak ?? 0, nextCurrentStreak);
+
+    const { error: streakUpsertError } = await supabase.from("user_streaks").upsert(
+      {
+        user_id: user.id,
+        current_streak: nextCurrentStreak,
+        longest_streak: nextLongestStreak,
+        last_activity_date: today,
+      },
+      { onConflict: "user_id" }
+    );
+
+    if (streakUpsertError) {
+      if (streakUpsertError.code === "42P01") {
+        return NextResponse.json(
+          { error: "Review tables are missing. Run the required Supabase migrations first." },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ error: streakUpsertError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      reviewCount: nextReviewCount,
+      masteryPercent: sessionMasteryPercent,
+      nextReviewDue: nextReviewDue.toISOString(),
+      streak: nextCurrentStreak,
+    });
   } catch (error) {
     console.error("Failed to complete review session", error);
     return NextResponse.json({ error: "Failed to complete review session" }, { status: 500 });
