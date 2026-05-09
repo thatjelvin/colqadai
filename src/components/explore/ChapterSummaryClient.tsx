@@ -55,8 +55,8 @@ export function ChapterSummaryClient({
           chaptersCompleted: nextChapterIndex + 1,
         }),
       });
-    } catch {
-      // best-effort persistence
+    } catch (error) {
+      console.error("Failed to update chapter progress", error);
     }
   }
 

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { HIGH_MASTERY_PERCENT } from "@/lib/review-metrics";
 
 export async function GET() {
   try {
@@ -37,14 +38,16 @@ export async function GET() {
     const reviewedRows = (progressRows ?? []).filter((row) => (row.review_count ?? 0) > 0);
     const masterySum = reviewedRows.reduce((acc, row) => acc + (row.mastery_percent ?? 0), 0);
     const masteryPercentage = reviewedRows.length > 0 ? Math.round(masterySum / reviewedRows.length) : 0;
-    const dueCount = reviewedRows.filter(
-      (row) => row.next_review_due && new Date(row.next_review_due).getTime() <= nowTs
-    ).length;
+    const masteredCount = reviewedRows.filter((row) => (row.mastery_percent ?? 0) >= HIGH_MASTERY_PERCENT).length;
+    const dueTimestamps = reviewedRows.map((row) =>
+      row.next_review_due ? new Date(row.next_review_due).getTime() : null
+    );
+    const dueCount = dueTimestamps.filter((dueTimestamp) => dueTimestamp !== null && dueTimestamp <= nowTs).length;
     const streak = streakRow?.current_streak ?? 0;
 
     return NextResponse.json({
       totalSeen: reviewedRows.length,
-      masteredCount: 0,
+      masteredCount,
       masteryPercentage,
       dueCount,
       streak,

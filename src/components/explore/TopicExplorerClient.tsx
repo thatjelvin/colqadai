@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,11 +67,16 @@ function getProgressClass(record?: TopicProgressRecord) {
 
 export function TopicExplorerClient({ topics, progressBySlug }: TopicExplorerClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(topics.map((topic) => [topic.slug, true]))
   );
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
 
   const filteredTopics = useMemo<FilteredTopic[]>(() => {
     if (!query.trim()) {

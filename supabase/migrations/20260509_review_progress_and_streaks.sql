@@ -5,10 +5,11 @@ alter table user_topic_progress add column if not exists chapters_completed inte
 
 create table if not exists user_streaks (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade unique,
+  user_id uuid references auth.users(id) on delete cascade,
   current_streak integer default 0,
   longest_streak integer default 0,
-  last_activity_date date
+  last_activity_date date not null,
+  unique(user_id)
 );
 
 alter table user_streaks enable row level security;

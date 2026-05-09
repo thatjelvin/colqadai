@@ -7,6 +7,7 @@ import { MathRenderer } from "@/components/MathRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
+import { calculateMasteryPercent } from "@/lib/review-metrics";
 
 export type ReviewDifficulty = "beginner" | "intermediate" | "advanced";
 export type ReviewRating = "got_it" | "almost" | "didnt_get_it";
@@ -50,11 +51,6 @@ const initialRatingsCount: RatingsCount = {
   almost: 0,
   didnt_get_it: 0,
 };
-
-function getScorePercent(gotIt: number, almost: number, total: number) {
-  if (total === 0) return 0;
-  return Math.round(((gotIt * 100 + almost * 50) / (total * 100)) * 100);
-}
 
 export function ReviewSessionClient({ topicSlug, topicName, questions, briefing, backHref }: ReviewSessionClientProps) {
   const [phase, setPhase] = useState<"main" | "round2">("main");
@@ -110,7 +106,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     return totals;
   }, [questions, ratingsByQuestionId]);
 
-  const overallScore = getScorePercent(
+  const overallScore = calculateMasteryPercent(
     ratingsCount.got_it,
     ratingsCount.almost,
     ratingsCount.got_it + ratingsCount.almost + ratingsCount.didnt_get_it
@@ -183,7 +179,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     });
 
     if (!response.ok) {
-      throw new Error("Failed to save review response");
+      throw new Error(`Failed to save review response (${response.status})`);
     }
   }
 
@@ -307,8 +303,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
               <p className="text-sm">{briefing.warmupMessage}</p>
             </div>
             <p className="text-muted-foreground">
-              {totalsByDifficulty.beginner} beginner · {totalsByDifficulty.intermediate} intermediate · {" "}
-              {totalsByDifficulty.advanced} advanced
+              {totalsByDifficulty.beginner} beginner · {totalsByDifficulty.intermediate} intermediate · {totalsByDifficulty.advanced} advanced
             </p>
             <Button onClick={() => setHasStarted(true)} className="w-full sm:w-auto">
               Start Practice
@@ -338,13 +333,13 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
           <CardContent className="space-y-3 text-sm">
             <p className="text-2xl font-bold">You scored {overallScore}%</p>
             <p>
-              Beginner: {getScorePercent(scoreByDifficulty.beginner.got_it, scoreByDifficulty.beginner.almost, totalsByDifficulty.beginner)}%
+              Beginner: {calculateMasteryPercent(scoreByDifficulty.beginner.got_it, scoreByDifficulty.beginner.almost, totalsByDifficulty.beginner)}%
             </p>
             <p>
-              Intermediate: {getScorePercent(scoreByDifficulty.intermediate.got_it, scoreByDifficulty.intermediate.almost, totalsByDifficulty.intermediate)}%
+              Intermediate: {calculateMasteryPercent(scoreByDifficulty.intermediate.got_it, scoreByDifficulty.intermediate.almost, totalsByDifficulty.intermediate)}%
             </p>
             <p>
-              Advanced: {getScorePercent(scoreByDifficulty.advanced.got_it, scoreByDifficulty.advanced.almost, totalsByDifficulty.advanced)}%
+              Advanced: {calculateMasteryPercent(scoreByDifficulty.advanced.got_it, scoreByDifficulty.advanced.almost, totalsByDifficulty.advanced)}%
             </p>
             <p className="pt-2 text-muted-foreground">
               Ratings: Got it ({ratingsCount.got_it}), Almost ({ratingsCount.almost}), Didn&apos;t get it ({ratingsCount.didnt_get_it})

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
+import { MAX_SUMMARY_CHAPTERS, MIN_SUMMARY_CHAPTERS } from "@/lib/review-metrics";
 
 const keyFormulaSchema = z.object({
   label: z.string().min(1),
@@ -31,8 +32,8 @@ const topicSummarySchema = z.object({
         }),
       })
     )
-    .min(2)
-    .max(3),
+    .min(MIN_SUMMARY_CHAPTERS)
+    .max(MAX_SUMMARY_CHAPTERS),
   summary: z.object({
     overview: z.string().min(1),
   }),

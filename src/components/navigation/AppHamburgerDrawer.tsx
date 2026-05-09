@@ -88,7 +88,7 @@ export function AppHamburgerDrawer() {
 
             return (
               <Link
-                key={`${item.label}-${item.href}`}
+                key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(

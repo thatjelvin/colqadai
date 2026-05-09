@@ -5,6 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { topicTaxonomy } from "@/lib/topic-taxonomy";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { GAP_RATE_THRESHOLD_PERCENT } from "@/lib/review-metrics";
 
 type ReviewResponseRow = {
   topic_slug: string;
@@ -198,15 +199,15 @@ export default async function KnowledgeGapsPage() {
     });
 
   const needsWork = topicsWithHistory
-    .filter((topic) => topic.failureRate >= 40)
+    .filter((topic) => topic.failureRate >= GAP_RATE_THRESHOLD_PERCENT)
     .sort((a, b) => b.failureRate - a.failureRate);
 
   const gettingThere = topicsWithHistory
-    .filter((topic) => topic.struggleRate >= 40 && topic.failureRate < 40)
+    .filter((topic) => topic.struggleRate >= GAP_RATE_THRESHOLD_PERCENT && topic.failureRate < GAP_RATE_THRESHOLD_PERCENT)
     .sort((a, b) => b.struggleRate - a.struggleRate);
 
   const onTrack = topicsWithHistory
-    .filter((topic) => topic.failureRate < 40 && topic.struggleRate < 40)
+    .filter((topic) => topic.failureRate < GAP_RATE_THRESHOLD_PERCENT && topic.struggleRate < GAP_RATE_THRESHOLD_PERCENT)
     .sort((a, b) => b.masteryPercent - a.masteryPercent);
 
   return (

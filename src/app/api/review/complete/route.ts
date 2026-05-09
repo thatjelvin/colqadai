@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
+import { HIGH_MASTERY_PERCENT, MEDIUM_MASTERY_PERCENT, calculateMasteryPercent } from "@/lib/review-metrics";
+
+const LONG_INTERVAL_DAYS = 21;
+const MID_INTERVAL_DAYS = 7;
+const SHORT_INTERVAL_DAYS = 3;
+const NEXT_DAY_INTERVAL_DAYS = 1;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const requestSchema = z.object({
   topicSlug: z.string().min(1),
@@ -11,28 +18,17 @@ const requestSchema = z.object({
   }),
 });
 
-function getSessionMasteryPercent(ratings: { got_it: number; almost: number; didnt_get_it: number }) {
-  const totalQuestions = ratings.got_it + ratings.almost + ratings.didnt_get_it;
-  if (totalQuestions === 0) {
-    return 0;
-  }
-
-  const earnedPoints = ratings.got_it * 100 + ratings.almost * 50;
-  const mastery = (earnedPoints / (totalQuestions * 100)) * 100;
-  return Math.round(mastery);
-}
-
 function getNextReviewIntervalDays(sessionMasteryPercent: number, reviewCount: number) {
-  if (sessionMasteryPercent >= 80 && reviewCount >= 3) {
-    return 21;
+  if (sessionMasteryPercent >= HIGH_MASTERY_PERCENT && reviewCount >= 3) {
+    return LONG_INTERVAL_DAYS;
   }
-  if (sessionMasteryPercent >= 80 && reviewCount < 3) {
-    return 7;
+  if (sessionMasteryPercent >= HIGH_MASTERY_PERCENT && reviewCount < 3) {
+    return MID_INTERVAL_DAYS;
   }
-  if (sessionMasteryPercent >= 50) {
-    return 3;
+  if (sessionMasteryPercent >= MEDIUM_MASTERY_PERCENT) {
+    return SHORT_INTERVAL_DAYS;
   }
-  return 1;
+  return NEXT_DAY_INTERVAL_DAYS;
 }
 
 export async function POST(req: NextRequest) {
@@ -54,7 +50,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { topicSlug, ratings } = parsed.data;
-    const sessionMasteryPercent = getSessionMasteryPercent(ratings);
+    const totalQuestions = ratings.got_it + ratings.almost + ratings.didnt_get_it;
+    const sessionMasteryPercent = calculateMasteryPercent(ratings.got_it, ratings.almost, totalQuestions);
 
     const { data: progress, error: progressFetchError } = await supabase
       .from("user_topic_progress")
@@ -76,7 +73,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const nextReviewCount = (progress?.review_count ?? 0) + 1;
     const intervalDays = getNextReviewIntervalDays(sessionMasteryPercent, nextReviewCount);
-    const nextReviewDue = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+    const nextReviewDue = new Date(now.getTime() + intervalDays * MS_PER_DAY);
 
     const { error: progressUpsertError } = await supabase.from("user_topic_progress").upsert(
       {
@@ -103,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const today = now.toISOString().split("T")[0];
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const yesterday = new Date(now.getTime() - MS_PER_DAY).toISOString().split("T")[0];
 
     const { data: streakRow, error: streakFetchError } = await supabase
       .from("user_streaks")
