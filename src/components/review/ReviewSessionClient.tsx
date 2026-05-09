@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { MathRenderer } from "@/components/MathRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +36,7 @@ type ReviewSessionClientProps = {
   topicName: string;
   questions: ReviewQuestion[];
   briefing: BriefingDetails;
+  backHref: string;
 };
 
 type RatingsCount = {
@@ -48,7 +51,13 @@ const initialRatingsCount: RatingsCount = {
   didnt_get_it: 0,
 };
 
-export function ReviewSessionClient({ topicSlug, topicName, questions, briefing }: ReviewSessionClientProps) {
+function getScorePercent(gotIt: number, almost: number, total: number) {
+  if (total === 0) return 0;
+  return Math.round(((gotIt * 100 + almost * 50) / (total * 100)) * 100);
+}
+
+export function ReviewSessionClient({ topicSlug, topicName, questions, briefing, backHref }: ReviewSessionClientProps) {
+  const [phase, setPhase] = useState<"main" | "round2">("main");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -56,8 +65,11 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
   const [sessionComplete, setSessionComplete] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [ratingsByQuestionId, setRatingsByQuestionId] = useState<Record<string, ReviewRating>>({});
+  const [roundTwoQuestionIds, setRoundTwoQuestionIds] = useState<string[]>([]);
 
-  const currentQuestion = questions[currentIndex];
+  const activeQuestionIds = phase === "main" ? questions.map((question) => question.id) : roundTwoQuestionIds;
+  const activeQuestionId = activeQuestionIds[currentIndex];
+  const currentQuestion = questions.find((question) => question.id === activeQuestionId) ?? null;
 
   const ratingsCount = useMemo(() => {
     return Object.values(ratingsByQuestionId).reduce<RatingsCount>((acc, rating) => {
@@ -65,23 +77,6 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
       return acc;
     }, { ...initialRatingsCount });
   }, [ratingsByQuestionId]);
-
-  const gotItByDifficulty = useMemo(() => {
-    return questions.reduce<Record<ReviewDifficulty, number>>(
-      (acc, question) => {
-        const rating = ratingsByQuestionId[question.id];
-        if (rating === "got_it") {
-          acc[question.difficulty] += 1;
-        }
-        return acc;
-      },
-      {
-        beginner: 0,
-        intermediate: 0,
-        advanced: 0,
-      }
-    );
-  }, [questions, ratingsByQuestionId]);
 
   const totalsByDifficulty = useMemo(() => {
     return questions.reduce<Record<ReviewDifficulty, number>>(
@@ -97,7 +92,100 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
     );
   }, [questions]);
 
-  const isLastQuestion = currentIndex >= questions.length - 1;
+  const scoreByDifficulty = useMemo(() => {
+    const totals: Record<ReviewDifficulty, { got_it: number; almost: number; total: number }> = {
+      beginner: { got_it: 0, almost: 0, total: 0 },
+      intermediate: { got_it: 0, almost: 0, total: 0 },
+      advanced: { got_it: 0, almost: 0, total: 0 },
+    };
+
+    questions.forEach((question) => {
+      const rating = ratingsByQuestionId[question.id];
+      if (!rating) return;
+      totals[question.difficulty].total += 1;
+      if (rating === "got_it") totals[question.difficulty].got_it += 1;
+      if (rating === "almost") totals[question.difficulty].almost += 1;
+    });
+
+    return totals;
+  }, [questions, ratingsByQuestionId]);
+
+  const overallScore = getScorePercent(
+    ratingsCount.got_it,
+    ratingsCount.almost,
+    ratingsCount.got_it + ratingsCount.almost + ratingsCount.didnt_get_it
+  );
+
+  const isRoundTwo = phase === "round2";
+  const isLastQuestionInRound = currentIndex >= activeQuestionIds.length - 1;
+
+  async function submitSessionCompletion(finalRatingsByQuestion: Record<string, ReviewRating>) {
+    const finalCounts = Object.values(finalRatingsByQuestion).reduce<RatingsCount>(
+      (acc, item) => {
+        acc[item] += 1;
+        return acc;
+      },
+      { ...initialRatingsCount }
+    );
+
+    const completeResponse = await fetch("/api/review/complete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        topicSlug,
+        ratings: finalCounts,
+      }),
+    });
+
+    if (!completeResponse.ok) {
+      throw new Error(`Failed to complete review session (${completeResponse.status})`);
+    }
+
+    setSessionComplete(true);
+  }
+
+  function advanceQuestion(nextRoundTwoQuestionIds: string[]) {
+    if (!isLastQuestionInRound) {
+      setCurrentIndex((prev) => prev + 1);
+      setShowHint(false);
+      setShowSolution(false);
+      return;
+    }
+
+    if (!isRoundTwo && nextRoundTwoQuestionIds.length > 0) {
+      setPhase("round2");
+      setCurrentIndex(0);
+      setShowHint(false);
+      setShowSolution(false);
+      return;
+    }
+
+    submitSessionCompletion({ ...ratingsByQuestionId }).catch((error) => {
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Could not complete your review session.";
+      alert(message);
+    });
+  }
+
+  async function saveRating(question: ReviewQuestion, rating: ReviewRating) {
+    const response = await fetch("/api/review/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        questionId: question.id,
+        topicSlug,
+        rating,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save review response");
+    }
+  }
 
   async function handleRate(rating: ReviewRating) {
     if (!currentQuestion || submittingRating) {
@@ -107,21 +195,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
     setSubmittingRating(true);
 
     try {
-      const response = await fetch("/api/review/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          questionId: currentQuestion.id,
-          topicSlug,
-          rating,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save review response");
-      }
+      await saveRating(currentQuestion, rating);
 
       const nextRatingsByQuestion = {
         ...ratingsByQuestionId,
@@ -129,39 +203,60 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
       };
       setRatingsByQuestionId(nextRatingsByQuestion);
 
-      if (isLastQuestion) {
-        const finalCounts = Object.values(nextRatingsByQuestion).reduce<RatingsCount>(
-          (acc, item) => {
-            acc[item] += 1;
-            return acc;
-          },
-          { ...initialRatingsCount }
-        );
-
-        const completeResponse = await fetch("/api/review/complete", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            topicSlug,
-            ratings: finalCounts,
-          }),
-        });
-        if (!completeResponse.ok) {
-          throw new Error(`Failed to complete review session (${completeResponse.status})`);
-        }
-
-        setSessionComplete(true);
-        return;
+      if (!isLastQuestionInRound) {
+        setCurrentIndex((prev) => prev + 1);
+        setShowHint(false);
+        setShowSolution(false);
+      } else if (!isRoundTwo && roundTwoQuestionIds.length > 0) {
+        setPhase("round2");
+        setCurrentIndex(0);
+        setShowHint(false);
+        setShowSolution(false);
+      } else {
+        await submitSessionCompletion(nextRatingsByQuestion);
       }
-
-      setCurrentIndex((prev) => prev + 1);
-      setShowHint(false);
-      setShowSolution(false);
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Could not save your rating. Please try again.";
+      alert(message);
+    } finally {
+      setSubmittingRating(false);
+    }
+  }
+
+  async function handleSkip() {
+    if (!currentQuestion || submittingRating) {
+      return;
+    }
+
+    if (!isRoundTwo) {
+      const nextRoundTwoQuestionIds = roundTwoQuestionIds.includes(currentQuestion.id)
+        ? roundTwoQuestionIds
+        : [...roundTwoQuestionIds, currentQuestion.id];
+      setRoundTwoQuestionIds(nextRoundTwoQuestionIds);
+      advanceQuestion(nextRoundTwoQuestionIds);
+      return;
+    }
+
+    setSubmittingRating(true);
+    try {
+      await saveRating(currentQuestion, "didnt_get_it");
+      const nextRatingsByQuestion = {
+        ...ratingsByQuestionId,
+        [currentQuestion.id]: "didnt_get_it" as const,
+      };
+      setRatingsByQuestionId(nextRatingsByQuestion);
+
+      if (!isLastQuestionInRound) {
+        setCurrentIndex((prev) => prev + 1);
+        setShowHint(false);
+        setShowSolution(false);
+      } else {
+        await submitSessionCompletion(nextRatingsByQuestion);
+      }
+    } catch (error) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Could not process skip. Please try again.";
       alert(message);
     } finally {
       setSubmittingRating(false);
@@ -179,20 +274,17 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
   }
 
   if (!hasStarted) {
-    const totalsByDifficulty = questions.reduce<Record<ReviewDifficulty, number>>(
-      (acc, question) => {
-        acc[question.difficulty] += 1;
-        return acc;
-      },
-      {
-        beginner: 0,
-        intermediate: 0,
-        advanced: 0,
-      }
-    );
-
     return (
       <div className="space-y-6">
+        <div>
+          <Link href={backHref}>
+            <Button variant="ghost" size="sm" className="gap-1 px-0">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </Link>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>{topicName}</CardTitle>
@@ -215,7 +307,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
               <p className="text-sm">{briefing.warmupMessage}</p>
             </div>
             <p className="text-muted-foreground">
-              {totalsByDifficulty.beginner} beginner · {totalsByDifficulty.intermediate} intermediate ·{" "}
+              {totalsByDifficulty.beginner} beginner · {totalsByDifficulty.intermediate} intermediate · {" "}
               {totalsByDifficulty.advanced} advanced
             </p>
             <Button onClick={() => setHasStarted(true)} className="w-full sm:w-auto">
@@ -231,14 +323,29 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
   if (sessionComplete) {
     return (
       <div className="space-y-6">
+        <div>
+          <Link href={backHref}>
+            <Button variant="ghost" size="sm" className="gap-1 px-0">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </Link>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Session complete for {topicName}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <p>Beginner: {gotItByDifficulty.beginner} / {totalsByDifficulty.beginner} got it</p>
-            <p>Intermediate: {gotItByDifficulty.intermediate} / {totalsByDifficulty.intermediate} got it</p>
-            <p>Advanced: {gotItByDifficulty.advanced} / {totalsByDifficulty.advanced} got it</p>
+            <p className="text-2xl font-bold">You scored {overallScore}%</p>
+            <p>
+              Beginner: {getScorePercent(scoreByDifficulty.beginner.got_it, scoreByDifficulty.beginner.almost, totalsByDifficulty.beginner)}%
+            </p>
+            <p>
+              Intermediate: {getScorePercent(scoreByDifficulty.intermediate.got_it, scoreByDifficulty.intermediate.almost, totalsByDifficulty.intermediate)}%
+            </p>
+            <p>
+              Advanced: {getScorePercent(scoreByDifficulty.advanced.got_it, scoreByDifficulty.advanced.almost, totalsByDifficulty.advanced)}%
+            </p>
             <p className="pt-2 text-muted-foreground">
               Ratings: Got it ({ratingsCount.got_it}), Almost ({ratingsCount.almost}), Didn&apos;t get it ({ratingsCount.didnt_get_it})
             </p>
@@ -264,7 +371,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
       <Card>
         <CardHeader>
           <CardTitle>
-            {topicName} Review — Question {currentIndex + 1} of {questions.length}
+            {isRoundTwo ? "Skipped Questions — Round 2" : `${topicName} Review`} — Question {currentIndex + 1} of {activeQuestionIds.length}
           </CardTitle>
           <p className="text-sm capitalize text-muted-foreground">{currentQuestion.difficulty}</p>
         </CardHeader>
@@ -288,6 +395,10 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
             </div>
           )}
 
+          <Button type="button" variant="ghost" className="px-0 text-sm" onClick={handleSkip} disabled={submittingRating}>
+            Skip for now →
+          </Button>
+
           {!showSolution ? (
             <Button type="button" onClick={() => setShowSolution(true)}>
               Reveal Solution
@@ -302,19 +413,10 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing 
               <div className="space-y-2">
                 <p className="text-sm font-medium">How did it go?</p>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    disabled={submittingRating}
-                    onClick={() => handleRate("got_it")}
-                  >
+                  <Button type="button" disabled={submittingRating} onClick={() => handleRate("got_it")}>
                     Got it
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={submittingRating}
-                    onClick={() => handleRate("almost")}
-                  >
+                  <Button type="button" variant="secondary" disabled={submittingRating} onClick={() => handleRate("almost")}>
                     Almost
                   </Button>
                   <Button

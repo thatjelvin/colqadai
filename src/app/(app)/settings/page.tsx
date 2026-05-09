@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SettingsForm } from "./SettingsForm";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default async function SettingsPage() {
   const supabase = createServerClient();
@@ -19,7 +22,13 @@ export default async function SettingsPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-8">
-      <div>
+      <div className="space-y-3">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm" className="gap-1 px-0">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </Link>
         <h1 className="text-3xl font-bold mb-1">Settings</h1>
         <p className="text-muted-foreground">Manage your account and learning preferences.</p>
       </div>

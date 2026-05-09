@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Brain,
   Flame,
   Target,
   BookOpen,
@@ -23,8 +22,6 @@ import {
 import { CollyAgent } from "@/components/dashboard/CollyAgent";
 
 type OverviewStats = {
-  totalSeen: number;
-  masteredCount: number;
   masteryPercentage: number;
   dueCount: number;
   streak: number;
@@ -54,7 +51,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/dashboard/overview");
       if (res.ok) setStats(await res.json());
     } catch {
-      setStats({ totalSeen: 0, masteredCount: 0, masteryPercentage: 0, dueCount: 0, streak: 0 });
+      setStats({ masteryPercentage: 0, dueCount: 0, streak: 0 });
     }
   }, []);
 
@@ -128,6 +125,7 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-orange-200 bg-orange-50/50 dark:border-orange-800/40 dark:bg-orange-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -136,34 +134,24 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats?.streak ?? "—"}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">days</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800/40 dark:bg-blue-900/10">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardDescription className="text-blue-700 dark:text-blue-300 font-medium">Reviewed</CardDescription>
-              <Brain className="h-4 w-4 text-blue-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats?.totalSeen ?? "—"}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">problems</p>
+            {stats && stats.streak > 0 ? (
+              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">🔥 {stats.streak} day streak</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Start your streak today</p>
+            )}
           </CardContent>
         </Card>
 
         <Card className="border-green-200 bg-green-50/50 dark:border-green-800/40 dark:bg-green-900/10">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardDescription className="text-green-700 dark:text-green-300 font-medium">Mastery</CardDescription>
+              <CardDescription className="text-green-700 dark:text-green-300 font-medium">Overall Mastery</CardDescription>
               <Target className="h-4 w-4 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? "—"}%</div>
-            <p className="text-xs text-muted-foreground mt-0.5">of seen problems</p>
+            <div className="text-4xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? "—"}%</div>
+            <p className="text-xs text-muted-foreground mt-0.5">average across reviewed topics</p>
           </CardContent>
         </Card>
 
@@ -176,7 +164,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? "—"}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">items to review</p>
+            <Link href={stats && stats.dueCount > 0 ? "/review" : "/topics"} className="text-xs text-primary hover:underline">
+              Review Now
+            </Link>
           </CardContent>
         </Card>
       </div>

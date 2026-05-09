@@ -15,8 +15,9 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("user_topic_progress")
-      .select("topic_slug, first_explored_at")
+      .select("topic_slug, first_explored_at, last_reviewed_at")
       .eq("user_id", user.id)
+      .order("last_reviewed_at", { ascending: false, nullsFirst: false })
       .order("first_explored_at", { ascending: false })
       .limit(1)
       .maybeSingle();

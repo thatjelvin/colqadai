@@ -1,34 +1,42 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MathRenderer } from "@/components/MathRenderer";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
-import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
-
-const summarySectionSchema = z.object({
-  title: z.string().min(1),
-  content: z.string().min(1),
-  type: z.enum(["definition", "theorem", "example", "explanation"]),
-});
+import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
 
 const keyFormulaSchema = z.object({
   label: z.string().min(1),
   latex: z.string().min(1),
 });
 
+const chapterEntrySchema = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+});
+
 const topicSummarySchema = z.object({
-  summary: z.string().min(1),
+  chapters: z
+    .array(
+      z.object({
+        chapter_number: z.number().int().min(1),
+        title: z.string().min(1),
+        content: z.object({
+          conceptual_explanation: z.string().min(1),
+          key_formulas: z.array(keyFormulaSchema).default([]),
+          derivations: z.array(chapterEntrySchema).default([]),
+          worked_examples: z.array(chapterEntrySchema).default([]),
+          common_mistakes: z.array(z.string().min(1)).default([]),
+        }),
+      })
+    )
+    .min(2)
+    .max(3),
+  summary: z.object({
+    overview: z.string().min(1),
+  }),
   prerequisites: z.array(z.string().min(1)).min(2).max(4),
-  sections: z.array(summarySectionSchema).min(5),
-  key_formulas: z.array(keyFormulaSchema).min(1),
-  common_mistakes: z.array(z.string().min(1)).min(2).max(3),
-  practice_tip: z.string().min(1),
 });
 
 type TopicSummaryRow = {
@@ -49,46 +57,41 @@ async function generateSummaryWithGroq(subtopicName: string, parentTopicName: st
         {
           role: "system",
           content:
-            "You are a university mathematics textbook author. Generate a structured topic summary in JSON. Use LaTeX notation for all mathematical expressions (e.g. \\\\langle u, v \\\\rangle, \\\\|u\\|, \\\\in, \\\\sum, \\\\int). Return only valid JSON. No markdown. No preamble.",
+            "You are a university mathematics textbook author. Generate a structured chapter-based summary in JSON. Use LaTeX notation for all mathematical expressions. Return only valid JSON. No markdown.",
         },
         {
           role: "user",
-          content: `Generate a detailed university-level summary for the topic "${subtopicName}" which is part of "${parentTopicName}".
+          content: `Generate a university-level summary for "${subtopicName}" (part of "${parentTopicName}").
 
-Return a JSON object with exactly this structure:
+Return exactly this JSON structure:
 {
-  "summary": "2-3 sentence plain-English overview of what this topic is and why it matters",
-  "prerequisites": ["2-4 topic names the student should know first"],
-  "sections": [
+  "chapters": [
     {
-      "title": "section title (e.g. 'Formal Definition', 'Key Properties', 'Worked Examples')",
-      "content": "full explanatory text for this section. Use LaTeX for all math. For worked examples, show full step-by-step reasoning labelled Step 1, Step 2, etc. Include the reasoning behind each step.",
-      "type": "definition | theorem | example | explanation"
+      "chapter_number": 1,
+      "title": "chapter title",
+      "content": {
+        "conceptual_explanation": "clear conceptual explanation with intuition and significance",
+        "key_formulas": [{ "label": "formula name", "latex": "formula in LaTeX" }],
+        "derivations": [{ "title": "derivation title", "content": "step-by-step derivation" }],
+        "worked_examples": [{ "title": "example title", "content": "worked solution with steps" }],
+        "common_mistakes": ["common mistake 1", "common mistake 2"]
+      }
     }
   ],
-  "key_formulas": [
-    {
-      "label": "formula name (e.g. 'Cauchy-Schwarz Inequality')",
-      "latex": "LaTeX string of the formula"
-    }
-  ],
-  "common_mistakes": ["2-3 common errors students make"],
-  "practice_tip": "one actionable study tip"
+  "summary": {
+    "overview": "2-3 sentence plain-English overview"
+  },
+  "prerequisites": ["2-4 prerequisite topic names"]
 }
 
-Structure the sections as follows, in order:
-1. Concept Explanation — formal definition, then intuitive explanation, then why it matters
-2. Key Properties & Theorems — list each property with a name, statement, and brief explanation
-3. Worked Example (Basic) — a simple numerical example with full step-by-step solution and reasoning
-4. Worked Example (Intermediate) — a moderately complex example with full step-by-step solution and reasoning
-5. Worked Example (Advanced) — a more complex or abstract example with full step-by-step solution and reasoning
- 
-Each section in the sections array must be substantially detailed — not brief overviews. Concept Explanation should be at least 4-6 sentences. Key Properties should explain not just what each property says but why it is true and why it matters. Worked examples must show every single step with full reasoning — do not skip steps.
-The Intermediate and Advanced worked examples should be genuinely challenging — not just scaled-up versions of the basic example.
-For the Key Properties section, include at least 3-5 properties or theorems, each with a name, formal statement in LaTeX, and a 2-3 sentence explanation of its significance.
-The tone should match a well-written university textbook — thorough, precise, and educational.
-
-Keep language accessible to a first or second year university student. Be thorough — this is a learning reference, not a quick summary.`,
+Requirements:
+- Produce 2-3 chapters.
+- Chapter 1: foundational definition and basic examples.
+- Chapter 2: key theorems, derivations, and intermediate examples.
+- Chapter 3 (only if needed): advanced applications and common pitfalls.
+- Keep explanations concise, rigorous, and practical for university STEM students.
+- Include at least one worked example in each chapter.
+- Keep output valid JSON only.`,
         },
       ],
       response_format: { type: "json_object" },
@@ -209,104 +212,13 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
   await markTopicExplored(lookup.subtopic.slug);
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 space-y-2">
-        <div className="text-sm text-muted-foreground">
-          <Link href="/topics" className="text-primary hover:underline">
-            Topics
-          </Link>{" "}
-          / {lookup.parentTopic.displayName}
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight">{lookup.subtopic.displayName}</h1>
-      </div>
-
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MathRenderer content={summary.summary} className="text-sm text-foreground sm:text-base" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Prerequisites</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {summary.prerequisites.map((item) => (
-              <Badge key={item} variant="secondary" className="py-1">
-                <MathRenderer content={item} className="text-xs leading-5" />
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader>
-            <CardTitle>Key Formulas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {summary.key_formulas.map((formula) => (
-              <div key={formula.label} className="rounded-md border bg-background p-4">
-                <MathRenderer content={formula.label} className="mb-3 text-sm font-semibold text-foreground" />
-                <MathRenderer content={`$$${formula.latex}$$`} className="text-sm text-foreground" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          {summary.sections.map((section) => {
-            const isExample = section.type === "example";
-            return (
-              <Card
-                key={`${section.title}-${section.type}`}
-                className={isExample ? "border-blue-200 bg-blue-50/60" : ""}
-              >
-                <CardHeader>
-                  <CardTitle className="text-xl">{section.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MathRenderer content={section.content} className="text-sm text-foreground sm:text-base" />
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Common Mistakes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground sm:text-base">
-              {summary.common_mistakes.map((mistake) => (
-                <li key={mistake}>
-                  <MathRenderer content={mistake} />
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-300 bg-amber-50">
-          <CardHeader>
-            <CardTitle>Practice Tip</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MathRenderer content={summary.practice_tip} className="text-sm text-foreground sm:text-base" />
-          </CardContent>
-        </Card>
-
-        <Link href={`/review/${lookup.subtopic.slug}`}>
-          <Button size="lg" className="h-12 w-full text-base font-semibold sm:w-auto sm:min-w-56">
-            Start Review
-          </Button>
-        </Link>
-      </div>
-      <FloatingTutorHelp currentTopicName={lookup.subtopic.displayName} />
-    </div>
+    <ChapterSummaryClient
+      topicSlug={lookup.subtopic.slug}
+      topicName={lookup.subtopic.displayName}
+      parentTopicName={lookup.parentTopic.displayName}
+      prerequisites={summary.prerequisites}
+      summaryOverview={summary.summary.overview}
+      chapters={summary.chapters}
+    />
   );
 }

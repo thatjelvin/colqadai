@@ -130,3 +130,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes topic-load {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+.animate-topic-load {
+  animation: topic-load 1.15s ease-in-out infinite;
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
 import { topicTaxonomy } from "@/lib/topic-taxonomy";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,32 +9,109 @@ import { Button } from "@/components/ui/button";
 type ReviewResponseRow = {
   topic_slug: string;
   rating: "got_it" | "almost" | "didnt_get_it";
-  reviewed_at: string;
-  topic_review_questions: { difficulty: "beginner" | "intermediate" | "advanced" } | null;
 };
 
-type GapCardData = {
+type TopicProgressRow = {
+  topic_slug: string;
+  mastery_percent: number | null;
+  next_review_due: string | null;
+};
+
+type GapTopic = {
   slug: string;
-  name: string;
-  difficulty: string;
-  lastReviewed: string | null;
-  didntCount: number;
-  almostCount: number;
+  topicName: string;
+  parentTopicName: string;
+  masteryPercent: number;
+  nextReviewDue: string | null;
+  gotRate: number;
+  almostRate: number;
+  didntRate: number;
+  failureRate: number;
+  struggleRate: number;
 };
 
-const topicNameBySlug = topicTaxonomy.flatMap((topic) => topic.subtopics).reduce(
-  (acc, subtopic) => {
-    acc[subtopic.slug] = subtopic.displayName;
+const topicMetaBySlug = topicTaxonomy.reduce(
+  (acc, topic) => {
+    topic.subtopics.forEach((subtopic) => {
+      acc[subtopic.slug] = {
+        topicName: subtopic.displayName,
+        parentTopicName: topic.displayName,
+      };
+    });
     return acc;
   },
-  {} as Record<string, string>
+  {} as Record<string, { topicName: string; parentTopicName: string }>
 );
 
-function formatLastReviewed(dateIso: string | null) {
+function formatDate(dateIso: string | null) {
   if (!dateIso) {
-    return "Not yet reviewed";
+    return "Not scheduled";
   }
   return new Date(dateIso).toLocaleDateString();
+}
+
+function rateToPercent(count: number, total: number) {
+  if (total === 0) return 0;
+  return Math.round((count / total) * 100);
+}
+
+function GapSection({
+  title,
+  description,
+  accent,
+  topics,
+}: {
+  title: string;
+  description: string;
+  accent: string;
+  topics: GapTopic[];
+}) {
+  return (
+    <section className="space-y-3">
+      <CardHeader className="px-0">
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+
+      {topics.length === 0 ? (
+        <Card>
+          <CardContent className="py-4 text-sm text-muted-foreground">No topics in this section yet.</CardContent>
+        </Card>
+      ) : (
+        topics.map((topic) => (
+          <Card key={topic.slug} className={`border-l-4 ${accent}`}>
+            <CardContent className="space-y-3 py-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">{topic.topicName}</p>
+                  <p className="text-xs text-muted-foreground">{topic.parentTopicName}</p>
+                </div>
+                <Link href={`/review/${topic.slug}`}>
+                  <Button size="sm">Review Again</Button>
+                </Link>
+              </div>
+
+              <div className="grid gap-2 text-sm sm:grid-cols-3">
+                <p>
+                  Mastery: <span className="font-semibold">{topic.masteryPercent}%</span>
+                </p>
+                <p>
+                  Next due: <span className="font-semibold">{formatDate(topic.nextReviewDue)}</span>
+                </p>
+                <p>
+                  Failure rate: <span className="font-semibold">{topic.failureRate}%</span>
+                </p>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {topic.gotRate}% got it · {topic.almostRate}% almost · {topic.didntRate}% didn&apos;t get it
+              </p>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </section>
+  );
 }
 
 export default async function KnowledgeGapsPage() {
@@ -46,130 +124,132 @@ export default async function KnowledgeGapsPage() {
     redirect("/login");
   }
 
-  const { data: responses, error } = await supabase
-    .from("user_review_responses")
-    .select("topic_slug, rating, reviewed_at, topic_review_questions(difficulty)")
-    .eq("user_id", user.id)
-    .order("reviewed_at", { ascending: false });
+  const [{ data: responses, error: responsesError }, { data: progressRows, error: progressError }] = await Promise.all([
+    supabase.from("user_review_responses").select("topic_slug, rating").eq("user_id", user.id),
+    supabase.from("user_topic_progress").select("topic_slug, mastery_percent, next_review_due").eq("user_id", user.id),
+  ]);
 
-  if (error) {
-    console.warn("Failed to load user review responses", error);
+  if (responsesError) {
+    console.warn("Failed to load user review responses", responsesError);
   }
 
-  const grouped = ((responses ?? []) as ReviewResponseRow[]).reduce(
+  if (progressError) {
+    console.warn("Failed to load user topic progress", progressError);
+  }
+
+  const progressBySlug = ((progressRows ?? []) as TopicProgressRow[]).reduce(
+    (acc, row) => {
+      acc[row.topic_slug] = {
+        masteryPercent: row.mastery_percent ?? 0,
+        nextReviewDue: row.next_review_due,
+      };
+      return acc;
+    },
+    {} as Record<string, { masteryPercent: number; nextReviewDue: string | null }>
+  );
+
+  const groupedCounts = ((responses ?? []) as ReviewResponseRow[]).reduce(
     (acc, row) => {
       if (!acc[row.topic_slug]) {
         acc[row.topic_slug] = {
-          slug: row.topic_slug,
-          name: topicNameBySlug[row.topic_slug] ?? row.topic_slug,
-          difficulty: row.topic_review_questions?.difficulty ?? "beginner",
-          lastReviewed: row.reviewed_at,
-          didntCount: 0,
-          almostCount: 0,
+          got_it: 0,
+          almost: 0,
+          didnt_get_it: 0,
+          total: 0,
         };
       }
 
-      const item = acc[row.topic_slug];
-
-      if (row.rating === "didnt_get_it") {
-        item.didntCount += 1;
-      }
-      if (row.rating === "almost") {
-        item.almostCount += 1;
-      }
-      if (row.topic_review_questions?.difficulty) {
-        item.difficulty = row.topic_review_questions.difficulty;
-      }
+      acc[row.topic_slug][row.rating] += 1;
+      acc[row.topic_slug].total += 1;
       return acc;
     },
-    {} as Record<string, GapCardData>
+    {} as Record<
+      string,
+      {
+        got_it: number;
+        almost: number;
+        didnt_get_it: number;
+        total: number;
+      }
+    >
   );
 
-  const allSubtopics = topicTaxonomy.flatMap((topic) => topic.subtopics);
-  const reviewedSlugs = new Set(Object.keys(grouped));
+  const topicsWithHistory: GapTopic[] = Object.entries(groupedCounts)
+    .filter(([, counts]) => counts.total > 0)
+    .map(([slug, counts]) => {
+      const gotRate = rateToPercent(counts.got_it, counts.total);
+      const almostRate = rateToPercent(counts.almost, counts.total);
+      const didntRate = rateToPercent(counts.didnt_get_it, counts.total);
+      const meta = topicMetaBySlug[slug] ?? { topicName: slug, parentTopicName: "Math" };
+      const progress = progressBySlug[slug];
 
-  const didntGetItTopics = Object.values(grouped)
-    .filter((topic) => topic.didntCount > 0)
-    .sort((a, b) => b.didntCount - a.didntCount);
+      return {
+        slug,
+        topicName: meta.topicName,
+        parentTopicName: meta.parentTopicName,
+        masteryPercent: progress?.masteryPercent ?? 0,
+        nextReviewDue: progress?.nextReviewDue ?? null,
+        gotRate,
+        almostRate,
+        didntRate,
+        failureRate: didntRate,
+        struggleRate: almostRate,
+      };
+    });
 
-  const almostTopics = Object.values(grouped)
-    .filter((topic) => topic.almostCount > 0 && topic.didntCount === 0)
-    .sort((a, b) => b.almostCount - a.almostCount);
+  const needsWork = topicsWithHistory
+    .filter((topic) => topic.failureRate >= 40)
+    .sort((a, b) => b.failureRate - a.failureRate);
 
-  const notYetReviewed = allSubtopics
-    .filter((subtopic) => !reviewedSlugs.has(subtopic.slug))
-    .map((subtopic) => ({
-      slug: subtopic.slug,
-      name: subtopic.displayName,
-      difficulty: "—",
-      lastReviewed: null,
-    }));
+  const gettingThere = topicsWithHistory
+    .filter((topic) => topic.struggleRate >= 40 && topic.failureRate < 40)
+    .sort((a, b) => b.struggleRate - a.struggleRate);
 
-  const renderCard = (topic: { slug: string; name: string; difficulty: string; lastReviewed: string | null }) => (
-    <Card key={topic.slug}>
-      <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="font-semibold">{topic.name}</p>
-          <p className="text-sm text-muted-foreground">
-            Difficulty tier: <span className="capitalize">{topic.difficulty}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">Last reviewed: {formatLastReviewed(topic.lastReviewed)}</p>
-        </div>
-        <Link href={`/review/${topic.slug}`}>
-          <Button size="sm">Review Again</Button>
-        </Link>
-      </CardContent>
-    </Card>
-  );
+  const onTrack = topicsWithHistory
+    .filter((topic) => topic.failureRate < 40 && topic.struggleRate < 40)
+    .sort((a, b) => b.masteryPercent - a.masteryPercent);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
-      <header>
+      <header className="space-y-3">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm" className="gap-1 px-0">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </Link>
         <h1 className="text-3xl font-bold mb-2">Knowledge Gaps</h1>
         <p className="text-muted-foreground">Topics where you need the most practice.</p>
       </header>
 
-      <section className="space-y-3">
-        <CardHeader className="px-0">
-          <CardTitle>Didn&apos;t get it (most frequent)</CardTitle>
-          <CardDescription>Topics where you most often rated “Didn&apos;t get it”.</CardDescription>
-        </CardHeader>
-        {didntGetItTopics.length === 0 ? (
-          <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">No major struggle topics yet.</CardContent>
-          </Card>
-        ) : (
-          didntGetItTopics.map(renderCard)
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <CardHeader className="px-0">
-          <CardTitle>Almost</CardTitle>
-          <CardDescription>Topics where you&apos;re close but need reinforcement.</CardDescription>
-        </CardHeader>
-        {almostTopics.length === 0 ? (
-          <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">No “Almost” topics right now.</CardContent>
-          </Card>
-        ) : (
-          almostTopics.map(renderCard)
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <CardHeader className="px-0">
-          <CardTitle>Not yet reviewed</CardTitle>
-          <CardDescription>Topics with no review activity yet.</CardDescription>
-        </CardHeader>
-        {notYetReviewed.length === 0 ? (
-          <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">You&apos;ve reviewed every topic at least once.</CardContent>
-          </Card>
-        ) : (
-          notYetReviewed.map(renderCard)
-        )}
-      </section>
+      {topicsWithHistory.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-sm text-muted-foreground">
+            Complete a review session to see your knowledge gaps.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <GapSection
+            title="Needs Work"
+            description="Topics with high failure rates."
+            accent="border-red-400"
+            topics={needsWork}
+          />
+          <GapSection
+            title="Getting There"
+            description="Topics where you're close but need reinforcement."
+            accent="border-amber-400"
+            topics={gettingThere}
+          />
+          <GapSection
+            title="On Track"
+            description="Topics with solid performance and review history."
+            accent="border-green-400"
+            topics={onTrack}
+          />
+        </>
+      )}
     </div>
   );
 }

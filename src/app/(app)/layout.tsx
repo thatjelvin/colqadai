@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
+import { AppHamburgerDrawer } from "@/components/navigation/AppHamburgerDrawer";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
@@ -47,6 +48,7 @@ export default async function AppLayout({
         }}
         plan={appUser.plan}
       />
+      <AppHamburgerDrawer />
       <main className="lg:pl-64">
         <div className="min-h-screen">{children}</div>
       </main>
