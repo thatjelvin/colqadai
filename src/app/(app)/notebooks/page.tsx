@@ -38,6 +38,8 @@ export default function NotebooksPage() {
   const [notebooks, setNotebooks] = useState<NotebookListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const loadNotebooks = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +64,8 @@ export default function NotebooksPage() {
     if (!notebookTitle.trim() || isSaving) return;
 
     setIsSaving(true);
+    setFormError(null);
+    setStatusMessage(null);
     try {
       const response = await fetch("/api/notebooks", {
         method: "POST",
@@ -80,22 +84,28 @@ export default function NotebooksPage() {
       setNotebookDescription("");
       setIsCreateOpen(false);
       await loadNotebooks();
+      setStatusMessage("Notebook created.");
     } catch (error) {
       console.error("Error creating notebook:", error);
+      setFormError("Could not create notebook. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteNotebook = async (id: string) => {
+    setFormError(null);
+    setStatusMessage(null);
     try {
       const response = await fetch(`/api/notebooks/${id}`, { method: "DELETE" });
       if (!response.ok) {
         throw new Error("Failed to delete notebook");
       }
       await loadNotebooks();
+      setStatusMessage("Notebook deleted.");
     } catch (error) {
       console.error("Error deleting notebook:", error);
+      setFormError("Could not delete notebook. Please try again.");
     }
   };
 
@@ -114,6 +124,16 @@ export default function NotebooksPage() {
           New Notebook
         </Button>
       </div>
+      {formError ? (
+        <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {formError}
+        </p>
+      ) : null}
+      {statusMessage ? (
+        <p className="mb-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+          {statusMessage}
+        </p>
+      ) : null}
 
       {isCreateOpen && (
         <Card className="mb-8 border-primary border-2">

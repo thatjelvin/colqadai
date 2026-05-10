@@ -61,7 +61,13 @@ export function AppHamburgerDrawer() {
   return (
     <>
       <div className="fixed right-4 top-4 z-50">
-        <Button variant="outline" size="sm" onClick={() => setOpen((prev) => !prev)} className="bg-card">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen((prev) => !prev)}
+          className="bg-card"
+          aria-label={open ? "Close navigation drawer" : "Open navigation drawer"}
+        >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
@@ -76,7 +82,7 @@ export function AppHamburgerDrawer() {
       >
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm font-semibold">Navigation</p>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+          <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close navigation drawer">
             <X className="h-4 w-4" />
           </Button>
         </div>

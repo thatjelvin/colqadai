@@ -68,6 +68,7 @@ const plans: PlanConfig[] = [
 
 export function PricingCards({ usage }: { usage: UsageSummary | null }) {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   const startCheckout = async (plan: "free" | "pro" | "max") => {
     if (plan === "free") {
@@ -75,6 +76,7 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
     }
 
     setLoadingPlan(plan);
+    setBillingError(null);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -90,7 +92,7 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
       window.location.href = data.checkoutUrl;
     } catch (error) {
       console.error(error);
-      alert("Unable to start checkout. Please try again.");
+      setBillingError("Unable to start checkout right now. Please try again.");
     } finally {
       setLoadingPlan(null);
     }
@@ -98,6 +100,7 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
 
   const downgradeToFree = async () => {
     setLoadingPlan("free");
+    setBillingError(null);
     try {
       const res = await fetch("/api/billing/change-plan", {
         method: "POST",
@@ -112,7 +115,7 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
       window.location.reload();
     } catch (error) {
       console.error(error);
-      alert("Unable to change plan right now.");
+      setBillingError("Unable to change plan right now. Please try again.");
     } finally {
       setLoadingPlan(null);
     }
@@ -120,6 +123,11 @@ export function PricingCards({ usage }: { usage: UsageSummary | null }) {
 
   return (
     <div className="space-y-6">
+      {billingError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          {billingError}
+        </div>
+      ) : null}
       {usage && (
         <div className="rounded-lg border bg-card p-4 text-sm">
           <div className="mb-2 flex items-center justify-between">
