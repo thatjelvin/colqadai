@@ -85,6 +85,8 @@ export default function DashboardPage() {
     fetchRecentTopic();
   }, [fetchStats, fetchUserName, fetchRecentTopic]);
 
+  const isStatsLoading = stats === null;
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       <div>
@@ -98,11 +100,22 @@ export default function DashboardPage() {
 
       <CollyAgent />
 
-      {recentTopic === undefined ? null : recentTopic === null ? (
+      {recentTopic === undefined ? (
         <Card className="border-dashed">
-          <CardContent className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+          <CardContent className="py-4">
+            <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+          </CardContent>
+        </Card>
+      ) : recentTopic === null ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4 shrink-0" />
             No activity yet — start exploring topics.
+            </div>
+            <Link href="/topics">
+              <Button size="sm" variant="outline">Explore Topics</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
@@ -134,8 +147,10 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {stats && stats.streak > 0 ? (
+            {!isStatsLoading && stats && stats.streak > 0 ? (
               <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">🔥 {stats.streak} day streak</p>
+            ) : isStatsLoading ? (
+              <div className="h-6 w-28 animate-pulse rounded bg-orange-200/60 dark:bg-orange-800/40" />
             ) : (
               <p className="text-sm text-muted-foreground">Start your streak today</p>
             )}
@@ -150,7 +165,11 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? "—"}%</div>
+            {isStatsLoading ? (
+              <div className="h-10 w-20 animate-pulse rounded bg-green-200/60 dark:bg-green-800/40" />
+            ) : (
+              <div className="text-4xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? 0}%</div>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">average across reviewed topics</p>
           </CardContent>
         </Card>
@@ -163,7 +182,11 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? "—"}</div>
+            {isStatsLoading ? (
+              <div className="h-8 w-14 animate-pulse rounded bg-amber-200/60 dark:bg-amber-800/40" />
+            ) : (
+              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? 0}</div>
+            )}
             <Link href={stats && stats.dueCount > 0 ? "/review" : "/topics"} className="text-xs text-primary hover:underline">
               Review Now
             </Link>

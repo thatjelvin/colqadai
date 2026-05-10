@@ -5,12 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { topicTaxonomy } from "@/lib/topic-taxonomy";
 import { TopicExplorerClient } from "@/components/explore/TopicExplorerClient";
 import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
-
-type UserTopicProgressRow = {
-  topic_slug: string;
-  review_count: number | null;
-  mastery_percent: number | null;
-};
+import { getUserTopicProgressBySlug } from "@/lib/topic-progress";
 
 export default async function TopicsPage() {
   const supabase = createServerClient();
@@ -22,25 +17,7 @@ export default async function TopicsPage() {
     redirect("/login");
   }
 
-  const { data: progressRows, error } = await supabase
-    .from("user_topic_progress")
-    .select("topic_slug, review_count, mastery_percent")
-    .eq("user_id", user.id);
-
-  if (error) {
-    console.warn("Failed to fetch topic progress", error);
-  }
-
-  const progressBySlug = ((progressRows ?? []) as UserTopicProgressRow[]).reduce(
-    (acc, row) => {
-      acc[row.topic_slug] = {
-        reviewCount: row.review_count ?? 0,
-        masteryPercent: row.mastery_percent ?? 0,
-      };
-      return acc;
-    },
-    {} as Record<string, { reviewCount: number; masteryPercent: number }>
-  );
+  const progressBySlug = await getUserTopicProgressBySlug(user.id);
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
