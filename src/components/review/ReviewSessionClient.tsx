@@ -409,7 +409,8 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
           </Button>
 
           {!showSolution ? (
-            <div className="space-y-2">
+            <fieldset className="space-y-2">
+              <legend className="sr-only">Attempt check before revealing solution</legend>
               <Button
                 type="button"
                 variant={hasAttemptedQuestion ? "secondary" : "outline"}
@@ -429,7 +430,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
               <p id="solution-gate-help" className="text-xs text-muted-foreground">
                 Try solving first to strengthen retrieval before checking the solution.
               </p>
-            </div>
+            </fieldset>
           ) : (
             <div className="space-y-4">
               <div className="rounded-md border border-blue-300 bg-blue-50 p-4">
