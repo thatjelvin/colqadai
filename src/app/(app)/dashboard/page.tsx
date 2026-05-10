@@ -113,9 +113,9 @@ export default function DashboardPage() {
             <BookOpen className="h-4 w-4 shrink-0" />
             No activity yet — start exploring topics.
             </div>
-            <Link href="/topics">
-              <Button size="sm" variant="outline">Explore Topics</Button>
-            </Link>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/topics">Explore Topics</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (

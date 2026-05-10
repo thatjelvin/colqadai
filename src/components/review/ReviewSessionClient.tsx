@@ -414,6 +414,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
                 type="button"
                 variant={hasAttemptedQuestion ? "secondary" : "outline"}
                 onClick={() => setHasAttemptedQuestion(true)}
+                aria-pressed={hasAttemptedQuestion}
               >
                 {hasAttemptedQuestion ? "Attempt recorded" : "I've attempted this"}
               </Button>
