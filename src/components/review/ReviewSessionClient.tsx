@@ -57,6 +57,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+  const [hasAttemptedQuestion, setHasAttemptedQuestion] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -148,6 +149,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
       setCurrentIndex((prev) => prev + 1);
       setShowHint(false);
       setShowSolution(false);
+      setHasAttemptedQuestion(false);
       return;
     }
 
@@ -156,6 +158,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
       setCurrentIndex(0);
       setShowHint(false);
       setShowSolution(false);
+      setHasAttemptedQuestion(false);
       return;
     }
 
@@ -205,11 +208,13 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
         setCurrentIndex((prev) => prev + 1);
         setShowHint(false);
         setShowSolution(false);
+        setHasAttemptedQuestion(false);
       } else if (!isRoundTwo && roundTwoQuestionIds.length > 0) {
         setPhase("round2");
         setCurrentIndex(0);
         setShowHint(false);
         setShowSolution(false);
+        setHasAttemptedQuestion(false);
       } else {
         await submitSessionCompletion(nextRatingsByQuestion);
       }
@@ -250,6 +255,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
         setCurrentIndex((prev) => prev + 1);
         setShowHint(false);
         setShowSolution(false);
+        setHasAttemptedQuestion(false);
       } else {
         await submitSessionCompletion(nextRatingsByQuestion);
       }
@@ -403,9 +409,28 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
           </Button>
 
           {!showSolution ? (
-            <Button type="button" onClick={() => setShowSolution(true)}>
-              Reveal Solution
-            </Button>
+            <fieldset className="space-y-2">
+              <legend className="sr-only">Attempt check before revealing solution</legend>
+              <Button
+                type="button"
+                variant={hasAttemptedQuestion ? "secondary" : "outline"}
+                onClick={() => setHasAttemptedQuestion(true)}
+                aria-pressed={hasAttemptedQuestion}
+              >
+                {hasAttemptedQuestion ? "Attempt recorded" : "I've attempted this"}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setShowSolution(true)}
+                disabled={!hasAttemptedQuestion}
+                aria-describedby="solution-gate-help"
+              >
+                Reveal Solution
+              </Button>
+              <p id="solution-gate-help" className="text-xs text-muted-foreground">
+                Try solving first to strengthen retrieval before checking the solution.
+              </p>
+            </fieldset>
           ) : (
             <div className="space-y-4">
               <div className="rounded-md border border-blue-300 bg-blue-50 p-4">
