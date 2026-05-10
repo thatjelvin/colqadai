@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4 shrink-0" />
-            No activity yet — start exploring topics.
+            No activity yet — choose your first topic to begin.
             </div>
             <Button size="sm" variant="outline" asChild>
               <Link href="/topics">Explore Topics</Link>

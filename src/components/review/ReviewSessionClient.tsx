@@ -418,10 +418,15 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
               >
                 {hasAttemptedQuestion ? "Attempt recorded" : "I've attempted this"}
               </Button>
-              <Button type="button" onClick={() => setShowSolution(true)} disabled={!hasAttemptedQuestion}>
+              <Button
+                type="button"
+                onClick={() => setShowSolution(true)}
+                disabled={!hasAttemptedQuestion}
+                aria-describedby="solution-gate-help"
+              >
                 Reveal Solution
               </Button>
-              <p className="text-xs text-muted-foreground">
+              <p id="solution-gate-help" className="text-xs text-muted-foreground">
                 Try solving first to strengthen retrieval before checking the solution.
               </p>
             </div>
