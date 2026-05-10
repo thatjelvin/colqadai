@@ -104,7 +104,7 @@ export function CollyAgent() {
             placeholder="Ask Colly anything — search a topic, start a review, or ask for help"
             className="h-12"
           />
-          <Button type="submit" className="h-12 px-4" disabled={!canSubmit}>
+          <Button type="submit" className="h-12 px-4" disabled={!canSubmit} aria-label="Send message to Colly">
             <Send className="h-4 w-4" />
           </Button>
         </form>

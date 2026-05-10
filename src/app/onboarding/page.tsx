@@ -524,6 +524,8 @@ export default function OnboardingPage() {
   const canProceed =
     step?.field === "course"
       ? !!answers.course
+      : step?.field === "source"
+        ? true
       : !!selectedValue;
 
   return (
@@ -606,16 +608,28 @@ export default function OnboardingPage() {
               {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
               {/* Next / submit button */}
-              <button
-                type="button"
-                onClick={currentStep === STEPS.length - 1 ? submit : goNext}
-                disabled={!canProceed || loading}
-                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {currentStep === STEPS.length - 1
-                  ? loading ? "Saving…" : "Almost done →"
-                  : "Next →"}
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={currentStep === STEPS.length - 1 ? submit : goNext}
+                  disabled={!canProceed || loading}
+                  className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {currentStep === STEPS.length - 1
+                    ? loading ? "Saving…" : "Finish setup →"
+                    : "Next →"}
+                </button>
+                {currentStep > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-border bg-card py-3 text-sm font-semibold text-foreground transition hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Back
+                  </button>
+                ) : null}
+              </div>
             </>
           )}
         </div>

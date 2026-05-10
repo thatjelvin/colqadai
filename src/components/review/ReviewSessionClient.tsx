@@ -60,6 +60,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
   const [submittingRating, setSubmittingRating] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [ratingsByQuestionId, setRatingsByQuestionId] = useState<Record<string, ReviewRating>>({});
   const [roundTwoQuestionIds, setRoundTwoQuestionIds] = useState<string[]>([]);
 
@@ -161,7 +162,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     submitSessionCompletion({ ...ratingsByQuestionId }).catch((error) => {
       console.error(error);
       const message = error instanceof Error ? error.message : "Could not complete your review session.";
-      alert(message);
+      setSessionError(message);
     });
   }
 
@@ -189,6 +190,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     }
 
     setSubmittingRating(true);
+    setSessionError(null);
 
     try {
       await saveRating(currentQuestion, rating);
@@ -214,7 +216,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Could not save your rating. Please try again.";
-      alert(message);
+      setSessionError(message);
     } finally {
       setSubmittingRating(false);
     }
@@ -235,6 +237,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     }
 
     setSubmittingRating(true);
+    setSessionError(null);
     try {
       await saveRating(currentQuestion, "didnt_get_it");
       const nextRatingsByQuestion = {
@@ -253,7 +256,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Could not process skip. Please try again.";
-      alert(message);
+      setSessionError(message);
     } finally {
       setSubmittingRating(false);
     }
@@ -371,6 +374,11 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
           <p className="text-sm capitalize text-muted-foreground">{currentQuestion.difficulty}</p>
         </CardHeader>
         <CardContent className="space-y-6">
+          {sessionError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {sessionError}
+            </div>
+          ) : null}
           <div className="rounded-md border bg-background p-4">
             <MathRenderer content={currentQuestion.question} className="text-sm sm:text-base" />
           </div>

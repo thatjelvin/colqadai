@@ -76,7 +76,7 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
         <Card className="w-[320px] shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base">Ask for help</CardTitle>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)} aria-label="Close tutor chat">
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
@@ -108,7 +108,7 @@ export function FloatingTutorHelp({ currentTopicName }: { currentTopicName: stri
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask your question..."
               />
-              <Button type="submit" size="icon" disabled={isLoading || input.trim().length === 0}>
+              <Button type="submit" size="icon" disabled={isLoading || input.trim().length === 0} aria-label="Send message">
                 <Send className="h-4 w-4" />
               </Button>
             </form>

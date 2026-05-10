@@ -77,6 +77,7 @@ export function Sidebar({ user, plan }: SidebarProps) {
           size="sm"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="bg-card"
+          aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
         >
           {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
