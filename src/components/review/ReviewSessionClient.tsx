@@ -415,7 +415,7 @@ export function ReviewSessionClient({ topicSlug, topicName, questions, briefing,
                 variant={hasAttemptedQuestion ? "secondary" : "outline"}
                 onClick={() => setHasAttemptedQuestion(true)}
               >
-                {hasAttemptedQuestion ? "Attempt recorded" : "I&apos;ve attempted this"}
+                {hasAttemptedQuestion ? "Attempt recorded" : "I've attempted this"}
               </Button>
               <Button type="button" onClick={() => setShowSolution(true)} disabled={!hasAttemptedQuestion}>
                 Reveal Solution

@@ -168,7 +168,9 @@ export default function DashboardPage() {
             {isStatsLoading ? (
               <div className="h-10 w-20 animate-pulse rounded bg-green-200/60 dark:bg-green-800/40" />
             ) : (
-              <div className="text-4xl font-bold text-green-600 dark:text-green-400">{stats?.masteryPercentage ?? 0}%</div>
+              <div className="text-4xl font-bold text-green-600 dark:text-green-400">
+                {stats?.masteryPercentage ?? "—"}%
+              </div>
             )}
             <p className="text-xs text-muted-foreground mt-0.5">average across reviewed topics</p>
           </CardContent>
@@ -185,7 +187,7 @@ export default function DashboardPage() {
             {isStatsLoading ? (
               <div className="h-8 w-14 animate-pulse rounded bg-amber-200/60 dark:bg-amber-800/40" />
             ) : (
-              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? 0}</div>
+              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats?.dueCount ?? "—"}</div>
             )}
             <Link href={stats && stats.dueCount > 0 ? "/review" : "/topics"} className="text-xs text-primary hover:underline">
               Review Now
