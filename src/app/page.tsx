@@ -33,7 +33,7 @@ const subjects = [
   "Information Theory",
 ];
 
-const trustedStudentCount = "76+";
+const trustedStudentLabel = "76+";
 
 const problemCards = [
   {
@@ -197,7 +197,10 @@ export default async function LandingPage() {
           </div>
 
           <details className="group relative md:hidden">
-            <summary className="list-none cursor-pointer rounded-md border border-[#F5EFE0]/20 p-2 text-[#F5EFE0] marker:content-none">
+            <summary
+              aria-label="Menu"
+              className="list-none cursor-pointer rounded-md border border-[#F5EFE0]/20 p-2 text-[#F5EFE0] marker:content-none"
+            >
               <Menu className="h-5 w-5" />
             </summary>
             <div className="absolute right-0 mt-2 w-56 rounded-lg border border-[#F5EFE0]/15 bg-[#111111] p-4 shadow-xl">
@@ -242,7 +245,7 @@ export default async function LandingPage() {
               </a>
             </div>
             <p className="mt-5 text-xs text-[#F5EFE0]/60 sm:text-sm">
-              Trusted by {trustedStudentCount} university students · Free to start
+              Trusted by {trustedStudentLabel} university students · Free to start
             </p>
 
             <div className="mt-10 w-full max-w-2xl rounded-2xl border border-[#F5EFE0]/15 bg-[#1A1A1A] p-6 text-left shadow-2xl">
@@ -279,6 +282,8 @@ export default async function LandingPage() {
                 type="button"
                 disabled
                 aria-disabled="true"
+                aria-label="Preview-only next chapter button"
+                title="Preview-only example"
                 className="mt-5 rounded-md border border-[#F5EFE0]/30 bg-transparent px-4 py-2 text-sm font-semibold text-[#F5EFE0]"
               >
                 Next Chapter →
@@ -384,7 +389,7 @@ export default async function LandingPage() {
             </div>
 
             <p className="mt-8 text-center text-sm text-[#F5EFE0]/65">
-              Join {trustedStudentCount} students already using Colqad
+              Join {trustedStudentLabel} students already using Colqad
             </p>
           </div>
         </section>
