@@ -414,10 +414,20 @@ export default async function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-[#F5EFE0]/60 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Colqad</p>
           <div className="flex items-center gap-5">
-            <a href="#" className="transition hover:text-[#F5EFE0]">
+            <a
+              href="#"
+              aria-disabled="true"
+              onClick={(event) => event.preventDefault()}
+              className="cursor-not-allowed transition hover:text-[#F5EFE0]"
+            >
               Privacy Policy
             </a>
-            <a href="#" className="transition hover:text-[#F5EFE0]">
+            <a
+              href="#"
+              aria-disabled="true"
+              onClick={(event) => event.preventDefault()}
+              className="cursor-not-allowed transition hover:text-[#F5EFE0]"
+            >
               Terms of Service
             </a>
           </div>
