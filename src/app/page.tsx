@@ -33,6 +33,8 @@ const subjects = [
   "Information Theory",
 ];
 
+const trustedStudentCount = "76+";
+
 const problemCards = [
   {
     icon: BookOpen,
@@ -239,7 +241,9 @@ export default async function LandingPage() {
                 See How It Works
               </a>
             </div>
-            <p className="mt-5 text-xs text-[#F5EFE0]/60 sm:text-sm">Trusted by 76+ university students · Free to start</p>
+            <p className="mt-5 text-xs text-[#F5EFE0]/60 sm:text-sm">
+              Trusted by {trustedStudentCount} university students · Free to start
+            </p>
 
             <div className="mt-10 w-full max-w-2xl rounded-2xl border border-[#F5EFE0]/15 bg-[#1A1A1A] p-6 text-left shadow-2xl">
               <div className="flex items-start justify-between gap-4">
@@ -379,7 +383,9 @@ export default async function LandingPage() {
               ))}
             </div>
 
-            <p className="mt-8 text-center text-sm text-[#F5EFE0]/65">Join 76+ students already using Colqad</p>
+            <p className="mt-8 text-center text-sm text-[#F5EFE0]/65">
+              Join {trustedStudentCount} students already using Colqad
+            </p>
           </div>
         </section>
 
