@@ -9,11 +9,13 @@ import {
   GraduationCap,
   Layers,
   ListChecks,
-  Menu,
   Target,
   Timer,
   TrendingUp,
 } from "lucide-react";
+import NavBar from "@/app/(landing)/components/NavBar";
+import HeroButtons from "@/app/(landing)/components/HeroButtons";
+import FooterLinks from "@/app/(landing)/components/FooterLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -178,47 +180,7 @@ export default async function LandingPage() {
         `}
       </Script>
 
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-[#F5EFE0]/10 bg-[#0A0A0A]/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="text-xl font-bold tracking-tight text-[#F5EFE0]">
-            Colqad
-          </Link>
-
-          <div className="hidden items-center gap-5 md:flex">
-            <Link href="/login" className="text-sm text-[#F5EFE0]/80 transition hover:text-[#F5EFE0]">
-              Log In
-            </Link>
-            <Link
-              href={isAuthenticated ? "/dashboard" : "/register"}
-              className="rounded-md bg-[#F5EFE0] px-4 py-2 text-sm font-semibold text-[#0A0A0A] transition hover:bg-[#F5EFE0]/90"
-            >
-              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
-            </Link>
-          </div>
-
-          <details className="group relative md:hidden">
-            <summary
-              aria-label="Menu"
-              className="list-none cursor-pointer rounded-md border border-[#F5EFE0]/20 p-2 text-[#F5EFE0] marker:content-none"
-            >
-              <Menu className="h-5 w-5" />
-            </summary>
-            <div className="absolute right-0 mt-2 w-56 rounded-lg border border-[#F5EFE0]/15 bg-[#111111] p-4 shadow-xl">
-              <div className="flex flex-col gap-3">
-                <Link href="/login" className="text-sm text-[#F5EFE0]/85">
-                  Log In
-                </Link>
-                <Link
-                  href={isAuthenticated ? "/dashboard" : "/register"}
-                  className="rounded-md bg-[#F5EFE0] px-4 py-2 text-center text-sm font-semibold text-[#0A0A0A]"
-                >
-                  {isAuthenticated ? "Go to Dashboard" : "Get Started"}
-                </Link>
-              </div>
-            </div>
-          </details>
-        </div>
-      </nav>
+      <NavBar isAuthenticated={isAuthenticated} />
 
       <main className="pt-16">
         <section className="js-fade-section is-visible min-h-[calc(100vh-4rem)] border-b border-[#F5EFE0]/10 px-4 py-16 opacity-0 transition-opacity duration-700 sm:px-6 lg:px-8">
@@ -230,20 +192,7 @@ export default async function LandingPage() {
               Colqad generates university-level topic summaries, breaks them into structured chapters, and tracks exactly what
               you need to review next — so you stop guessing and start mastering.
             </p>
-            <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-              <Link
-                href="/register"
-                className="rounded-md bg-[#F5EFE0] px-6 py-3 text-sm font-semibold text-[#0A0A0A] transition hover:bg-[#F5EFE0]/90"
-              >
-                Get Started Free
-              </Link>
-              <a
-                href="#how-it-works"
-                className="rounded-md border border-[#F5EFE0] px-6 py-3 text-sm font-semibold text-[#F5EFE0] transition hover:bg-[#F5EFE0]/10"
-              >
-                See How It Works
-              </a>
-            </div>
+            <HeroButtons />
             <p className="mt-5 text-xs text-[#F5EFE0]/60 sm:text-sm">
               Trusted by {trustedStudentLabel} university students · Free to start
             </p>
@@ -413,24 +362,7 @@ export default async function LandingPage() {
       <footer className="border-t border-[#F5EFE0]/10 bg-[#0A0A0A] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-[#F5EFE0]/60 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Colqad</p>
-          <div className="flex items-center gap-5">
-            <a
-              href="#"
-              aria-disabled="true"
-              onClick={(event) => event.preventDefault()}
-              className="cursor-not-allowed transition hover:text-[#F5EFE0]"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              aria-disabled="true"
-              onClick={(event) => event.preventDefault()}
-              className="cursor-not-allowed transition hover:text-[#F5EFE0]"
-            >
-              Terms of Service
-            </a>
-          </div>
+          <FooterLinks />
         </div>
       </footer>
     </div>
