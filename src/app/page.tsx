@@ -3,7 +3,6 @@ import Script from "next/script";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   BookOpen,
-  Brain,
   Compass,
   Gauge,
   GraduationCap,
@@ -147,7 +146,10 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5EFE0]">
-      <style>{`html { scroll-behavior: smooth; }`}</style>
+      <style>{`
+        html { scroll-behavior: smooth; }
+        .js-fade-section.is-visible { opacity: 1; }
+      `}</style>
       <Script id="landing-fade-in" strategy="afterInteractive">
         {`
           (() => {
