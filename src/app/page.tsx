@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Script from "next/script";
+import { InlineMath } from "react-katex";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   BookOpen,
@@ -266,12 +267,14 @@ export default async function LandingPage() {
                   point.
                 </p>
                 <p className="mt-4 overflow-x-auto rounded-md bg-black/40 px-3 py-2 font-mono text-sm text-[#F5EFE0]">
-                  f&apos;(x) = lim(h→0) [f(x+h) - f(x)] / h
+                  <InlineMath math={"f'(x) = \\lim_{h \\to 0} \\frac{f(x+h)-f(x)}{h}"} />
                 </p>
               </div>
 
               <button
                 type="button"
+                disabled
+                aria-disabled="true"
                 className="mt-5 rounded-md border border-[#F5EFE0]/30 bg-transparent px-4 py-2 text-sm font-semibold text-[#F5EFE0]"
               >
                 Next Chapter →
