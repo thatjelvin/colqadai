@@ -255,7 +255,7 @@ Current status:
 In progress
 Status notes:
 - Works: summary/concept generation from existing `NotebookChunk` rows.
-- Missing: active notebook document-upload/ingestion endpoints in `src/app/api/notebooks/**` that create `NotebookDocument` and `NotebookChunk` from user uploads.
+- Missing: current notebook endpoints (`src/app/api/notebooks/route.ts`, `src/app/api/notebooks/[id]/route.ts`, `src/app/api/notebooks/[id]/summary/route.ts`) do not provide upload/ingestion handlers that create `NotebookDocument` and `NotebookChunk` from user uploads.
 Dependencies:
 Notebook models/tables, processing utilities.
 Related systems:
@@ -341,7 +341,7 @@ Missing systems
 - Explicit sharing/referral UX loop is not found in current routes.
 
 Technical debt
-- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client.
+- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client, which risks non-durable behavior and data inconsistency across requests/environments.
 - Several docs/spec files describe functionality that diverges from current code.
 - Heavy debug logging in auth/onboarding profile paths.
 
