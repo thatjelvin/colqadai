@@ -341,7 +341,7 @@ Missing systems
 - Explicit sharing/referral UX loop is not found in current routes.
 
 Technical debt
-- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client; this is a high-impact risk if used beyond local/dev contexts because state is non-durable and can cause cross-request inconsistency.
+- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client; **Priority: P0 for production hardening** because state is non-durable and can cause cross-request inconsistency/data integrity issues.
 - Several docs/spec files describe functionality that diverges from current code.
 - Heavy debug logging in auth/onboarding profile paths.
 
