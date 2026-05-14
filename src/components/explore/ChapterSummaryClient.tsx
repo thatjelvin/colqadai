@@ -117,8 +117,8 @@ export function ChapterSummaryClient({
 
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">Definitions</h3>
-              {chapter.content.definitions.map((definition) => (
-                <article key={`${definition.number_label}-${definition.title}`} className="rounded-md border bg-background p-4">
+              {chapter.content.definitions.map((definition, index) => (
+                <article key={`${definition.number_label}-${index}`} className="rounded-md border bg-background p-4">
                   <p className="mb-2 text-sm">
                     <strong>Definition {definition.number_label}.</strong>{" "}
                     <strong>{definition.title}.</strong>
@@ -135,8 +135,8 @@ export function ChapterSummaryClient({
 
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">Theorems</h3>
-              {chapter.content.theorems.map((theorem) => (
-                <article key={`${theorem.number_label}-${theorem.title}`} className="rounded-md border p-4">
+              {chapter.content.theorems.map((theorem, index) => (
+                <article key={`${theorem.number_label}-${index}`} className="rounded-md border p-4">
                   <p className="mb-2 text-sm">
                     <strong>
                       <em>Theorem {theorem.number_label}.</em>
@@ -153,7 +153,7 @@ export function ChapterSummaryClient({
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold">Remarks</h3>
                 {chapter.content.remarks.map((remark, index) => (
-                  <div key={`${remark}-${index}`} className="rounded-md border-l-2 border-muted-foreground/30 pl-3 text-sm text-muted-foreground">
+                  <div key={index} className="rounded-md border-l-2 border-muted-foreground/30 pl-3 text-sm text-muted-foreground">
                     <p>
                       <em>Remark.</em>
                     </p>

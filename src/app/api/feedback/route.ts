@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 
+const POSTGRES_UNDEFINED_TABLE_ERROR = "42P01";
+
 const requestSchema = z.object({
   message: z.string().min(1).max(2000),
   rating: z.number().int().min(1).max(5).nullable().optional(),
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      if (error.code === "42P01") {
+      if (error.code === POSTGRES_UNDEFINED_TABLE_ERROR) {
         return NextResponse.json(
           { error: "Feedback table is missing. Run the required Supabase migrations first." },
           { status: 500 }

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const FEEDBACK_TOOLTIP_KEY = "colqad-feedback-tooltip-seen-v1";
+const TOOLTIP_FADE_DELAY_MS = 5000;
+const TOOLTIP_HIDE_DELAY_MS = 5600;
 
 export function FeedbackWidget() {
   const pathname = usePathname();
@@ -43,8 +45,8 @@ export function FeedbackWidget() {
     window.localStorage.setItem(FEEDBACK_TOOLTIP_KEY, "1");
     setShowTooltip(true);
 
-    const fadeTimer = window.setTimeout(() => setFadeTooltip(true), 5000);
-    const hideTimer = window.setTimeout(() => setShowTooltip(false), 5600);
+    const fadeTimer = window.setTimeout(() => setFadeTooltip(true), TOOLTIP_FADE_DELAY_MS);
+    const hideTimer = window.setTimeout(() => setShowTooltip(false), TOOLTIP_HIDE_DELAY_MS);
 
     return () => {
       window.clearTimeout(fadeTimer);
