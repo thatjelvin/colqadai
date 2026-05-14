@@ -422,14 +422,17 @@ Wins
 - Core retrieval/spaced/interleaved mechanics are implemented in app flows.
 
 Failures
-- NEEDS FOUNDER INPUT
+- Observed product-documentation divergence (PRD/COLQAD_FEATURES vs current routes/APIs).
+- Incomplete notebook ingestion flow despite notebook summary/concept surfaces.
+- Missing `/api/reflections` endpoint referenced by study UI.
+- Reminder cron orchestration route still placeholder.
 
 Interesting metrics
-- Landing references “76+ university students” (timestamp and current validity require founder confirmation; see AI Knowledge Gaps).
+- Landing references “76+ university students” as displayed in landing-page copy in this repository snapshot (verified on 2026-05-14); current production validity still needs founder confirmation.
 - App tracks streak, mastery %, due count, recall score, top error type.
 
 Future roadmap
-- NEEDS FOUNDER INPUT (PRD includes ambitious roadmap; current code diverges in places).
+- PRD-documented roadmap themes (founder confirmation required because current code diverges): mistake-detection expansion, knowledge graph visualization, web research mode, video ingestion, and broader adaptive/exam simulation capabilities.
 
 Public storytelling opportunities
 - Before/after examples of passive study vs retrieval-first workflow.
