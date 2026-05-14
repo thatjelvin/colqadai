@@ -419,7 +419,7 @@ Failures
 - NEEDS FOUNDER INPUT
 
 Interesting metrics
-- Landing references “76+ university students”.
+- Landing references “76+ university students” (timestamp and current validity require founder confirmation; see AI Knowledge Gaps).
 - App tracks streak, mastery %, due count, recall score, top error type.
 
 Future roadmap
