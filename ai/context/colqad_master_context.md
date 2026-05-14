@@ -341,7 +341,7 @@ Missing systems
 - Explicit sharing/referral UX loop is not found in current routes.
 
 Technical debt
-- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client, which risks non-durable behavior and data inconsistency across requests/environments.
+- `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client; this is a high-impact risk if used beyond local/dev contexts because state is non-durable and can cause cross-request inconsistency.
 - Several docs/spec files describe functionality that diverges from current code.
 - Heavy debug logging in auth/onboarding profile paths.
 
@@ -480,7 +480,7 @@ List unknowns:
 
 NEEDS FOUNDER INPUT:
 - What is the official single-sentence mission/vision copy to standardize everywhere?
-- Is the primary canonical flow now topic-explore-first, source-upload-first, or hybrid?
+- Is the primary canonical flow now topic-exploration-first, source-upload-first, or hybrid?
 - Should notebooks include user-facing document upload in current release scope, and if yes what UX/API contract is intended?
 - Is there a planned standalone `/chat` page, or is embedded tutoring the intended permanent model?
 - What are the authoritative activation, retention, and conversion metrics to reference publicly?
