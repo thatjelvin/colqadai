@@ -342,6 +342,7 @@ Missing systems
 
 Technical debt
 - `src/lib/db.ts` is an in-memory proxy fallback, not a persistent transactional DB client; **Priority: P0 for production hardening** because state is non-durable and can cause cross-request inconsistency/data integrity issues.
+- Mitigation status for the `src/lib/db.ts` fallback replacement timeline: NEEDS FOUNDER INPUT.
 - Several docs/spec files describe functionality that diverges from current code.
 - Heavy debug logging in auth/onboarding profile paths.
 
