@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
@@ -50,6 +51,7 @@ export default async function AppLayout({
       <main className="lg:pl-64">
         <div className="min-h-screen">{children}</div>
       </main>
+      <FeedbackWidget />
     </div>
   );
 }

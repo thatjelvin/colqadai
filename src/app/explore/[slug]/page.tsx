@@ -7,12 +7,14 @@ import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
 import { MAX_SUMMARY_CHAPTERS, MIN_SUMMARY_CHAPTERS } from "@/lib/review-metrics";
 
-const keyFormulaSchema = z.object({
-  label: z.string().min(1),
-  latex: z.string().min(1),
+const numberedStatementSchema = z.object({
+  number_label: z.string().min(1),
+  title: z.string().min(1),
+  statement: z.string().min(1),
+  formula_latex: z.string().min(1).optional(),
 });
 
-const chapterEntrySchema = z.object({
+const workedExampleSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
 });
@@ -24,11 +26,12 @@ const topicSummarySchema = z.object({
         chapter_number: z.number().int().min(1),
         title: z.string().min(1),
         content: z.object({
-          conceptual_explanation: z.string().min(1),
-          key_formulas: z.array(keyFormulaSchema).default([]),
-          derivations: z.array(chapterEntrySchema).default([]),
-          worked_examples: z.array(chapterEntrySchema).default([]),
-          common_mistakes: z.array(z.string().min(1)).default([]),
+          short_intro: z.string().min(1),
+          definitions: z.array(numberedStatementSchema).min(1),
+          transition_prose: z.string().min(1),
+          theorems: z.array(numberedStatementSchema).min(1),
+          remarks: z.array(z.string().min(1)).default([]),
+          worked_examples: z.array(workedExampleSchema).min(1),
         }),
       })
     )
@@ -58,7 +61,7 @@ async function generateSummaryWithGroq(subtopicName: string, parentTopicName: st
         {
           role: "system",
           content:
-            "You are a university mathematics textbook author. Generate a structured chapter-based summary in JSON. Use LaTeX notation for all mathematical expressions. Return only valid JSON. No markdown.",
+            "You are a university mathematics textbook author. Generate a structured chapter-based summary in JSON with rigorous notation. Use LaTeX notation for all mathematical expressions. Return only valid JSON. No markdown.",
         },
         {
           role: "user",
@@ -71,27 +74,45 @@ Return exactly this JSON structure:
       "chapter_number": 1,
       "title": "chapter title",
       "content": {
-        "conceptual_explanation": "clear conceptual explanation with intuition and significance",
-        "key_formulas": [{ "label": "formula name", "latex": "formula in LaTeX" }],
-        "derivations": [{ "title": "derivation title", "content": "step-by-step derivation" }],
-        "worked_examples": [{ "title": "example title", "content": "worked solution with steps" }],
-        "common_mistakes": ["common mistake 1", "common mistake 2"]
+        "short_intro": "short prose paragraph introducing the chapter",
+        "definitions": [
+          {
+            "number_label": "4.13",
+            "title": "definition title",
+            "statement": "formal definition in prose with inline LaTeX if needed",
+            "formula_latex": "optional block formula in LaTeX (without $$)"
+          }
+        ],
+        "transition_prose": "short prose paragraph connecting definitions to theorems",
+        "theorems": [
+          {
+            "number_label": "4.14",
+            "title": "theorem title",
+            "statement": "formal theorem statement in prose with inline LaTeX if needed",
+            "formula_latex": "optional block formula in LaTeX (without $$)"
+          }
+        ],
+        "remarks": ["short remark tied to theorem meaning, assumptions, or interpretation"],
+        "worked_examples": [{ "title": "example title", "content": "worked solution with steps and LaTeX where needed" }]
       }
     }
   ],
   "summary": {
-    "overview": "2-3 sentence plain-English overview"
+    "overview": "2-3 sentence intro paragraph for the whole topic"
   },
   "prerequisites": ["2-4 prerequisite topic names"]
 }
 
 Requirements:
 - Produce 2-3 chapters.
-- Chapter 1: foundational definition and basic examples.
-- Chapter 2: key theorems, derivations, and intermediate examples.
-- Chapter 3 (only if needed): advanced applications and common pitfalls.
-- Keep explanations concise, rigorous, and practical for university STEM students.
+- For each chapter, keep this exact order in content flow:
+  short intro -> definitions -> transition prose -> theorems -> remarks -> worked examples.
+- Definitions must be formal and numbered (e.g., 4.13) and written as prose, never bullets.
+- Theorems must be formal and numbered (e.g., 4.14) and written as prose, never bullets.
+- Remarks must be concise theorem-adjacent comments.
+- Any formulas that should be displayed on separate lines must be placed in formula_latex.
 - Include at least one worked example in each chapter.
+- Keep explanations concise, rigorous, and practical for university STEM students.
 - Keep output valid JSON only.`,
         },
       ],

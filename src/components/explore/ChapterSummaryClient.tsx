@@ -21,11 +21,22 @@ type ChapterSummaryClientProps = {
     chapter_number: number;
     title: string;
     content: {
-      conceptual_explanation: string;
-      key_formulas: Array<{ label: string; latex: string }>;
-      derivations: Array<{ title: string; content: string }>;
+      short_intro: string;
+      definitions: Array<{
+        number_label: string;
+        title: string;
+        statement: string;
+        formula_latex?: string;
+      }>;
+      transition_prose: string;
+      theorems: Array<{
+        number_label: string;
+        title: string;
+        statement: string;
+        formula_latex?: string;
+      }>;
+      remarks: string[];
       worked_examples: Array<{ title: string; content: string }>;
-      common_mistakes: string[];
     };
   }>;
 };
@@ -95,6 +106,79 @@ export function ChapterSummaryClient({
 
         <Card>
           <CardHeader>
+            <CardTitle>
+              Chapter {chapter.chapter_number}: {chapter.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <section>
+              <MathRenderer content={chapter.content.short_intro} className="text-sm sm:text-base" />
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Definitions</h3>
+              {chapter.content.definitions.map((definition) => (
+                <article key={`${definition.number_label}-${definition.title}`} className="rounded-md border bg-background p-4">
+                  <p className="mb-2 text-sm">
+                    <strong>Definition {definition.number_label}.</strong>{" "}
+                    <strong>{definition.title}.</strong>
+                  </p>
+                  <MathRenderer content={definition.statement} className="text-sm" />
+                  {definition.formula_latex ? <MathRenderer content={`$$${definition.formula_latex}$$`} className="text-sm" /> : null}
+                </article>
+              ))}
+            </section>
+
+            <section>
+              <MathRenderer content={chapter.content.transition_prose} className="text-sm sm:text-base" />
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Theorems</h3>
+              {chapter.content.theorems.map((theorem) => (
+                <article key={`${theorem.number_label}-${theorem.title}`} className="rounded-md border p-4">
+                  <p className="mb-2 text-sm">
+                    <strong>
+                      <em>Theorem {theorem.number_label}.</em>
+                    </strong>{" "}
+                    <strong>{theorem.title}.</strong>
+                  </p>
+                  <MathRenderer content={theorem.statement} className="text-sm" />
+                  {theorem.formula_latex ? <MathRenderer content={`$$${theorem.formula_latex}$$`} className="text-sm" /> : null}
+                </article>
+              ))}
+            </section>
+
+            {chapter.content.remarks.length > 0 ? (
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold">Remarks</h3>
+                {chapter.content.remarks.map((remark, index) => (
+                  <div key={`${remark}-${index}`} className="rounded-md border-l-2 border-muted-foreground/30 pl-3 text-sm text-muted-foreground">
+                    <p>
+                      <em>Remark.</em>
+                    </p>
+                    <MathRenderer content={remark} className="text-sm" />
+                  </div>
+                ))}
+              </section>
+            ) : null}
+
+            {chapter.content.worked_examples.length > 0 ? (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold">Worked Examples</h3>
+                {chapter.content.worked_examples.map((example) => (
+                  <div key={example.title} className="rounded-md border border-blue-200 bg-blue-50/40 p-4">
+                    <p className="mb-2 text-sm font-medium">{example.title}</p>
+                    <MathRenderer content={example.content} className="text-sm" />
+                  </div>
+                ))}
+              </section>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Prerequisites</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -103,69 +187,6 @@ export function ChapterSummaryClient({
                 <MathRenderer content={item} className="text-xs leading-5" />
               </Badge>
             ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Chapter {chapter.chapter_number}: {chapter.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <p className="mb-2 text-sm font-semibold">Conceptual Explanation</p>
-              <MathRenderer content={chapter.content.conceptual_explanation} className="text-sm sm:text-base" />
-            </div>
-
-            {chapter.content.key_formulas.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Key Formulas</p>
-                {chapter.content.key_formulas.map((formula) => (
-                  <div key={formula.label} className="rounded-md border bg-background p-4">
-                    <MathRenderer content={formula.label} className="mb-2 text-sm font-medium" />
-                    <MathRenderer content={`$$${formula.latex}$$`} className="text-sm" />
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {chapter.content.derivations.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Derivations</p>
-                {chapter.content.derivations.map((derivation) => (
-                  <div key={derivation.title} className="rounded-md border p-4">
-                    <p className="mb-2 text-sm font-medium">{derivation.title}</p>
-                    <MathRenderer content={derivation.content} className="text-sm" />
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {chapter.content.worked_examples.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">Worked Examples</p>
-                {chapter.content.worked_examples.map((example) => (
-                  <div key={example.title} className="rounded-md border border-blue-200 bg-blue-50/40 p-4">
-                    <p className="mb-2 text-sm font-medium">{example.title}</p>
-                    <MathRenderer content={example.content} className="text-sm" />
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {chapter.content.common_mistakes.length > 0 ? (
-              <div>
-                <p className="mb-2 text-sm font-semibold">Common Mistakes</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {chapter.content.common_mistakes.map((mistake) => (
-                    <li key={mistake}>
-                      <MathRenderer content={mistake} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
 
