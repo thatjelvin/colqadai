@@ -77,7 +77,7 @@ Return exactly this JSON structure:
         "short_intro": "short prose paragraph introducing the chapter",
         "definitions": [
           {
-            "number_label": "4.13",
+            "number_label": "1.1",
             "title": "definition title",
             "statement": "formal definition in prose with inline LaTeX if needed",
             "formula_latex": "optional block formula in LaTeX (without $$)"
@@ -86,7 +86,7 @@ Return exactly this JSON structure:
         "transition_prose": "short prose paragraph connecting definitions to theorems",
         "theorems": [
           {
-            "number_label": "4.14",
+            "number_label": "1.2",
             "title": "theorem title",
             "statement": "formal theorem statement in prose with inline LaTeX if needed",
             "formula_latex": "optional block formula in LaTeX (without $$)"

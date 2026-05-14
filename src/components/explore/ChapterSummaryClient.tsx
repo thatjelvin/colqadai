@@ -118,7 +118,7 @@ export function ChapterSummaryClient({
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">Definitions</h3>
               {chapter.content.definitions.map((definition, index) => (
-                <article key={`${definition.number_label}-${index}`} className="rounded-md border bg-background p-4">
+                <article key={index} className="rounded-md border bg-background p-4">
                   <p className="mb-2 text-sm">
                     <strong>Definition {definition.number_label}.</strong>{" "}
                     <strong>{definition.title}.</strong>
@@ -136,7 +136,7 @@ export function ChapterSummaryClient({
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">Theorems</h3>
               {chapter.content.theorems.map((theorem, index) => (
-                <article key={`${theorem.number_label}-${index}`} className="rounded-md border p-4">
+                <article key={index} className="rounded-md border p-4">
                   <p className="mb-2 text-sm">
                     <strong>
                       <em>Theorem {theorem.number_label}.</em>
