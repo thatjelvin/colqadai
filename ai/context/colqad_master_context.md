@@ -252,7 +252,10 @@ Source-centered workspace for deeper study.
 User benefit:
 Consolidated study artifacts.
 Current status:
-In progress (summary/concept generation works from existing `NotebookChunk` rows, but no active notebook document-upload/ingestion endpoints are present in `src/app/api/notebooks/**` for creating `NotebookDocument` and `NotebookChunk` records from user uploads)
+In progress
+Status notes:
+- Works: summary/concept generation from existing `NotebookChunk` rows.
+- Missing: active notebook document-upload/ingestion endpoints in `src/app/api/notebooks/**` that create `NotebookDocument` and `NotebookChunk` from user uploads.
 Dependencies:
 Notebook models/tables, processing utilities.
 Related systems:
@@ -282,7 +285,10 @@ Retention and reactivation.
 User benefit:
 Prompts to return for due reviews.
 Current status:
-In progress (`/api/reminders/send` contains reminder-send logic, while `/api/cron/reminders` currently returns a placeholder success payload and does not trigger send orchestration yet)
+In progress
+Status notes:
+- Works: `/api/reminders/send` contains reminder-send logic.
+- Missing: `/api/cron/reminders` still returns placeholder success payload and does not trigger send orchestration.
 Dependencies:
 CRON secret, admin Supabase access, Resend key.
 Related systems:
