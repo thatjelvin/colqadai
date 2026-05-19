@@ -88,7 +88,7 @@ async function classifyIntent(message: string): Promise<CollyIntent> {
   const response = await groq.chat.completions.create({
     model: "llama-3.1-8b-instant",
     temperature: 0,
-    max_tokens: 8,
+    max_tokens: 24,
     messages: [
       {
         role: "system",
@@ -132,7 +132,7 @@ async function getDueReviewCount(userId: string): Promise<number> {
     }
   }
 
-  throw new Error(error.message);
+  throw new Error(`Failed to fetch due review count: ${error.message}`);
 }
 
 export async function POST(req: NextRequest) {

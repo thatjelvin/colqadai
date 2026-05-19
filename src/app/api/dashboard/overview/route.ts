@@ -85,7 +85,7 @@ export async function GET() {
       const masteryValue = masteryKey === "mastery_percent" ? row.mastery_percent : row.mastery_score;
       return (masteryValue ?? 0) >= HIGH_MASTERY_PERCENT;
     }).length;
-    const dueCount = (progressRows ?? []).filter((row) => {
+    const dueCount = reviewedRows.filter((row) => {
       const dueDate = dueKey === "next_review_due" ? row.next_review_due : row.next_review_date;
       return dueDate ? new Date(dueDate).getTime() <= endOfTodayUtc.getTime() : false;
     }).length;

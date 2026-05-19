@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [recentTopic, setRecentTopic] = useState<RecentTopic | null | undefined>(undefined);
+  const streakDays = stats?.streak ?? 0;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -154,7 +155,7 @@ export default function DashboardPage() {
               <div className="h-6 w-28 animate-pulse rounded bg-orange-200/60 dark:bg-orange-800/40" />
             ) : (
               <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
-                🔥 {stats?.streak ?? 0} day{(stats?.streak ?? 0) === 1 ? "" : "s"}
+                🔥 {streakDays} day{streakDays === 1 ? "" : "s"}
               </p>
             )}
           </CardContent>
