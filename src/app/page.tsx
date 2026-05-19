@@ -35,7 +35,7 @@ const subjects = [
   "Information Theory",
 ];
 
-const trustedStudentLabel = "76+";
+const trustedStudentLabel = "200+";
 
 const problemCards = [
   {
@@ -186,7 +186,7 @@ export default async function LandingPage() {
         <section className="js-fade-section is-visible min-h-[calc(100vh-4rem)] border-b border-[#F5EFE0]/10 px-4 py-16 opacity-0 transition-opacity duration-700 sm:px-6 lg:px-8">
           <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-5xl flex-col items-center justify-center text-center">
             <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#F5EFE0] sm:text-5xl lg:text-6xl">
-              Master University Mathematics. Not just for the exam — for good.
+              Build real mastery in university math, one topic at a time.
             </h1>
             <p className="mt-6 max-w-[600px] text-base text-[#F5EFE0]/75 sm:text-lg">
               Colqad generates university-level topic summaries, breaks them into structured chapters, and tracks exactly what
