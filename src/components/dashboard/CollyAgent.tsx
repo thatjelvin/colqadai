@@ -14,6 +14,11 @@ type CollyAction =
     }
   | null;
 
+type CollyQuickAction = {
+  label: string;
+  path: string;
+};
+
 function extractActionJson(text: string): CollyAction {
   const candidates = text.match(/\{[\s\S]*?\}/g) ?? [];
   for (const candidate of candidates) {
@@ -37,6 +42,7 @@ export function CollyAgent() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [responseText, setResponseText] = useState("");
+  const [responseActions, setResponseActions] = useState<CollyQuickAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const canSubmit = useMemo(() => query.trim().length > 0 && !isLoading, [query, isLoading]);
@@ -49,6 +55,7 @@ export function CollyAgent() {
 
     const prompt = query.trim();
     setIsLoading(true);
+    setResponseActions([]);
 
     try {
       const response = await fetch("/api/colly", {
@@ -66,6 +73,17 @@ export function CollyAgent() {
       const action = extractActionJson(rawText);
       const message = stripActionJson(rawText) || rawText;
       setResponseText(message);
+
+      const quickActions = Array.isArray(payload?.actions)
+        ? payload.actions
+            .filter((item: unknown): item is CollyQuickAction => {
+              if (!item || typeof item !== "object") return false;
+              const candidate = item as { label?: unknown; path?: unknown };
+              return typeof candidate.label === "string" && typeof candidate.path === "string";
+            })
+            .slice(0, 4)
+        : [];
+      setResponseActions(quickActions);
 
       if (action?.action === "navigate" && action.path) {
         setTimeout(() => {
@@ -117,6 +135,21 @@ export function CollyAgent() {
             <span className="text-muted-foreground">Colly’s response will appear here.</span>
           )}
         </div>
+        {responseActions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {responseActions.map((action) => (
+              <Button
+                key={`${action.label}-${action.path}`}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(action.path)}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

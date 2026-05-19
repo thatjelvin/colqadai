@@ -50,7 +50,10 @@ export default function DashboardPage() {
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/dashboard/overview");
-      if (res.ok) setStats(await res.json());
+      if (!res.ok) {
+        throw new Error("Failed to fetch dashboard overview");
+      }
+      setStats(await res.json());
     } catch {
       setStats({ masteryPercentage: 0, dueCount: 0, streak: 0 });
     }
@@ -147,12 +150,12 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {!isStatsLoading && stats && stats.streak > 0 ? (
-              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">🔥 {stats.streak} day streak</p>
-            ) : isStatsLoading ? (
+            {isStatsLoading ? (
               <div className="h-6 w-28 animate-pulse rounded bg-orange-200/60 dark:bg-orange-800/40" />
             ) : (
-              <p className="text-sm text-muted-foreground">Start your streak today</p>
+              <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                🔥 {stats?.streak ?? 0} day{(stats?.streak ?? 0) === 1 ? "" : "s"}
+              </p>
             )}
           </CardContent>
         </Card>
