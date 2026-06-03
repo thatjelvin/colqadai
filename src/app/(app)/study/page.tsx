@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
+import { computeStreak } from "@/lib/learning/streak";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StreakChip } from "@/components/StreakChip";
 import { Brain, Clock, Target, Play } from "lucide-react";
 
 export default async function ReviewPage() {
@@ -32,6 +34,12 @@ export default async function ReviewPage() {
     },
     orderBy: { nextReviewAt: "asc" },
   });
+
+  const allUserProblems = await db.userProblem.findMany({
+    where: { userId },
+    select: { lastReviewedAt: true },
+  });
+  const streakInfo = computeStreak(allUserProblems.map((up) => up.lastReviewedAt));
 
   const interleavedQueue = buildInterleavedQueue(
     dueProblems.map((up) => ({
@@ -61,11 +69,20 @@ export default async function ReviewPage() {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Spaced Repetition Review</h1>
-        <p className="text-muted-foreground">
-          Review items scheduled for today to maintain long-term retention
-        </p>
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold">Spaced Repetition Review</h1>
+          <p className="text-muted-foreground">
+            Review items scheduled for today to maintain long-term retention
+          </p>
+        </div>
+        <StreakChip
+          current={streakInfo.current}
+          longest={streakInfo.longest}
+          reviewedToday={streakInfo.reviewedToday}
+          size="md"
+          showLongest
+        />
       </div>
 
       {/* Stats Row */}
