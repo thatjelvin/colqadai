@@ -1,18 +1,37 @@
-import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import { computeTopicMasteryForUser } from "@/lib/learning/mastery";
+import { db } from "@/lib/db";
 import { ProblemCard } from "@/components/ProblemCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ArrowLeft, Shuffle, BookOpen } from "lucide-react";
+import { ArrowLeft, Shuffle, BookOpen, TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
 
 interface TopicPageProps {
   params: {
     slug: string;
   };
 }
+
+const bandColors: Record<string, string> = {
+  none: "text-muted-foreground",
+  novice: "text-secondary",
+  developing: "text-secondary",
+  proficient: "text-primary",
+  mastered: "text-success",
+};
+
+const bandLabels: Record<string, string> = {
+  none: "Not started",
+  novice: "Novice",
+  developing: "Developing",
+  proficient: "Proficient",
+  mastered: "Mastered",
+};
 
 export default async function TopicPage({ params }: TopicPageProps) {
   const supabase = createServerClient();
@@ -23,7 +42,6 @@ export default async function TopicPage({ params }: TopicPageProps) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  // Get topic with problems
   const topic = await db.topic.findUnique({
     where: { slug: params.slug },
     include: {
@@ -44,7 +62,8 @@ export default async function TopicPage({ params }: TopicPageProps) {
     notFound();
   }
 
-  // Get user's progress for problems in this topic
+  const mastery = await computeTopicMasteryForUser(userId, params.slug);
+
   const problemIds = topic.problems.map((p) => p.id);
   const childProblemIds = topic.children.flatMap((c) =>
     c.problems.map((p) => p.id)
@@ -62,16 +81,11 @@ export default async function TopicPage({ params }: TopicPageProps) {
 
   const userProblemMap = new Map(userProblems.map((up) => [up.problemId, up]));
 
-  // Calculate progress
-  const masteredCount = topic.problems.filter((p) => {
-    const up = userProblemMap.get(p.id);
-    return up?.status === "MASTERED";
-  }).length;
-
-  const progressPercentage =
-    topic.problems.length > 0
-      ? Math.round((masteredCount / topic.problems.length) * 100)
-      : 0;
+  const trendIcon = mastery.recentRatingTrend === "improving"
+    ? <TrendingUp className="h-4 w-4" />
+    : mastery.recentRatingTrend === "declining"
+      ? <TrendingDown className="h-4 w-4" />
+      : <Minus className="h-4 w-4" />;
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-8">
@@ -103,23 +117,60 @@ export default async function TopicPage({ params }: TopicPageProps) {
         </Link>
       </div>
 
-      {/* Progress */}
-      <div className="bg-card border rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-semibold text-lg">Your Progress</h3>
-            <p className="text-sm text-muted-foreground">Keep studying to master this topic</p>
-          </div>
-          <div className="text-right">
-            <span className="text-2xl font-bold">{progressPercentage}%</span>
-            <p className="text-sm text-muted-foreground">{masteredCount} of {topic.problems.length} mastered</p>
-          </div>
-        </div>
-        <Progress value={progressPercentage} className="h-2" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="md:col-span-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Your Mastery
+                </CardTitle>
+                <CardDescription>Honest measure of how well you know this topic.</CardDescription>
+              </div>
+              <Badge variant="outline" className={bandColors[mastery.band]}>
+                {bandLabels[mastery.band]}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-4xl font-bold tracking-tight">{mastery.masteryPercentage}%</span>
+              <span className="text-sm text-muted-foreground">
+                {mastery.attemptedProblems} of {mastery.totalProblems || topic.problems.length} problems attempted
+              </span>
+            </div>
+            <Progress value={mastery.masteryPercentage} className="h-2" />
+            {mastery.averageRating !== null && (
+              <p className="text-xs text-muted-foreground">
+                Average recent rating: {mastery.averageRating.toFixed(1)} / 5
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Recent Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-2xl font-semibold">
+              {trendIcon}
+              <span className="capitalize">{mastery.recentRatingTrend}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Based on your last few reviews of this topic.
+            </p>
+            {mastery.averageFirstTryRate > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                First-try success: {Math.round(mastery.averageFirstTryRate * 100)}%
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Problems Main Content */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-xl font-semibold">Problems</h2>
           {topic.problems.length === 0 ? (
@@ -142,7 +193,6 @@ export default async function TopicPage({ params }: TopicPageProps) {
           )}
         </div>
 
-        {/* Subtopics Sidebar */}
         <div className="space-y-4">
           {topic.children.length > 0 && (
             <>

@@ -1,49 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import { HIGH_MASTERY_PERCENT } from "@/lib/review-metrics";
-
-type ProgressRow = {
-  review_count: number | null;
-  mastery_percent?: number | null;
-  mastery_score?: number | null;
-  next_review_due?: string | null;
-  next_review_date?: string | null;
-};
-
-async function fetchProgressRows(supabase: ReturnType<typeof createServerClient>, userId: string) {
-  const primary = await supabase
-    .from("user_topic_progress")
-    .select("review_count, mastery_percent, next_review_due")
-    .eq("user_id", userId);
-
-  if (!primary.error) {
-    return {
-      rows: (primary.data ?? []) as ProgressRow[],
-      masteryKey: "mastery_percent" as const,
-      dueKey: "next_review_due" as const,
-    };
-  }
-
-  if (primary.error.code !== "42703") {
-    throw new Error(primary.error.message);
-  }
-
-  const fallback = await supabase
-    .from("user_topic_progress")
-    .select("review_count, mastery_score, next_review_date")
-    .eq("user_id", userId);
-
-  if (fallback.error) {
-    throw new Error(fallback.error.message);
-  }
-
-  return {
-    rows: (fallback.data ?? []) as ProgressRow[],
-    masteryKey: "mastery_score" as const,
-    dueKey: "next_review_date" as const,
-  };
-}
+import { db } from "@/lib/db";
+import { computeOverallMasteryForUser } from "@/lib/learning/mastery";
+import { computeStreak } from "@/lib/learning/streak";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
 export async function GET() {
   try {
@@ -54,52 +15,50 @@ export async function GET() {
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
+    const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
+    const userId = dbUser.id;
 
-    const endOfTodayUtc = new Date();
-    endOfTodayUtc.setUTCHours(23, 59, 59, 999);
+    const userProblems = await db.userProblem.findMany({
+      where: { userId },
+      select: { status: true, lastReviewedAt: true, nextReviewAt: true },
+    });
 
-    const [progressResult, { data: streakRow, error: streakError }] =
-      await Promise.all([
-        fetchProgressRows(supabase, user.id),
-        supabase
-          .from("user_streaks")
-          .select("current_streak")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
+    const totalSeen = userProblems.length;
 
-    if (streakError && streakError.code !== "PGRST116") {
-      throw new Error(streakError.message);
-    }
+    const dueCount = await db.userProblem.count({
+      where: { userId, nextReviewAt: { lte: new Date() } },
+    });
 
-    const progressRows = progressResult.rows;
-    const masteryKey = progressResult.masteryKey;
-    const dueKey = progressResult.dueKey;
-    const reviewedRows = (progressRows ?? []).filter((row) => (row.review_count ?? 0) > 0);
-    const masterySum = reviewedRows.reduce((acc, row) => {
-      const masteryValue = masteryKey === "mastery_percent" ? row.mastery_percent : row.mastery_score;
-      return acc + (masteryValue ?? 0);
-    }, 0);
-    const masteryPercentage = reviewedRows.length > 0 ? Math.round(masterySum / reviewedRows.length) : 0;
-    const masteredCount = reviewedRows.filter((row) => {
-      const masteryValue = masteryKey === "mastery_percent" ? row.mastery_percent : row.mastery_score;
-      return (masteryValue ?? 0) >= HIGH_MASTERY_PERCENT;
-    }).length;
-    const dueCount = reviewedRows.filter((row) => {
-      const dueDate = dueKey === "next_review_due" ? row.next_review_due : row.next_review_date;
-      return dueDate ? new Date(dueDate).getTime() <= endOfTodayUtc.getTime() : false;
-    }).length;
-    const streak = streakRow?.current_streak ?? 0;
+    const streakInfo = computeStreak(userProblems.map((up) => up.lastReviewedAt));
+    const overallMastery = await computeOverallMasteryForUser(userId);
+    const masteryPercentage = overallMastery.masteryPercentage;
 
     return NextResponse.json({
-      totalSeen: reviewedRows.length,
-      masteredCount,
+      totalSeen,
       masteryPercentage,
       dueCount,
-      streak,
+      streak: streakInfo.current,
+      longestStreak: streakInfo.longest,
+      reviewedToday: streakInfo.reviewedToday,
+      lastReviewDate: streakInfo.lastReviewDate,
+      attemptedCount: overallMastery.attemptedCount,
+      totalProblems: overallMastery.totalProblems,
     });
   } catch (error) {
     console.error("Error fetching dashboard overview:", error);
-    return NextResponse.json({ error: "Failed to fetch dashboard overview" }, { status: 500 });
+    return NextResponse.json(
+      {
+        totalSeen: 0,
+        masteryPercentage: 0,
+        dueCount: 0,
+        streak: 0,
+        longestStreak: 0,
+        reviewedToday: false,
+        lastReviewDate: null,
+        attemptedCount: 0,
+        totalProblems: 0,
+      },
+      { status: 200 }
+    );
   }
 }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import { computeMasteryForAllTopics } from "@/lib/learning/mastery";
 
 export async function GET() {
   try {
@@ -14,10 +15,9 @@ export async function GET() {
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    // Get all topics with their subtopics and problems
     const topics = await db.topic.findMany({
       where: {
-        parentId: null, // Only top-level topics
+        parentId: null,
       },
       include: {
         children: {
@@ -32,37 +32,38 @@ export async function GET() {
       },
     });
 
-    // Get user's progress for all problems
-    const userProblems = await db.userProblem.findMany({
-      where: {
-        userId,
-      },
-    });
+    const masteryBySlug = await computeMasteryForAllTopics(userId);
 
-    const userProblemMap = new Map(
-      userProblems.map((up) => [up.problemId, up])
-    );
-
-    // Calculate progress for each topic
     const topicsWithProgress = topics.map((topic) => {
       const allProblems = [
         ...topic.problems,
         ...topic.children.flatMap((c) => c.problems),
       ];
 
-      const masteredCount = allProblems.filter((p) => {
-        const up = userProblemMap.get(p.id);
-        return up?.status === "MASTERED";
-      }).length;
-
       const totalCount = allProblems.length;
+      const ownMastery = masteryBySlug[topic.slug];
+      const childMasteries = topic.children
+        .map((child) => masteryBySlug[child.slug])
+        .filter(Boolean);
+
+      const allMasteries = [ownMastery, ...childMasteries].filter(Boolean);
+      const avgMastery = allMasteries.length > 0
+        ? Math.round(
+            allMasteries.reduce((sum, m) => sum + m.masteryPercentage, 0) / allMasteries.length,
+          )
+        : 0;
+
+      const attempted = allMasteries.reduce(
+        (sum, m) => sum + (m?.attemptedProblems ?? 0),
+        0,
+      );
 
       return {
         ...topic,
         progress: {
-          mastered: masteredCount,
+          mastered: attempted,
           total: totalCount,
-          percentage: totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0,
+          percentage: avgMastery,
         },
       };
     });

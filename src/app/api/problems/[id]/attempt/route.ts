@@ -115,7 +115,8 @@ export async function POST(
       });
     }
 
-    const analyticsSession = sessionKey || `${new Date().toISOString().slice(0, 10)}:${problemId}`;
+    const analyticsSession = sessionKey
+      || `${new Date().toISOString()}:${problemId}:attempt:${Math.random().toString(36).slice(2, 8)}`;
 
     await upsertLearningAnalytics(userId, analyticsSession, LearningMethod.RETRIEVAL_PRACTICE, {
       problemId,

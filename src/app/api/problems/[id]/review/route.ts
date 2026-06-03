@@ -93,7 +93,7 @@ export async function POST(
 
     await upsertLearningAnalytics(
       userId,
-      `${new Date().toISOString().slice(0, 10)}:${problemId}`,
+      `${new Date().toISOString()}:${problemId}:${Math.random().toString(36).slice(2, 8)}`,
       LearningMethod.SPACED_REPETITION,
       {
         problemId,
@@ -101,6 +101,7 @@ export async function POST(
         interval: sm2Result.interval,
         easeFactor: sm2Result.easeFactor,
         repetitions: sm2Result.repetitions,
+        createdAt: new Date().toISOString(),
       }
     );
 
