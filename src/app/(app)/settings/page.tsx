@@ -5,9 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SettingsForm } from "./SettingsForm";
+<<<<<<< HEAD
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+=======
+import { isThemePreference, type ThemePreference } from "@/lib/theme";
+>>>>>>> 024a5ae (feat(theme): light/dark/system preference with FOUC-free switch)
 
 export default async function SettingsPage() {
   const supabase = createServerClient();
@@ -17,6 +21,16 @@ export default async function SettingsPage() {
   }
 
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
+
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("theme_preference")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const themePreference: ThemePreference = isThemePreference(profileRow?.theme_preference)
+    ? (profileRow.theme_preference as ThemePreference)
+    : "system";
 
   const planLabel = dbUser.plan === "MAX" ? "MAX" : dbUser.plan === "PRO" ? "PRO" : "FREE";
 
@@ -83,6 +97,7 @@ export default async function SettingsPage() {
               grade: dbUser.grade ?? "",
               course: dbUser.course ?? "",
               age: dbUser.age ?? undefined,
+              themePreference,
             }}
           />
         </CardContent>

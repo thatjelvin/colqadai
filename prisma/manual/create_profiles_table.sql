@@ -20,6 +20,7 @@ create table if not exists public.profiles (
   paddle_subscription_id text,
   paddle_price_id text,
   onboarding_completed boolean not null default false,
+  theme_preference text not null default 'system',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
