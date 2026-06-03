@@ -14,5 +14,8 @@ create table if not exists user_topic_progress (
   topic_slug text not null,
   first_explored_at timestamp with time zone default now(),
   review_count integer default 0,
+  session_count integer not null default 0,
+  last_mode text,
+  last_session_at timestamptz,
   unique(user_id, topic_slug)
 );
