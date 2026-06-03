@@ -1,222 +1,242 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { MathRenderer } from "@/components/MathRenderer";
-import { AppHamburgerDrawer } from "@/components/navigation/AppHamburgerDrawer";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { FloatingTutorHelp } from "@/components/FloatingTutorHelp";
+import { ArrowLeft } from "lucide-react";
+import { SectionNav } from "./SectionNav";
+import { PrerequisitesBlock } from "./PrerequisitesBlock";
+import { DefinitionCard } from "./DefinitionCard";
+import { TheoremCard } from "./TheoremCard";
+import { DerivationBlock } from "./DerivationBlock";
+import { ExampleBlock } from "./ExampleBlock";
+import { CommonMistakeCallout } from "./CommonMistakeCallout";
+import { FormulaSummaryCard } from "./FormulaSummaryCard";
+import { StartPracticeButton } from "./StartPracticeButton";
+import {
+  SECTION_LABELS,
+  getPresentSections,
+  type ChapterSummary,
+  type SummarySectionId,
+} from "@/lib/learning/summary-schema";
 
-type ChapterSummaryClientProps = {
-  topicSlug: string;
-  topicName: string;
-  parentTopicName: string;
-  prerequisites: string[];
-  summaryOverview: string;
-  chapters: Array<{
-    chapter_number: number;
-    title: string;
-    content: {
-      short_intro: string;
-      definitions: Array<{
-        number_label: string;
-        title: string;
-        statement: string;
-        formula_latex?: string;
-      }>;
-      transition_prose: string;
-      theorems: Array<{
-        number_label: string;
-        title: string;
-        statement: string;
-        formula_latex?: string;
-      }>;
-      remarks: string[];
-      worked_examples: Array<{ title: string; content: string }>;
-    };
-  }>;
-};
+interface ChapterSummaryClientProps {
+  parentTopicDisplayName: string;
+  subtopicDisplayName: string;
+  subtopicSlug: string;
+  summary: ChapterSummary;
+  startReviewAction: (formData: FormData) => Promise<void>;
+  keyConceptsForAction: { name: string; explanation: string; example: string }[];
+}
+
+function SectionHeader({ id, eyebrow, title }: { id: SummarySectionId; eyebrow?: string; title: string }) {
+  return (
+    <div className="mb-4 flex items-baseline justify-between gap-2">
+      <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        {title}
+      </h2>
+      {eyebrow && (
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {eyebrow}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Section({ id, children }: { id: SummarySectionId; children: React.ReactNode }) {
+  return (
+    <section id={`section-${id}`} className="scroll-mt-24 space-y-4">
+      {children}
+    </section>
+  );
+}
 
 export function ChapterSummaryClient({
-  topicSlug,
-  topicName,
-  parentTopicName,
-  prerequisites,
-  summaryOverview,
-  chapters,
+  parentTopicDisplayName,
+  subtopicDisplayName,
+  subtopicSlug,
+  summary,
+  startReviewAction,
+  keyConceptsForAction,
 }: ChapterSummaryClientProps) {
-  const [chapterIndex, setChapterIndex] = useState(0);
-  const chapter = chapters[chapterIndex];
-  const totalChapters = chapters.length;
-  const progressPercent = Math.round(((chapterIndex + 1) / totalChapters) * 100);
-
-  async function updateChapterProgress(nextChapterIndex: number) {
-    try {
-      await fetch("/api/topics/chapter-progress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topicSlug,
-          chaptersCompleted: nextChapterIndex + 1,
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to update chapter progress", error);
-    }
-  }
+  const sections = getPresentSections(summary);
+  const overviewId: SummarySectionId = "overview";
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4 sm:p-6 lg:p-8">
-      <AppHamburgerDrawer />
-      <div className="mb-6 space-y-3">
-        <Link href="/topics">
-          <Button variant="ghost" size="sm" className="gap-1 px-0">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+    <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 space-y-2">
+        <Link
+          href="/explore"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+          Explore / {parentTopicDisplayName}
         </Link>
-        <div className="text-sm text-muted-foreground">{parentTopicName}</div>
-        <h1 className="text-3xl font-bold tracking-tight">{topicName}</h1>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Chapter {chapterIndex + 1} of {totalChapters}
-            </span>
-            <span>{progressPercent}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          {subtopicDisplayName}
+        </h1>
       </div>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MathRenderer content={summaryOverview} className="text-sm text-foreground sm:text-base" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Chapter {chapter.chapter_number}: {chapter.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <section>
-              <MathRenderer content={chapter.content.short_intro} className="text-sm sm:text-base" />
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold">Definitions</h3>
-              {chapter.content.definitions.map((definition, index) => (
-                <article key={index} className="rounded-md border bg-background p-4">
-                  <p className="mb-2 text-sm">
-                    <strong>Definition {definition.number_label}.</strong>{" "}
-                    <strong>{definition.title}.</strong>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_220px]">
+        <div className="min-w-0 space-y-10">
+          {sections.includes(overviewId) && (
+            <Section id={overviewId}>
+              <SectionHeader
+                id={overviewId}
+                title={SECTION_LABELS.overview}
+                eyebrow="Read first"
+              />
+              <Card>
+                <CardContent className="px-6 py-5">
+                  <p className="text-base leading-7 text-foreground sm:text-lg sm:leading-8">
+                    {summary.overview}
                   </p>
-                  <MathRenderer content={definition.statement} className="text-sm" />
-                  {definition.formula_latex ? <MathRenderer content={`$$${definition.formula_latex}$$`} className="text-sm" /> : null}
-                </article>
-              ))}
-            </section>
-
-            <section>
-              <MathRenderer content={chapter.content.transition_prose} className="text-sm sm:text-base" />
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold">Theorems</h3>
-              {chapter.content.theorems.map((theorem, index) => (
-                <article key={index} className="rounded-md border p-4">
-                  <p className="mb-2 text-sm">
-                    <strong>
-                      <em>Theorem {theorem.number_label}.</em>
-                    </strong>{" "}
-                    <strong>{theorem.title}.</strong>
-                  </p>
-                  <MathRenderer content={theorem.statement} className="text-sm" />
-                  {theorem.formula_latex ? <MathRenderer content={`$$${theorem.formula_latex}$$`} className="text-sm" /> : null}
-                </article>
-              ))}
-            </section>
-
-            {chapter.content.remarks.length > 0 ? (
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold">Remarks</h3>
-                {chapter.content.remarks.map((remark, index) => (
-                  <div key={index} className="rounded-md border-l-2 border-muted-foreground/30 pl-3 text-sm text-muted-foreground">
-                    <p>
-                      <em>Remark.</em>
-                    </p>
-                    <MathRenderer content={remark} className="text-sm" />
-                  </div>
-                ))}
-              </section>
-            ) : null}
-
-            {chapter.content.worked_examples.length > 0 ? (
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold">Worked Examples</h3>
-                {chapter.content.worked_examples.map((example) => (
-                  <div key={example.title} className="rounded-md border border-blue-200 bg-blue-50/40 p-4">
-                    <p className="mb-2 text-sm font-medium">{example.title}</p>
-                    <MathRenderer content={example.content} className="text-sm" />
-                  </div>
-                ))}
-              </section>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Prerequisites</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {prerequisites.map((item) => (
-              <Badge key={item} variant="secondary" className="py-1">
-                <MathRenderer content={item} className="text-xs leading-5" />
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="flex items-center justify-between gap-3">
-          {chapterIndex > 0 ? (
-            <Button variant="outline" onClick={() => setChapterIndex((prev) => prev - 1)}>
-              ← Previous Chapter
-            </Button>
-          ) : (
-            <span />
+                </CardContent>
+              </Card>
+            </Section>
           )}
 
-          {chapterIndex < totalChapters - 1 ? (
-            <Button
-              onClick={async () => {
-                const nextChapterIndex = chapterIndex + 1;
-                await updateChapterProgress(nextChapterIndex);
-                setChapterIndex(nextChapterIndex);
-              }}
-            >
-              Next Chapter →
-            </Button>
-          ) : (
-            <Link href={`/review/${topicSlug}`}>
-              <Button>Start Review</Button>
-            </Link>
+          {sections.includes("prerequisites") && (
+            <Section id="prerequisites">
+              <SectionHeader id="prerequisites" title={SECTION_LABELS.prerequisites} />
+              <PrerequisitesBlock prerequisites={summary.prerequisites} />
+            </Section>
           )}
+
+          {sections.includes("definitions") && (
+            <Section id="definitions">
+              <SectionHeader
+                id="definitions"
+                title={SECTION_LABELS.definitions}
+                eyebrow={`${summary.definitions.length} terms`}
+              />
+              <div className="space-y-3">
+                {summary.definitions.map((definition) => (
+                  <DefinitionCard key={definition.name} definition={definition} />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {sections.includes("theorems") && (
+            <Section id="theorems">
+              <SectionHeader
+                id="theorems"
+                title={SECTION_LABELS.theorems}
+                eyebrow={`${summary.theorems.length} result${summary.theorems.length === 1 ? "" : "s"}`}
+              />
+              <div className="space-y-3">
+                {summary.theorems.map((theorem) => (
+                  <TheoremCard key={theorem.name} theorem={theorem} />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {sections.includes("derivations") && (
+            <Section id="derivations">
+              <SectionHeader id="derivations" title={SECTION_LABELS.derivations} />
+              <div className="space-y-3">
+                {summary.derivations.map((derivation, index) => (
+                  <DerivationBlock key={`${derivation.result}-${index}`} derivation={derivation} />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {sections.includes("examples") && (
+            <Section id="examples">
+              <SectionHeader
+                id="examples"
+                title={SECTION_LABELS.examples}
+                eyebrow={`${summary.examples.length} worked`}
+              />
+              <div className="space-y-3">
+                {summary.examples.map((example, index) => (
+                  <ExampleBlock key={index} example={example} index={index} />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {sections.includes("common_mistakes") && (
+            <Section id="common_mistakes">
+              <SectionHeader
+                id="common_mistakes"
+                title={SECTION_LABELS.common_mistakes}
+                eyebrow="Watch out"
+              />
+              <div className="space-y-3">
+                {summary.common_mistakes.map((mistake, index) => (
+                  <CommonMistakeCallout
+                    key={`${mistake.error}-${index}`}
+                    mistake={mistake}
+                  />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {sections.includes("formula_summary") && (
+            <Section id="formula_summary">
+              <SectionHeader
+                id="formula_summary"
+                title={SECTION_LABELS.formula_summary}
+                eyebrow="Quick reference"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {summary.formula_summary.map((formula) => (
+                  <FormulaSummaryCard
+                    key={`${formula.name}-${formula.formula}`}
+                    formula={formula}
+                  />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <section className="space-y-4 rounded-xl border border-border bg-card px-6 py-8 sm:px-8 sm:py-10">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                Ready to practice?
+              </h2>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Start a review session built from the {summary.definitions.length} concept
+                {summary.definitions.length === 1 ? "" : "s"} above. You&apos;ll be quizzed in
+                10&ndash;15 minutes and we&apos;ll update your mastery for this topic.
+              </p>
+            </div>
+            <form action={startReviewAction} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input type="hidden" name="slug" value={subtopicSlug} />
+              <input
+                type="hidden"
+                name="keyConcepts"
+                value={JSON.stringify(keyConceptsForAction)}
+              />
+              <StartPracticeButton />
+              <Link
+                href="/explore"
+                className="text-sm text-muted-foreground hover:text-foreground sm:ml-2"
+              >
+                Or browse other topics
+              </Link>
+            </form>
+            <p className="text-xs text-muted-foreground">
+              We use the LaTeX rendering you see on this page; if any formula looks off, that&apos;s
+              what Groq returned and we&apos;ll re-render on the next refresh.
+            </p>
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">Math rendering note</summary>
+              <div className="mt-2">
+                <MathRenderer content="Inline math like $E = mc^2$ and display math like $$\\int_a^b f(x)\\,dx$$ both render through KaTeX." />
+              </div>
+            </details>
+          </section>
         </div>
+
+        <SectionNav sections={sections} />
       </div>
-      <FloatingTutorHelp currentTopicName={topicName} />
     </div>
   );
 }

@@ -4,50 +4,31 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
+import { db } from "@/lib/db";
+import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import {
+  buildSummaryPrompt,
+  parseStoredSummary,
+  type ChapterSummary,
+} from "@/lib/learning/summary-schema";
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
-import { MAX_SUMMARY_CHAPTERS, MIN_SUMMARY_CHAPTERS } from "@/lib/review-metrics";
 
-const numberedStatementSchema = z.object({
-  number_label: z.string().min(1),
-  title: z.string().min(1),
-  statement: z.string().min(1),
-  formula_latex: z.string().min(1).optional(),
+const keyConceptActionSchema = z.object({
+  name: z.string().min(1),
+  explanation: z.string().min(1),
+  example: z.string().min(1),
 });
 
-const workedExampleSchema = z.object({
-  title: z.string().min(1),
-  content: z.string().min(1),
-});
-
-const topicSummarySchema = z.object({
-  chapters: z
-    .array(
-      z.object({
-        chapter_number: z.number().int().min(1),
-        title: z.string().min(1),
-        content: z.object({
-          short_intro: z.string().min(1),
-          definitions: z.array(numberedStatementSchema).min(1),
-          transition_prose: z.string().min(1),
-          theorems: z.array(numberedStatementSchema).min(1),
-          remarks: z.array(z.string().min(1)).default([]),
-          worked_examples: z.array(workedExampleSchema).min(1),
-        }),
-      })
-    )
-    .min(MIN_SUMMARY_CHAPTERS)
-    .max(MAX_SUMMARY_CHAPTERS),
-  summary: z.object({
-    overview: z.string().min(1),
-  }),
-  prerequisites: z.array(z.string().min(1)).min(2).max(4),
-});
+const keyConceptListSchema = z.array(keyConceptActionSchema).min(1);
 
 type TopicSummaryRow = {
   summary_data: unknown;
 };
 
-async function generateSummaryWithGroq(subtopicName: string, parentTopicName: string) {
+async function generateSummaryWithGroq(
+  subtopicName: string,
+  parentTopicName: string
+): Promise<ChapterSummary> {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -61,63 +42,13 @@ async function generateSummaryWithGroq(subtopicName: string, parentTopicName: st
         {
           role: "system",
           content:
-            "You are a university mathematics textbook author. Generate a structured chapter-based summary in JSON with rigorous notation. Use LaTeX notation for all mathematical expressions. Return only valid JSON. No markdown.",
+            "You are a university math tutor. Return only valid JSON. No markdown. No preamble. No explanation outside the JSON object.",
         },
         {
           role: "user",
-          content: `Generate a university-level summary for "${subtopicName}" (part of "${parentTopicName}").
-
-Return exactly this JSON structure:
-{
-  "chapters": [
-    {
-      "chapter_number": 1,
-      "title": "chapter title",
-      "content": {
-        "short_intro": "short prose paragraph introducing the chapter",
-        "definitions": [
-          {
-            "number_label": "1.1",
-            "title": "definition title",
-            "statement": "formal definition in prose with inline LaTeX if needed",
-            "formula_latex": "optional block formula in LaTeX (without $$)"
-          }
-        ],
-        "transition_prose": "short prose paragraph connecting definitions to theorems",
-        "theorems": [
-          {
-            "number_label": "1.2",
-            "title": "theorem title",
-            "statement": "formal theorem statement in prose with inline LaTeX if needed",
-            "formula_latex": "optional block formula in LaTeX (without $$)"
-          }
-        ],
-        "remarks": ["short remark tied to theorem meaning, assumptions, or interpretation"],
-        "worked_examples": [{ "title": "example title", "content": "worked solution with steps and LaTeX where needed" }]
-      }
-    }
-  ],
-  "summary": {
-    "overview": "2-3 sentence intro paragraph for the whole topic"
-  },
-  "prerequisites": ["2-4 prerequisite topic names"]
-}
-
-Requirements:
-- Produce 2-3 chapters.
-- For each chapter, keep this exact order in content flow:
-  short intro -> definitions -> transition prose -> theorems -> remarks -> worked examples.
-- Definitions must be formal and numbered (e.g., 4.13) and written as prose, never bullets.
-- Theorems must be formal and numbered (e.g., 4.14) and written as prose, never bullets.
-- Remarks must be concise theorem-adjacent comments.
-- Any formulas that should be displayed on separate lines must be placed in formula_latex.
-- Include at least one worked example in each chapter.
-- Keep explanations concise, rigorous, and practical for university STEM students.
-- Keep output valid JSON only.`,
+          content: buildSummaryPrompt(subtopicName, parentTopicName),
         },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 4000,
     }),
   });
 
@@ -140,10 +71,17 @@ Requirements:
     .trim();
 
   const parsed = JSON.parse(cleaned);
-  return topicSummarySchema.parse(parsed);
+  return parseStoredSummary(parsed) ?? (() => {
+    throw new Error("Generated summary did not match expected schema");
+  })();
 }
 
-async function getOrBuildSummaryForSlug(slug: string, subtopicName: string, parentSlug: string, parentTopicName: string) {
+async function getOrBuildSummaryForSlug(
+  slug: string,
+  subtopicName: string,
+  parentSlug: string,
+  parentTopicName: string
+): Promise<ChapterSummary> {
   const supabase = createServerClient();
 
   const { data: cachedSummaryRow, error: summaryFetchError } = await supabase
@@ -157,9 +95,9 @@ async function getOrBuildSummaryForSlug(slug: string, subtopicName: string, pare
   }
 
   if (cachedSummaryRow) {
-    const validated = topicSummarySchema.safeParse((cachedSummaryRow as TopicSummaryRow).summary_data);
-    if (validated.success) {
-      return validated.data;
+    const validated = parseStoredSummary((cachedSummaryRow as TopicSummaryRow).summary_data);
+    if (validated) {
+      return validated;
     }
   }
 
@@ -209,6 +147,145 @@ async function markTopicExplored(slug: string) {
   }
 }
 
+async function startReviewAction(formData: FormData): Promise<void> {
+  "use server";
+
+  const slug = formData.get("slug");
+  const keyConceptsRaw = formData.get("keyConcepts");
+
+  if (typeof slug !== "string" || typeof keyConceptsRaw !== "string") {
+    throw new Error("Invalid form submission payload");
+  }
+
+  const lookup = findSubtopicBySlug(slug);
+  if (!lookup) {
+    throw new Error("Unknown topic slug");
+  }
+
+  let parsedConcepts: z.infer<typeof keyConceptListSchema>;
+  try {
+    parsedConcepts = keyConceptListSchema.parse(JSON.parse(keyConceptsRaw));
+  } catch {
+    throw new Error("Invalid key concepts payload");
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !user.email) {
+    redirect("/login");
+  }
+
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email);
+  const now = new Date();
+
+  let parentTopic = await db.topic.findFirst({
+    where: {
+      slug: lookup.parentTopic.slug,
+      parentId: null,
+    },
+  });
+
+  if (!parentTopic) {
+    parentTopic = await db.topic.create({
+      data: {
+        name: lookup.parentTopic.displayName,
+        slug: lookup.parentTopic.slug,
+        description: `Auto-generated parent topic for ${lookup.parentTopic.displayName}`,
+        order: 0,
+      },
+    });
+  }
+
+  let subtopicTopic = await db.topic.findFirst({
+    where: {
+      slug: lookup.subtopic.slug,
+    },
+  });
+
+  if (!subtopicTopic) {
+    subtopicTopic = await db.topic.create({
+      data: {
+        name: lookup.subtopic.displayName,
+        slug: lookup.subtopic.slug,
+        description: `Auto-generated topic for ${lookup.subtopic.displayName}`,
+        parentId: parentTopic.id,
+        order: 0,
+      },
+    });
+  }
+
+  for (const concept of parsedConcepts) {
+    let problem = await db.problem.findFirst({
+      where: {
+        topicId: subtopicTopic.id,
+        title: concept.name,
+      },
+    });
+
+    if (!problem) {
+      problem = await db.problem.create({
+        data: {
+          topicId: subtopicTopic.id,
+          title: concept.name,
+          body: `Recall and explain this concept: ${concept.name}`,
+          solution: `${concept.explanation}\n\nWorked example:\n${concept.example}`,
+          topicTag: slug,
+          difficulty: "MEDIUM",
+        },
+      });
+    }
+
+    await db.userProblem.upsert({
+      where: {
+        userId_problemId: {
+          userId: dbUser.id,
+          problemId: problem.id,
+        },
+      },
+      create: {
+        userId: dbUser.id,
+        problemId: problem.id,
+        easeFactor: 2.5,
+        interval: 1,
+        repetitions: 0,
+        nextReviewAt: now,
+        status: "LEARNING",
+      },
+      update: {
+        nextReviewAt: now,
+      },
+    });
+  }
+
+  const { data: currentProgress } = await supabase
+    .from("user_topic_progress")
+    .select("first_explored_at")
+    .eq("user_id", user.id)
+    .eq("topic_slug", slug)
+    .maybeSingle();
+
+  const { error: progressError } = await supabase.from("user_topic_progress").upsert(
+    {
+      user_id: user.id,
+      topic_slug: slug,
+      first_explored_at: currentProgress?.first_explored_at ?? now.toISOString(),
+    },
+    {
+      onConflict: "user_id,topic_slug",
+      ignoreDuplicates: true,
+    }
+  );
+
+  if (progressError) {
+    console.warn("Failed to mark topic explored for review", progressError);
+  }
+
+  redirect(`/review/${slug}`);
+}
+
 export default async function TopicSummaryPage({ params }: { params: { slug: string } }) {
   const lookup = findSubtopicBySlug(params.slug);
   if (!lookup) {
@@ -233,14 +310,20 @@ export default async function TopicSummaryPage({ params }: { params: { slug: str
 
   await markTopicExplored(lookup.subtopic.slug);
 
+  const keyConceptsForAction = summary.definitions.map((d) => ({
+    name: d.name,
+    explanation: d.explanation,
+    example: d.example ?? "",
+  }));
+
   return (
     <ChapterSummaryClient
-      topicSlug={lookup.subtopic.slug}
-      topicName={lookup.subtopic.displayName}
-      parentTopicName={lookup.parentTopic.displayName}
-      prerequisites={summary.prerequisites}
-      summaryOverview={summary.summary.overview}
-      chapters={summary.chapters}
+      parentTopicDisplayName={lookup.parentTopic.displayName}
+      subtopicDisplayName={lookup.subtopic.displayName}
+      subtopicSlug={lookup.subtopic.slug}
+      summary={summary}
+      startReviewAction={startReviewAction}
+      keyConceptsForAction={keyConceptsForAction}
     />
   );
 }
