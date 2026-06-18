@@ -5,13 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SettingsForm } from "./SettingsForm";
-<<<<<<< HEAD
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-=======
 import { isThemePreference, type ThemePreference } from "@/lib/theme";
->>>>>>> 024a5ae (feat(theme): light/dark/system preference with FOUC-free switch)
 
 export default async function SettingsPage() {
   const supabase = createServerClient();
