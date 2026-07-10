@@ -3,6 +3,17 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  delete(args?: Record<string, unknown>): Promise<DbRecord | null>;
+};
+type PrismaLikeClient = {
+  notebook: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 type Context = { params: { id: string } };
 
 async function getAuthenticatedUserId(): Promise<string | null> {
@@ -19,7 +30,7 @@ export async function GET(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const notebook = await db.notebook.findFirst({
+  const notebook = await dbClient.notebook.findFirst({
     where: {
       id: params.id,
       userId,
@@ -50,7 +61,7 @@ export async function DELETE(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const notebook = await db.notebook.findFirst({
+  const notebook = await dbClient.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -59,6 +70,6 @@ export async function DELETE(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
   }
 
-  await db.notebook.delete({ where: { id: notebook.id } });
+  await dbClient.notebook.delete({ where: { id: notebook.id } });
   return NextResponse.json({ success: true });
 }

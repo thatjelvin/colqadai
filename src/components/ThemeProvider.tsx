@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import {
   DEFAULT_THEME,
   THEME_STORAGE_KEY,
-  htmlClassFor,
   parseStoredTheme,
   resolveTheme,
 } from "@/lib/theme";

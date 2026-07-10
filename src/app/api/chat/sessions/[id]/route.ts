@@ -4,6 +4,16 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+};
+type PrismaLikeClient = {
+  chatSession: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 type Context = { params: { id: string } };
 
 export async function GET(_: NextRequest, { params }: Context) {
@@ -18,7 +28,7 @@ export async function GET(_: NextRequest, { params }: Context) {
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    const session = await db.chatSession.findFirst({
+    const session = await dbClient.chatSession.findFirst({
       where: { id: params.id, userId },
       include: {
         messages: {

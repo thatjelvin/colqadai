@@ -9,7 +9,6 @@ import {
 import { computeTopicMasteryForUser } from "@/lib/learning/mastery";
 import { findSubtopicBySlug } from "@/lib/topic-taxonomy";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-import { db } from "@/lib/db";
 
 const sessionCompleteSchema = z.object({
   slug: z.string().min(1),

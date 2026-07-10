@@ -7,7 +7,6 @@ import {
   THEME_STORAGE_KEY,
   htmlClassFor,
   isThemePreference,
-  parseStoredTheme,
   resolveTheme,
   type ThemePreference,
 } from "@/lib/theme";

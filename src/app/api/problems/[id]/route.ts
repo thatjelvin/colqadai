@@ -4,6 +4,16 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+};
+type PrismaLikeClient = {
+  problem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -16,7 +26,7 @@ export async function GET(
     }
     await getOrCreateUserForSupabaseId(user.id, user.email!);
 
-    const problem = await db.problem.findUnique({
+    const problem = await dbClient.problem.findUnique({
       where: { id: params.id },
       include: {
         topic: true,

@@ -14,6 +14,15 @@ import {
 } from "@/lib/learning/reviewMode";
 import { ReviewSessionClient } from "./ReviewSessionClient";
 
+type ProblemRow = {
+  id: string;
+  title: string;
+  body: string;
+  solution: string;
+  difficulty: string;
+  createdAt: Date | string;
+};
+
 export default async function ReviewSessionPage({
   params,
 }: {
@@ -51,7 +60,9 @@ export default async function ReviewSessionPage({
   const difficultyFilter =
     mode === "beginner" ? { difficulty: "EASY" as const } : {};
 
-  const candidateProblems = await db.problem.findMany({
+  // Cast needed: db is a dynamic Proxy that TypeScript can't infer
+  const dbClient = db as unknown as { problem: { findMany: (args: Record<string, unknown>) => Promise<ProblemRow[]> } };
+  const candidateProblems = await dbClient.problem.findMany({
     where: {
       topicTag: lookup.subtopic.slug,
       ...difficultyFilter,
@@ -81,7 +92,6 @@ export default async function ReviewSessionPage({
       subtopicSlug={lookup.subtopic.slug}
       mode={mode}
       sessionCount={progressRow?.session_count ?? 0}
-      masteryPercentage={mastery.masteryPercentage}
       problems={sessionProblems}
     />
   );

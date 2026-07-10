@@ -5,17 +5,46 @@ import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { computeMasteryForAllTopics } from "@/lib/learning/mastery";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+
+type TopicRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  order: number;
+  parentId: string | null;
+  problems: Array<{ id: string }>;
+  children: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    order: number;
+    problems: Array<{ id: string }>;
+  }>;
+};
+
+type PrismaLikeClient = {
+  topic: DbModelDelegate;
+};
+
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function GET() {
   try {
     const supabase = createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    const topics = await db.topic.findMany({
+    const topics = await dbClient.topic.findMany({
       where: {
         parentId: null,
       },
@@ -30,7 +59,7 @@ export async function GET() {
       orderBy: {
         order: "asc",
       },
-    });
+    }) as unknown as TopicRecord[];
 
     const masteryBySlug = await computeMasteryForAllTopics(userId);
 

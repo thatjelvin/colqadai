@@ -29,7 +29,7 @@ interface ChapterSummaryClientProps {
   keyConceptsForAction: { name: string; explanation: string; example: string }[];
 }
 
-function SectionHeader({ id, eyebrow, title }: { id: SummarySectionId; eyebrow?: string; title: string }) {
+function SectionHeader({ eyebrow, title }: { eyebrow?: string; title: string }) {
   return (
     <div className="mb-4 flex items-baseline justify-between gap-2">
       <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
@@ -83,7 +83,6 @@ export function ChapterSummaryClient({
           {sections.includes(overviewId) && (
             <Section id={overviewId}>
               <SectionHeader
-                id={overviewId}
                 title={SECTION_LABELS.overview}
                 eyebrow="Read first"
               />
@@ -99,7 +98,7 @@ export function ChapterSummaryClient({
 
           {sections.includes("prerequisites") && (
             <Section id="prerequisites">
-              <SectionHeader id="prerequisites" title={SECTION_LABELS.prerequisites} />
+              <SectionHeader title={SECTION_LABELS.prerequisites} />
               <PrerequisitesBlock prerequisites={summary.prerequisites} />
             </Section>
           )}
@@ -107,7 +106,6 @@ export function ChapterSummaryClient({
           {sections.includes("definitions") && (
             <Section id="definitions">
               <SectionHeader
-                id="definitions"
                 title={SECTION_LABELS.definitions}
                 eyebrow={`${summary.definitions.length} terms`}
               />
@@ -122,7 +120,6 @@ export function ChapterSummaryClient({
           {sections.includes("theorems") && (
             <Section id="theorems">
               <SectionHeader
-                id="theorems"
                 title={SECTION_LABELS.theorems}
                 eyebrow={`${summary.theorems.length} result${summary.theorems.length === 1 ? "" : "s"}`}
               />
@@ -136,7 +133,7 @@ export function ChapterSummaryClient({
 
           {sections.includes("derivations") && (
             <Section id="derivations">
-              <SectionHeader id="derivations" title={SECTION_LABELS.derivations} />
+              <SectionHeader title={SECTION_LABELS.derivations} />
               <div className="space-y-3">
                 {summary.derivations.map((derivation, index) => (
                   <DerivationBlock key={`${derivation.result}-${index}`} derivation={derivation} />
@@ -148,7 +145,6 @@ export function ChapterSummaryClient({
           {sections.includes("examples") && (
             <Section id="examples">
               <SectionHeader
-                id="examples"
                 title={SECTION_LABELS.examples}
                 eyebrow={`${summary.examples.length} worked`}
               />
@@ -163,7 +159,6 @@ export function ChapterSummaryClient({
           {sections.includes("common_mistakes") && (
             <Section id="common_mistakes">
               <SectionHeader
-                id="common_mistakes"
                 title={SECTION_LABELS.common_mistakes}
                 eyebrow="Watch out"
               />
@@ -181,7 +176,6 @@ export function ChapterSummaryClient({
           {sections.includes("formula_summary") && (
             <Section id="formula_summary">
               <SectionHeader
-                id="formula_summary"
                 title={SECTION_LABELS.formula_summary}
                 eyebrow="Quick reference"
               />

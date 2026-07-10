@@ -8,6 +8,18 @@ import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { upsertLearningAnalytics } from "@/lib/learning/analytics";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+  workedExampleSession: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 const payloadSchema = z.object({
   studyDurationSeconds: z.number().int().min(0),
   generateAttempt: z.string().min(1),
@@ -40,7 +52,7 @@ export async function POST(
     return NextResponse.json({ error: "Study phase must be at least 60 seconds" }, { status: 400 });
   }
 
-  const userProblem = await db.userProblem.findUnique({
+  const userProblem = await dbClient.userProblem.findUnique({
     where: {
       userId_problemId: {
         userId: userId,
@@ -49,7 +61,7 @@ export async function POST(
     },
   });
 
-  const record = await db.workedExampleSession.create({
+  const record = await dbClient.workedExampleSession.create({
     data: {
       userId: userId,
       problemId: params.id,

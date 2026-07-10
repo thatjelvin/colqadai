@@ -9,7 +9,6 @@ import {
   trendFor,
   roundPct,
   extractRatingsFromAnalytics,
-  parseRating,
   computeProblemRatingScore,
   normalizeTopicSlug,
   type RatingEntry,
@@ -17,7 +16,8 @@ import {
 
 export type { TopicMastery, OverallMastery };
 
-const dbAny = db as unknown as Record<string, any>;
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
 
 type UserProblemWithProblem = {
   problemId: string;
@@ -45,6 +45,22 @@ type LearningAnalyticsRow = {
   aggregate: unknown;
 };
 
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  count(args?: Record<string, unknown>): Promise<number>;
+};
+
+/** Typed database client — mirrors the models used in this file. */
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+  problem: DbModelDelegate;
+  problemAttempt: DbModelDelegate;
+  learningAnalytics: DbModelDelegate;
+};
+
+const dbAny = db as unknown as PrismaLikeClient;
+
 function toMs(value: Date | string | number): number {
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return new Date(value).getTime();
@@ -63,7 +79,7 @@ export async function computeTopicMasteryForUser(
   });
 
   const userProblems: UserProblemWithProblem[] = allUserProblems.filter(
-    (up: any): up is UserProblemWithProblem => Boolean(up.problem),
+    (up: DbRecord | UserProblemWithProblem): up is UserProblemWithProblem => Boolean(up.problem),
   );
 
   const topicUserProblems = userProblems.filter(

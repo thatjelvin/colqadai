@@ -8,6 +8,56 @@ import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@/lib/db-types";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+  update(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+
+/** Specific record types for this file. */
+type ChatSessionRecord = {
+  id: string;
+  title: string;
+  problemId: string | null;
+  messages: ChatMessageRecord[];
+};
+
+type ChatMessageRecord = {
+  id: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+};
+
+type ProblemRecord = {
+  id: string;
+  body: string;
+  solution: string;
+};
+
+type UserProblemRecord = {
+  id: string;
+};
+
+type ProblemAttemptRecord = {
+  id: string;
+};
+
+/** Typed database client — mirrors the models used in this file. */
+type PrismaLikeClient = {
+  chatSession: DbModelDelegate;
+  chatMessage: DbModelDelegate;
+  problem: DbModelDelegate;
+  userProblem: DbModelDelegate;
+  problemAttempt: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 const chatSchema = z.object({
   message: z.string().min(1),
   sessionId: z.string().nullable(),
@@ -40,10 +90,10 @@ export async function POST(req: NextRequest) {
     const billingProfile = await getBillingProfile(userId);
 
     // Get or create chat session
-    let chatSession;
-    
+    let chatSession: ChatSessionRecord | null = null;
+
     if (sessionId) {
-      chatSession = await db.chatSession.findFirst({
+      chatSession = await dbClient.chatSession.findFirst({
         where: {
           id: sessionId,
           userId,
@@ -53,7 +103,7 @@ export async function POST(req: NextRequest) {
             orderBy: { createdAt: "asc" },
           },
         },
-      });
+      }) as ChatSessionRecord | null;
     }
 
     if (!chatSession) {
@@ -61,8 +111,8 @@ export async function POST(req: NextRequest) {
 
       // Generate title from first message
       const title = await generateTitle(message);
-      
-      chatSession = await db.chatSession.create({
+
+      chatSession = await dbClient.chatSession.create({
         data: {
           userId,
           problemId,
@@ -71,11 +121,11 @@ export async function POST(req: NextRequest) {
         include: {
           messages: true,
         },
-      });
+      }) as ChatSessionRecord;
     }
 
     // Save user message
-    await db.chatMessage.create({
+    await dbClient.chatMessage.create({
       data: {
         sessionId: chatSession.id,
         role: "USER",
@@ -85,28 +135,28 @@ export async function POST(req: NextRequest) {
 
     // Build system prompt
     let systemPrompt = "";
-    
+
     if (problemId) {
       // Problem-scoped chat
-      const problem = await db.problem.findUnique({
+      const problem = await dbClient.problem.findUnique({
         where: { id: problemId },
-      });
-      
-      const userProblem = await db.userProblem.findUnique({
+      }) as ProblemRecord | null;
+
+      const userProblem = await dbClient.userProblem.findUnique({
         where: {
           userId_problemId: {
             userId,
             problemId,
           },
         },
-      });
+      }) as UserProblemRecord | null;
 
       if (!userProblem) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
 
       if (problem) {
-        const hasAttempt = await db.problemAttempt.findFirst({
+        const hasAttempt = await dbClient.problemAttempt.findFirst({
           where: {
             userId,
             problemId,
@@ -114,7 +164,7 @@ export async function POST(req: NextRequest) {
           select: {
             id: true,
           },
-        });
+        }) as ProblemAttemptRecord | null;
 
         const revealRule = hasAttempt
           ? "- The student has attempted this problem. You may discuss the full solution if explicitly requested."
@@ -175,7 +225,7 @@ Be clear, rigorous, and concise.`;
         }
 
         // Save assistant message to database
-        await db.chatMessage.create({
+        await dbClient.chatMessage.create({
           data: {
             sessionId: chatSession.id,
             role: "ASSISTANT",

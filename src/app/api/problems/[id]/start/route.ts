@@ -6,6 +6,17 @@ import { UsageFeature } from "@/lib/db-types";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage } from "@/lib/billing/usage";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -22,7 +33,7 @@ export async function POST(
     const problemId = params.id;
 
     // Check if UserProblem already exists
-    const existing = await db.userProblem.findUnique({
+    const existing = await dbClient.userProblem.findUnique({
       where: {
         userId_problemId: {
           userId,
@@ -42,7 +53,7 @@ export async function POST(
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const userProblem = await db.userProblem.create({
+    const userProblem = await dbClient.userProblem.create({
       data: {
         userId: userId,
         problemId,

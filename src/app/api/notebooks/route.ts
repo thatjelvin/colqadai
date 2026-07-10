@@ -4,6 +4,35 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+
+type NotebookRecord = {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  _count?: {
+    documents: number;
+    concepts: number;
+  };
+  summaries?: Array<{
+    summary: string;
+    updatedAt: Date | string;
+  }>;
+};
+
+type PrismaLikeClient = {
+  notebook: DbModelDelegate;
+};
+
+const dbClient = db as unknown as PrismaLikeClient;
+
 const createNotebookSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(800).optional().nullable(),
@@ -18,7 +47,7 @@ export async function GET() {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebooks = await db.notebook.findMany({
+  const notebooks = await dbClient.notebook.findMany({
     where: { userId },
     include: {
       _count: {
@@ -37,7 +66,7 @@ export async function GET() {
       },
     },
     orderBy: { updatedAt: "desc" },
-  });
+  }) as unknown as NotebookRecord[];
 
   return NextResponse.json(
     notebooks.map((notebook) => ({
@@ -46,10 +75,10 @@ export async function GET() {
       description: notebook.description,
       createdAt: notebook.createdAt,
       updatedAt: notebook.updatedAt,
-      documentsCount: notebook._count.documents,
-      conceptsCount: notebook._count.concepts,
-      latestSummaryAt: notebook.summaries[0]?.updatedAt ?? null,
-      latestSummary: notebook.summaries[0]?.summary ?? null,
+      documentsCount: notebook._count?.documents ?? 0,
+      conceptsCount: notebook._count?.concepts ?? 0,
+      latestSummaryAt: notebook.summaries?.[0]?.updatedAt ?? null,
+      latestSummary: notebook.summaries?.[0]?.summary ?? null,
     }))
   );
 }
@@ -68,13 +97,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const notebook = await db.notebook.create({
+  const notebook = await dbClient.notebook.create({
     data: {
       userId,
       title: parsed.data.title.trim(),
       description: parsed.data.description?.trim() || null,
     },
-  });
+  }) as unknown as NotebookRecord;
 
   return NextResponse.json(notebook, { status: 201 });
 }

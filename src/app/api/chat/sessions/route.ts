@@ -4,6 +4,16 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+type PrismaLikeClient = {
+  chatSession: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function GET() {
   try {
     const supabase = createServerClient();
@@ -14,7 +24,7 @@ export async function GET() {
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    const chatSessions = await db.chatSession.findMany({
+    const chatSessions = await dbClient.chatSession.findMany({
       where: {
         userId,
         problemId: null, // Only freeform chats

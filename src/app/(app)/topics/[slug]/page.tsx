@@ -4,12 +4,51 @@ import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { computeTopicMasteryForUser } from "@/lib/learning/mastery";
 import { db } from "@/lib/db";
 import { ProblemCard } from "@/components/ProblemCard";
+
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+
+type PrismaLikeClient = {
+  topic: DbModelDelegate;
+  userProblem: DbModelDelegate;
+};
+
+const dbClient = db as unknown as PrismaLikeClient;
+
+type TopicRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  problems: Array<{ id: string; title: string; difficulty: string }>;
+  children: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    problems: Array<{ id: string }>;
+  }>;
+};
+
+type UserProblemRecord = {
+  problemId: string;
+  status: string;
+  nextReviewAt: Date | string | null;
+  [key: string]: unknown;
+};
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowLeft, Shuffle, BookOpen, TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
+import { Difficulty, ReviewStatus } from "@/lib/db-types";
 
 interface TopicPageProps {
   params: {
@@ -42,7 +81,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const topic = await db.topic.findUnique({
+  const topic = await dbClient.topic.findUnique({
     where: { slug: params.slug },
     include: {
       problems: {
@@ -56,7 +95,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
         },
       },
     },
-  });
+  }) as TopicRecord | null;
 
   if (!topic) {
     notFound();
@@ -70,14 +109,14 @@ export default async function TopicPage({ params }: TopicPageProps) {
   );
   const allProblemIds = [...problemIds, ...childProblemIds];
 
-  const userProblems = await db.userProblem.findMany({
+  const userProblems = await dbClient.userProblem.findMany({
     where: {
       userId,
       problemId: {
         in: allProblemIds,
       },
     },
-  });
+  }) as UserProblemRecord[];
 
   const userProblemMap = new Map(userProblems.map((up) => [up.problemId, up]));
 
@@ -179,16 +218,23 @@ export default async function TopicPage({ params }: TopicPageProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {topic.problems.map((problem) => (
-                <ProblemCard
-                  key={problem.id}
-                  problem={{
-                    ...problem,
-                    topic: { name: topic.name, slug: topic.slug },
-                  }}
-                  userProblem={userProblemMap.get(problem.id) || null}
-                />
-              ))}
+              {topic.problems.map((problem) => {
+                const up = userProblemMap.get(problem.id);
+                return (
+                  <ProblemCard
+                    key={problem.id}
+                    problem={{
+                      ...problem,
+                      difficulty: problem.difficulty as Difficulty,
+                      topic: { name: topic.name, slug: topic.slug },
+                    }}
+                    userProblem={up ? {
+                      status: up.status as ReviewStatus,
+                      nextReviewAt: up.nextReviewAt ? new Date(up.nextReviewAt) : new Date(),
+                    } : null}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

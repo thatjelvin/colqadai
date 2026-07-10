@@ -14,6 +14,20 @@ import {
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
 import { groq } from "@/lib/groq";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+  upsert(args?: Record<string, unknown>): Promise<DbRecord | null>;
+};
+type PrismaLikeClient = {
+  topic: DbModelDelegate;
+  problem: DbModelDelegate;
+  userProblem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 const keyConceptActionSchema = z.object({
   name: z.string().min(1),
   explanation: z.string().min(1),
@@ -183,7 +197,7 @@ async function startReviewAction(formData: FormData): Promise<void> {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email);
   const now = new Date();
 
-  let parentTopic = await db.topic.findFirst({
+  let parentTopic = await dbClient.topic.findFirst({
     where: {
       slug: lookup.parentTopic.slug,
       parentId: null,
@@ -191,7 +205,7 @@ async function startReviewAction(formData: FormData): Promise<void> {
   });
 
   if (!parentTopic) {
-    parentTopic = await db.topic.create({
+    parentTopic = await dbClient.topic.create({
       data: {
         name: lookup.parentTopic.displayName,
         slug: lookup.parentTopic.slug,
@@ -201,14 +215,14 @@ async function startReviewAction(formData: FormData): Promise<void> {
     });
   }
 
-  let subtopicTopic = await db.topic.findFirst({
+  let subtopicTopic = await dbClient.topic.findFirst({
     where: {
       slug: lookup.subtopic.slug,
     },
   });
 
   if (!subtopicTopic) {
-    subtopicTopic = await db.topic.create({
+    subtopicTopic = await dbClient.topic.create({
       data: {
         name: lookup.subtopic.displayName,
         slug: lookup.subtopic.slug,
@@ -220,7 +234,7 @@ async function startReviewAction(formData: FormData): Promise<void> {
   }
 
   for (const concept of parsedConcepts) {
-    let problem = await db.problem.findFirst({
+    let problem = await dbClient.problem.findFirst({
       where: {
         topicId: subtopicTopic.id,
         title: concept.name,
@@ -228,7 +242,7 @@ async function startReviewAction(formData: FormData): Promise<void> {
     });
 
     if (!problem) {
-      problem = await db.problem.create({
+      problem = await dbClient.problem.create({
         data: {
           topicId: subtopicTopic.id,
           title: concept.name,
@@ -240,7 +254,7 @@ async function startReviewAction(formData: FormData): Promise<void> {
       });
     }
 
-    await db.userProblem.upsert({
+    await dbClient.userProblem.upsert({
       where: {
         userId_problemId: {
           userId: dbUser.id,

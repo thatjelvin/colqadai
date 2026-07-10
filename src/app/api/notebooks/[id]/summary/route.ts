@@ -8,6 +8,25 @@ import {
   type ChunkWithId,
 } from "@/lib/notebooks/processing";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  deleteMany(args?: Record<string, unknown>): Promise<DbRecord>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+  createMany(args?: Record<string, unknown>): Promise<DbRecord>;
+  update(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  notebook: DbModelDelegate;
+  notebookChunk: DbModelDelegate;
+  notebookSummary: DbModelDelegate;
+  notebookConcept: DbModelDelegate;
+  $transaction: <T>(fn: (tx: PrismaLikeClient) => Promise<T>) => Promise<T>;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 type Context = { params: { id: string } };
 
 export async function POST(_: Request, { params }: Context) {
@@ -19,7 +38,7 @@ export async function POST(_: Request, { params }: Context) {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const notebook = await db.notebook.findFirst({
+  const notebook = await dbClient.notebook.findFirst({
     where: { id: params.id, userId },
     select: { id: true },
   });
@@ -28,7 +47,7 @@ export async function POST(_: Request, { params }: Context) {
     return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
   }
 
-  const chunks = await db.notebookChunk.findMany({
+  const chunks = await dbClient.notebookChunk.findMany({
     where: {
       notebookId: notebook.id,
       userId: userId,
@@ -38,17 +57,20 @@ export async function POST(_: Request, { params }: Context) {
       id: true,
       content: true,
     },
-  });
+  }) as unknown as { id: string; content: string }[];
 
   if (chunks.length === 0) {
     return NextResponse.json({ error: "Add at least one source document first" }, { status: 400 });
   }
 
-  const chunkData: ChunkWithId[] = chunks.map((chunk) => ({ id: chunk.id, content: chunk.content }));
+  const chunkData: ChunkWithId[] = chunks.map((chunk: { id: string; content: string }) => ({
+    id: chunk.id,
+    content: chunk.content,
+  }));
   const generatedSummary = generateGroundedSummary(chunkData);
   const generatedConcepts = generateConcepts(chunkData);
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await dbClient.$transaction(async (tx) => {
     await tx.notebookSummary.deleteMany({
       where: {
         notebookId: notebook.id,

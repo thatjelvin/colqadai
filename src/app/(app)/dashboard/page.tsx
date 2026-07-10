@@ -55,14 +55,6 @@ type Material = {
 
 type UploadType = "note" | "pdf" | "image" | "youtube";
 
-const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  note: FileText,
-  pdf: FileText,
-  ppt: FileText,
-  image: ImageIcon,
-  youtube: Youtube,
-};
-
 /** Parse bold-section headings out of the AI summary for structured display. */
 function parseSummarySections(text: string): { heading: string | null; body: string }[] {
   const lines = text.split("\n");
@@ -440,8 +432,6 @@ export default function DashboardPage() {
                   : m.type === "image" ? "🖼️"
                   : m.type === "pdf" ? "📄"
                   : "📝";
-                const Icon = TYPE_ICONS[m.type] ?? FileText;
-
                 // Build one-line preview from summary
                 const previewText = m.summary
                   ? m.summary.replace(/\*\*/g, "").replace(/\n/g, " ").trim().slice(0, 100)

@@ -5,11 +5,49 @@ import { db } from "@/lib/db";
 import { BillingLimitError, buildUpgradeErrorPayload, ensureFeatureAccess } from "@/lib/billing/usage";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { computeOverallMasteryForUser } from "@/lib/learning/mastery";
+import { computeStreak } from "@/lib/learning/streak";
+
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type UserProblemRecord = {
+  lastReviewedAt: Date | string | null;
+  nextReviewAt: Date | string;
+  problem: {
+    topic: {
+      id: string;
+      name: string;
+      slug: string;
+      description: string | null;
+    };
+  } | null;
+};
+
+type ProblemAttemptGroupByRecord = {
+  errorType: string | null;
+  _count: {
+    _all: number;
+  };
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  count(args?: Record<string, unknown>): Promise<number>;
+  groupBy(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+  problemAttempt: DbModelDelegate;
+};
+
+const dbClient = db as unknown as PrismaLikeClient;
 
 export async function GET() {
   try {
     const supabase = createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -18,18 +56,24 @@ export async function GET() {
 
     await ensureFeatureAccess(userId, "analytics");
 
-    const userProblems = await db.userProblem.findMany({
+    const userProblems = await dbClient.userProblem.findMany({
       where: { userId },
-    });
+      select: { lastReviewedAt: true, nextReviewAt: true },
+    }) as unknown as { lastReviewedAt: Date | string | null; nextReviewAt: Date | string }[];
 
     const totalSeen = userProblems.length;
 
+    const dueCount = await dbClient.userProblem.count({
+      where: { userId, nextReviewAt: { lte: new Date() } },
+    });
+
+    const streakInfo = computeStreak(
+      userProblems.map((up) => (up.lastReviewedAt ? new Date(up.lastReviewedAt) : undefined))
+    );
     const overallMastery = await computeOverallMasteryForUser(userId);
     const masteryPercentage = overallMastery.masteryPercentage;
 
-    const streak = calculateStreak(userProblems);
-
-    const recentUserProblems = await db.userProblem.findMany({
+    const recentUserProblems = await dbClient.userProblem.findMany({
       where: { userId },
       orderBy: { lastReviewedAt: "desc" },
       take: 10,
@@ -40,16 +84,16 @@ export async function GET() {
           },
         },
       },
-    });
+    }) as unknown as UserProblemRecord[];
 
     const recentTopicIds = new Set<string>();
     const recentTopics: Array<{ id: string; name: string; slug: string; description: string | null }> = [];
 
     for (const up of recentUserProblems) {
-      const topicId = up.problem.topic.id;
-      if (!recentTopicIds.has(topicId) && recentTopics.length < 3) {
-        recentTopicIds.add(topicId);
-        recentTopics.push(up.problem.topic);
+      const topic = up.problem?.topic;
+      if (topic && !recentTopicIds.has(topic.id) && recentTopics.length < 3) {
+        recentTopicIds.add(topic.id);
+        recentTopics.push(topic);
       }
     }
 
@@ -57,13 +101,13 @@ export async function GET() {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const [attemptCount, firstTryCorrect, topErrorRows] = await Promise.all([
-      db.problemAttempt.count({
+      dbClient.problemAttempt.count({
         where: {
           userId,
           createdAt: { gte: oneWeekAgo },
         },
       }),
-      db.problemAttempt.count({
+      dbClient.problemAttempt.count({
         where: {
           userId,
           createdAt: { gte: oneWeekAgo },
@@ -71,7 +115,7 @@ export async function GET() {
           attemptNumber: 1,
         },
       }),
-      db.problemAttempt.groupBy({
+      dbClient.problemAttempt.groupBy({
         by: ["errorType"],
         where: {
           userId,
@@ -84,7 +128,7 @@ export async function GET() {
             errorType: "desc",
           },
         },
-      }),
+      }) as unknown as ProblemAttemptGroupByRecord[],
     ]);
 
     const recallScore = attemptCount > 0 ? Math.round((firstTryCorrect / attemptCount) * 100) : 0;
@@ -93,11 +137,17 @@ export async function GET() {
     return NextResponse.json({
       totalSeen,
       masteryPercentage,
-      streak,
+      dueCount,
+      streak: streakInfo.current,
+      longestStreak: streakInfo.longest,
+      reviewedToday: streakInfo.reviewedToday,
+      lastReviewDate: streakInfo.lastReviewDate,
+      attemptedCount: overallMastery.attemptedCount,
+      totalProblems: overallMastery.totalProblems,
       recentTopics,
       recallScore,
       topErrorType: topError?.errorType || null,
-      topErrorCount: topError?._count._all || 0,
+      topErrorCount: topError?._count?._all || 0,
     });
   } catch (error) {
     if (error instanceof BillingLimitError) {
@@ -106,55 +156,22 @@ export async function GET() {
 
     console.error("Error fetching dashboard stats:", error);
     return NextResponse.json(
-      { error: "Failed to fetch dashboard stats" },
-      { status: 500 }
+      {
+        totalSeen: 0,
+        masteryPercentage: 0,
+        dueCount: 0,
+        streak: 0,
+        longestStreak: 0,
+        reviewedToday: false,
+        lastReviewDate: null,
+        attemptedCount: 0,
+        totalProblems: 0,
+        recentTopics: [],
+        recallScore: 0,
+        topErrorType: null,
+        topErrorCount: 0,
+      },
+      { status: 200 }
     );
   }
-}
-
-function calculateStreak(userProblems: { lastReviewedAt: Date | null }[]): number {
-  if (userProblems.length === 0) return 0;
-  const reviewDates = new Set<string>();
-
-  for (const up of userProblems) {
-    if (up.lastReviewedAt) {
-      const date = new Date(up.lastReviewedAt);
-      const dateStr = date.toISOString().split("T")[0];
-      reviewDates.add(dateStr);
-    }
-  }
-
-  if (reviewDates.size === 0) return 0;
-
-  const sortedDates = Array.from(reviewDates).sort().reverse();
-
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-  const mostRecentDate = sortedDates[0];
-  if (mostRecentDate !== todayStr && mostRecentDate !== yesterdayStr) {
-    return 0;
-  }
-
-  let streak = 1;
-
-  for (let i = 1; i < sortedDates.length; i++) {
-    const currentDate = new Date(sortedDates[i - 1]);
-    const prevDate = new Date(sortedDates[i]);
-
-    const diffTime = currentDate.getTime() - prevDate.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
 }

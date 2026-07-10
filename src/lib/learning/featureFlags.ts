@@ -1,5 +1,16 @@
 import { db } from "@/lib/db";
 
+/** Typed database client cast for the in-memory DB proxy. */
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+type PrismaLikeClient = {
+  featureFlag: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export const LEARNING_FEATURES = {
   SPACED_REPETITION: "spaced_repetition",
   RETRIEVAL_PRACTICE: "retrieval_practice",
@@ -22,7 +33,7 @@ const defaultFeatureState: Record<LearningFeatureName, boolean> = {
 };
 
 export async function isFeatureEnabled(featureName: LearningFeatureName): Promise<boolean> {
-  const flag = await db.featureFlag.findUnique({
+  const flag = await dbClient.featureFlag.findUnique({
     where: { featureName },
     select: { enabled: true },
   });
@@ -31,7 +42,7 @@ export async function isFeatureEnabled(featureName: LearningFeatureName): Promis
 }
 
 export async function getLearningFeatureFlags(): Promise<Record<LearningFeatureName, boolean>> {
-  const rows = await db.featureFlag.findMany({
+  const rows = await dbClient.featureFlag.findMany({
     where: {
       featureName: {
         in: Object.values(LEARNING_FEATURES),

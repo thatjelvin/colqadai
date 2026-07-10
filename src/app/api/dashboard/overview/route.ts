@@ -6,6 +6,25 @@ import { computeOverallMasteryForUser } from "@/lib/learning/mastery";
 import { computeStreak } from "@/lib/learning/streak";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type UserProblemRecord = {
+  status: string | null;
+  lastReviewedAt: Date | string | null;
+  nextReviewAt: Date | string;
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  count(args?: Record<string, unknown>): Promise<number>;
+};
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function GET() {
   try {
     const supabase = createServerClient();
@@ -18,18 +37,20 @@ export async function GET() {
     const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
     const userId = dbUser.id;
 
-    const userProblems = await db.userProblem.findMany({
+    const userProblems = await dbClient.userProblem.findMany({
       where: { userId },
       select: { status: true, lastReviewedAt: true, nextReviewAt: true },
-    });
+    }) as unknown as UserProblemRecord[];
 
     const totalSeen = userProblems.length;
 
-    const dueCount = await db.userProblem.count({
+    const dueCount = await dbClient.userProblem.count({
       where: { userId, nextReviewAt: { lte: new Date() } },
     });
 
-    const streakInfo = computeStreak(userProblems.map((up) => up.lastReviewedAt));
+    const streakInfo = computeStreak(
+      userProblems.map((up) => (up.lastReviewedAt ? new Date(up.lastReviewedAt) : undefined))
+    );
     const overallMastery = await computeOverallMasteryForUser(userId);
     const masteryPercentage = overallMastery.masteryPercentage;
 

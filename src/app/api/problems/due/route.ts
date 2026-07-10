@@ -4,6 +4,32 @@ import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type UserProblemRecord = {
+  nextReviewAt: Date | string;
+  problem: {
+    id: string;
+    title: string;
+    topicTag: string | null;
+    topic: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+  } | null;
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export async function GET() {
   try {
     const supabase = createServerClient();
@@ -16,7 +42,7 @@ export async function GET() {
 
     const now = new Date();
 
-    const dueProblems = await db.userProblem.findMany({
+    const dueProblems = await dbClient.userProblem.findMany({
       where: {
         userId,
         nextReviewAt: {
@@ -34,7 +60,7 @@ export async function GET() {
         nextReviewAt: "asc",
       },
       take: 10,
-    });
+    }) as UserProblemRecord[];
 
     const withUrgency = dueProblems.map((item) => {
       const overdueDays = Math.max(

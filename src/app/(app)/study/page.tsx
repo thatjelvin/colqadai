@@ -4,6 +4,58 @@ import { createServerClient } from "@/lib/supabase/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { buildInterleavedQueue } from "@/lib/learning/interleaving";
 import { computeStreak } from "@/lib/learning/streak";
+
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  count(args?: Record<string, unknown>): Promise<number>;
+};
+
+/** Typed database client — mirrors the models used in this file. */
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+  problem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
+type UserProblemWithProblem = {
+  id: string;
+  nextReviewAt: Date | string;
+  lastReviewedAt: Date | string | null;
+  problem: {
+    id: string;
+    title: string;
+    topicTag: string | null;
+    topic: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+  } | null;
+};
+
+type InterleavedInputItem = {
+  topicTag?: string | null;
+  topicSlug?: string | null;
+  nextReviewAt?: Date | null;
+  id: string;
+  problem?: {
+    id: string;
+    title: string;
+    topic?: {
+      name: string;
+    } | null;
+  } | null;
+  topicName: string;
+};
+
+type InterleavedQueueItem = InterleavedInputItem & {
+  nextReviewAt: Date | string | null;
+};
+
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +74,7 @@ export default async function ReviewPage() {
   const now = new Date();
 
   // Get due problems
-  const dueProblems = await db.userProblem.findMany({
+  const dueProblems = await dbClient.userProblem.findMany({
     where: {
       userId,
       nextReviewAt: { lte: now },
@@ -33,29 +85,35 @@ export default async function ReviewPage() {
       },
     },
     orderBy: { nextReviewAt: "asc" },
-  });
+  }) as UserProblemWithProblem[];
 
-  const allUserProblems = await db.userProblem.findMany({
+  const allUserProblems = await dbClient.userProblem.findMany({
     where: { userId },
     select: { lastReviewedAt: true },
-  });
-  const streakInfo = computeStreak(allUserProblems.map((up) => up.lastReviewedAt));
-
-  const interleavedQueue = buildInterleavedQueue(
-    dueProblems.map((up) => ({
-      id: up.id,
-      nextReviewAt: up.nextReviewAt,
-      topicTag: up.problem.topicTag,
-      topicSlug: up.problem.topic.slug,
-      problem: up.problem,
-    }))
+  }) as UserProblemWithProblem[];
+  const streakInfo = computeStreak(
+    allUserProblems.map((up) => (up.lastReviewedAt ? new Date(up.lastReviewedAt) : undefined))
   );
+
+  const interleavedInput: InterleavedInputItem[] = dueProblems.map((up) => ({
+    id: up.id,
+    nextReviewAt: up.nextReviewAt instanceof Date ? up.nextReviewAt : new Date(up.nextReviewAt),
+    topicTag: up.problem?.topicTag ?? null,
+    topicSlug: up.problem?.topic?.slug ?? null,
+    topicName: up.problem?.topic?.name ?? "Unknown",
+    problem: up.problem ? {
+      id: up.problem.id,
+      title: up.problem.title,
+      topic: up.problem.topic ? { name: up.problem.topic.name } : null,
+    } : null,
+  }));
+
+  const interleavedQueue = buildInterleavedQueue(interleavedInput) as InterleavedQueueItem[];
 
   const topicsPracticed = new Set(interleavedQueue.map((item) => item.topicTag || item.topicSlug));
 
   // Calculate stats
-  const todayCount = dueProblems.filter(up => {
-    // If it was due very recently vs days ago
+  const todayCount = dueProblems.filter((up) => {
     const dueTime = new Date(up.nextReviewAt).getTime();
     const msPerDay = 24 * 60 * 60 * 1000;
     return (now.getTime() - dueTime) < msPerDay; // within a day
@@ -141,7 +199,7 @@ export default async function ReviewPage() {
                     <CardDescription>{interleavedQueue.length} items ready for review</CardDescription>
                 </div>
                   {interleavedQueue.length > 0 && (
-                    <Link href={`/study/${interleavedQueue[0].problem.id}`}>
+                    <Link href={`/study/${interleavedQueue[0].problem?.id}`}>
                     <Button>
                       <Play className="h-4 w-4 mr-2" />
                       Start Review
@@ -154,8 +212,9 @@ export default async function ReviewPage() {
                 {interleavedQueue.length > 0 ? (
                 <div className="space-y-3">
                     {interleavedQueue.map((up) => {
-                    const isOverdue = (now.getTime() - new Date(up.nextReviewAt).getTime()) >= 24 * 60 * 60 * 1000;
-                    const daysOverdue = Math.floor((now.getTime() - new Date(up.nextReviewAt).getTime()) / (24 * 60 * 60 * 1000));
+                    const nextReviewAt = up.nextReviewAt ? new Date(up.nextReviewAt) : null;
+                    const isOverdue = nextReviewAt && (now.getTime() - nextReviewAt.getTime()) >= 24 * 60 * 60 * 1000;
+                    const daysOverdue = nextReviewAt ? Math.floor((now.getTime() - nextReviewAt.getTime()) / (24 * 60 * 60 * 1000)) : 0;
                     return (
                       <div
                         key={up.id}
@@ -163,7 +222,7 @@ export default async function ReviewPage() {
                       >
                         <div className="flex-1 min-w-0 pr-4">
                           <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium text-sm truncate">{up.problem.title}</h4>
+                            <h4 className="font-medium text-sm truncate">{up.problem?.title ?? "Unknown Problem"}</h4>
                             {isOverdue && (
                               <Badge variant="destructive" className="text-xs whitespace-nowrap hidden sm:inline-flex">
                                 {daysOverdue}d overdue
@@ -173,10 +232,10 @@ export default async function ReviewPage() {
                           <div className="flex items-center space-x-3 text-xs text-muted-foreground">
                             <span>Problem</span>
                             <span>•</span>
-                            <span className="truncate">{up.problem.topic.name}</span>
+                            <span className="truncate">{up.topicName}</span>
                           </div>
                         </div>
-                        <Link href={`/study/${up.problem.id}`}>
+                        <Link href={`/study/${up.problem?.id}`}>
                           <Button variant="ghost" size="sm" className="shrink-0">
                             Review
                           </Button>

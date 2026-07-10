@@ -9,6 +9,29 @@ import { upsertLearningAnalytics } from "@/lib/learning/analytics";
 import { LearningMethod } from "@/lib/db-types";
 import { z } from "zod";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type UserProblemRecord = {
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+  nextReviewAt: Date | string;
+  lastReviewedAt: Date | string | null;
+  status: string;
+  [key: string]: unknown;
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  update(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  userProblem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 const reviewSchema = z.object({
   rating: z.number().min(0).max(5),
   timeTaken: z.number().min(0).optional(),
@@ -45,14 +68,14 @@ export async function POST(
     const { rating, timeTaken } = parsed.data;
 
     // Get existing UserProblem
-    const userProblem = await db.userProblem.findUnique({
+    const userProblem = await dbClient.userProblem.findUnique({
       where: {
         userId_problemId: {
           userId: userId,
           problemId,
         },
       },
-    });
+    }) as UserProblemRecord | null;
 
     if (!userProblem) {
       return NextResponse.json(
@@ -73,7 +96,7 @@ export async function POST(
     );
 
     // Update UserProblem
-    const updated = await db.userProblem.update({
+    const updated = await dbClient.userProblem.update({
       where: {
         userId_problemId: {
           userId: userId,

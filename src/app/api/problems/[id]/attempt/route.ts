@@ -9,6 +9,39 @@ import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
 import { upsertLearningAnalytics } from "@/lib/learning/analytics";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type ProblemRecord = {
+  id: string;
+  body: string;
+  solution: string;
+};
+
+type UserProblemRecord = {
+  id: string;
+};
+
+type ProblemAttemptRecord = {
+  id: string;
+  createdAt: Date | string;
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findUnique(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  count(args?: Record<string, unknown>): Promise<number>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+  update(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  problem: DbModelDelegate;
+  userProblem: DbModelDelegate;
+  problemAttempt: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 const attemptSchema = z.object({
   answer: z.string().min(1),
   selfQuizMode: z.boolean().optional().default(false),
@@ -41,22 +74,22 @@ export async function POST(
     const { answer, selfQuizMode, sessionKey } = parsed.data;
 
     const [problem, userProblem] = await Promise.all([
-      db.problem.findUnique({ where: { id: problemId } }),
-      db.userProblem.findUnique({
+      dbClient.problem.findUnique({ where: { id: problemId } }) as Promise<ProblemRecord | null>,
+      dbClient.userProblem.findUnique({
         where: {
           userId_problemId: {
             userId,
             problemId,
           },
         },
-      }),
+      }) as Promise<UserProblemRecord | null>,
     ]);
 
     if (!problem || !userProblem) {
       return NextResponse.json({ error: "Problem is not available for this user" }, { status: 404 });
     }
 
-    const lastCorrectAttempt = await db.problemAttempt.findFirst({
+    const lastCorrectAttempt = await dbClient.problemAttempt.findFirst({
       where: {
         userId,
         problemId,
@@ -68,9 +101,9 @@ export async function POST(
       select: {
         createdAt: true,
       },
-    });
+    }) as ProblemAttemptRecord | null;
 
-    const currentCycleAttemptCount = await db.problemAttempt.count({
+    const currentCycleAttemptCount = await dbClient.problemAttempt.count({
       where: {
         userId,
         problemId,
@@ -86,7 +119,7 @@ export async function POST(
       ? await classifyError(problem.body, problem.solution, answer)
       : null;
 
-    const attempt = await db.problemAttempt.create({
+    const attempt = await dbClient.problemAttempt.create({
       data: {
         userId,
         problemId,
@@ -102,7 +135,7 @@ export async function POST(
     });
 
     if (grade.isCorrect) {
-      await db.userProblem.update({
+      await dbClient.userProblem.update({
         where: {
           userId_problemId: {
             userId,

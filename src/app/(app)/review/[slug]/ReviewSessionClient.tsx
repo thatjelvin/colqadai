@@ -30,7 +30,6 @@ interface ReviewSessionClientProps {
   subtopicSlug: string;
   mode: ReviewMode;
   sessionCount: number;
-  masteryPercentage: number;
   problems: SessionProblem[];
 }
 
@@ -64,7 +63,6 @@ export function ReviewSessionClient({
   subtopicSlug,
   mode,
   sessionCount,
-  masteryPercentage,
   problems,
 }: ReviewSessionClientProps) {
   const [index, setIndex] = useState(0);

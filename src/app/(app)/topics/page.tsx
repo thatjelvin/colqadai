@@ -5,6 +5,33 @@ import { db } from "@/lib/db";
 import { computeMasteryForAllTopics } from "@/lib/learning/mastery";
 import { TopicGridClient } from "@/components/TopicGridClient";
 
+/** Generic record type for in-memory DB results — replaces bare `any`. */
+type DbRecord = Record<string, unknown>;
+
+type TopicRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  order: number;
+  problems: Array<{ id: string }>;
+  children: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    problems: Array<{ id: string }>;
+  }>;
+};
+
+/** Typed model delegate for the in-memory DB proxy. */
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+};
+type PrismaLikeClient = {
+  topic: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export const dynamic = "force-dynamic";
 
 type TopicGridItem = {
@@ -28,7 +55,7 @@ export default async function TopicsPage() {
   const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email!);
   const userId = dbUser.id;
 
-  const topics = await db.topic.findMany({
+  const topics = await dbClient.topic.findMany({
     where: {
       parentId: null,
     },
@@ -43,7 +70,7 @@ export default async function TopicsPage() {
     orderBy: {
       order: "asc",
     },
-  });
+  }) as TopicRecord[];
 
   const masteryBySlug = await computeMasteryForAllTopics(userId);
 
