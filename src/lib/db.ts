@@ -66,7 +66,7 @@ function matchesWhere(record: AnyRecord, where: AnyRecord | undefined): boolean 
         );
       }
 
-      return matchesWhere(record[key] ?? ({} as AnyRecord), cond);
+      return matchesWhere((record[key] ?? {}) as AnyRecord, cond);
     }
 
     return record[key] === condition;
