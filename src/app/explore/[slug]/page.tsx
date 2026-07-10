@@ -12,6 +12,7 @@ import {
   type ChapterSummary,
 } from "@/lib/learning/summary-schema";
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
+import { groq } from "@/lib/groq";
 
 const keyConceptActionSchema = z.object({
   name: z.string().min(1),
@@ -29,13 +30,8 @@ async function generateSummaryWithGroq(
   subtopicName: string,
   parentTopicName: string
 ): Promise<ChapterSummary> {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
+  try {
+    const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       temperature: 0.3,
       messages: [
@@ -49,31 +45,37 @@ async function generateSummaryWithGroq(
           content: buildSummaryPrompt(subtopicName, parentTopicName),
         },
       ],
-    }),
-  });
+    });
 
-  if (!response.ok) {
-    const payload = await response.text();
-    throw new Error(`Groq request failed (${response.status}): ${payload}`);
+    const rawContent = response.choices[0]?.message?.content;
+    if (typeof rawContent !== "string") {
+      throw new Error("Groq did not return message content");
+    }
+
+    const cleaned = rawContent
+      .trim()
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+    return parseStoredSummary(parsed) ?? (() => {
+      throw new Error("Generated summary did not match expected schema");
+    })();
+  } catch (error) {
+    console.error("Failed to generate summary with Groq:", error);
+    return {
+      overview: "Summary unavailable. Please try again later.",
+      prerequisites: [],
+      definitions: [],
+      theorems: [],
+      derivations: [],
+      examples: [],
+      common_mistakes: [],
+      formula_summary: [],
+    };
   }
-
-  const data = await response.json();
-  const rawContent = data?.choices?.[0]?.message?.content;
-  if (typeof rawContent !== "string") {
-    throw new Error("Groq did not return message content");
-  }
-
-  const cleaned = rawContent
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-
-  const parsed = JSON.parse(cleaned);
-  return parseStoredSummary(parsed) ?? (() => {
-    throw new Error("Generated summary did not match expected schema");
-  })();
 }
 
 async function getOrBuildSummaryForSlug(

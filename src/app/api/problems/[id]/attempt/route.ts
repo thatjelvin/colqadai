@@ -154,6 +154,7 @@ export async function POST(
       errorAnalysis: errorResult,
       elaborationPrompt,
       revealAllowed: true,
+      gradingUnavailable: grade.gradingUnavailable ?? false,
     });
   } catch (error) {
     console.error("Error creating attempt:", error);

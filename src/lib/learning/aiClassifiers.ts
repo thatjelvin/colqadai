@@ -25,11 +25,15 @@ function extractJson(raw: string): string {
   return trimmed.slice(start, end + 1);
 }
 
+export type GradeResultWithAvailability = GradeResult & {
+  gradingUnavailable?: boolean;
+};
+
 export async function gradeAnswer(
   problemBody: string,
   correctSolution: string,
   userAnswer: string
-): Promise<GradeResult> {
+): Promise<GradeResultWithAvailability> {
   const prompt = [
     "You are grading a university-level math answer.",
     "Return strict JSON only.",
@@ -58,7 +62,8 @@ export async function gradeAnswer(
   } catch {
     return {
       isCorrect: false,
-      rationale: "Automatic grading fallback marked this answer as incorrect.",
+      rationale: "Grading service temporarily unavailable. Please try again.",
+      gradingUnavailable: true,
     };
   }
 }
