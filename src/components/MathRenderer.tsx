@@ -17,7 +17,7 @@ function tokenizeMath(content: string): MathToken[] {
     return [{ type: "text", value: "" }];
   }
 
-  const matches = [...content.matchAll(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g)];
+  const matches = Array.from(content.matchAll(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g));
   if (matches.length === 0) {
     return [{ type: "text", value: content }];
   }

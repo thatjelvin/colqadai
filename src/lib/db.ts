@@ -21,13 +21,14 @@ function generateId() {
   return randomUUID();
 }
 
-function normalizeComparable(value: unknown): unknown {
+function normalizeComparable(value: unknown): number | string {
   if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value;
   if (typeof value === "string") {
     const asDate = Date.parse(value);
     return Number.isNaN(asDate) ? value : asDate;
   }
-  return value;
+  return "";
 }
 
 function matchesWhere(record: AnyRecord, where: AnyRecord | undefined): boolean {
