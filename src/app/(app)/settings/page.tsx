@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isThemePreference, type ThemePreference } from "@/lib/theme";
+import { DEFAULT_PREFERENCES, type NotificationPreferences } from "@/lib/notifications";
 
 export default async function SettingsPage() {
   const supabase = createServerClient();
@@ -28,6 +29,20 @@ export default async function SettingsPage() {
   const themePreference: ThemePreference = isThemePreference(profileRow?.theme_preference)
     ? (profileRow.theme_preference as ThemePreference)
     : "system";
+
+  const { data: notificationPrefs } = await supabase
+    .from("notification_preferences")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const notificationPreferences: NotificationPreferences = notificationPrefs ? {
+    dailyReminder: notificationPrefs.daily_reminder ?? DEFAULT_PREFERENCES.dailyReminder,
+    dailyReminderTime: notificationPrefs.daily_reminder_time ?? DEFAULT_PREFERENCES.dailyReminderTime,
+    streakAtRisk: notificationPrefs.streak_at_risk ?? DEFAULT_PREFERENCES.streakAtRisk,
+    milestoneCongrats: notificationPrefs.milestone_congrats ?? DEFAULT_PREFERENCES.milestoneCongrats,
+    weeklySummary: notificationPrefs.weekly_summary ?? DEFAULT_PREFERENCES.weeklySummary,
+  } : DEFAULT_PREFERENCES;
 
   const planLabel = dbUser.plan === "MAX" ? "MAX" : dbUser.plan === "PRO" ? "PRO" : "FREE";
 
@@ -95,6 +110,7 @@ export default async function SettingsPage() {
               course: dbUser.course ?? "",
               age: dbUser.age ?? undefined,
               themePreference,
+              notificationPreferences,
             }}
           />
         </CardContent>

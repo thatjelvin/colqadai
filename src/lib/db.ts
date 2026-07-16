@@ -105,14 +105,15 @@ function withIncludes(model: string, record: AnyRecord, include: AnyRecord | und
 
   if (model === "chatSession" && include.messages) {
     const messageRows = ensureModel("chatMessage").filter((row) => row.sessionId === record.id);
-    const msgOrderBy = typeof include.messages === "object" ? include.messages.orderBy : undefined;
+    const messagesCfg = include.messages && typeof include.messages === "object" && "orderBy" in include.messages ? include.messages as AnyRecord : undefined;
+    const msgOrderBy = messagesCfg?.orderBy;
     out.messages = sortRecords(messageRows, msgOrderBy);
   }
 
   if (model === "topic") {
     if (include.children) {
       const children = ensureModel("topic").filter((row) => row.parentId === record.id);
-      const childCfg = typeof include.children === "object" ? include.children : undefined;
+      const childCfg = typeof include.children === "object" && "include" in include.children ? include.children as AnyRecord : undefined;
       out.children = children.map((child) => withIncludes("topic", child, childCfg?.include));
     }
     if (include.problems) {

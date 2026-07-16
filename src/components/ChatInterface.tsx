@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Plus } from "lucide-react";
+import { Send, Plus, Lightbulb, BookOpen } from "lucide-react";
 import { MathRenderer } from "./MathRenderer";
 import Link from "next/link";
 
@@ -37,6 +37,7 @@ export function ChatInterface({
   );
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
   const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
+  const [tutoringMode, setTutoringMode] = useState<"socratic" | "direct">("socratic");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +70,7 @@ export function ChatInterface({
           message: userMessage.content,
           sessionId: currentSessionId,
           problemId: problemId || null,
+          tutoringMode,
         }),
       });
 
@@ -161,15 +163,37 @@ export function ChatInterface({
         <h3 className="font-semibold text-sm">
           {problemId ? "AI Tutor" : "Math Assistant"}
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleNewChat}
-          className="h-8 px-2"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          New Chat
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant={tutoringMode === "socratic" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTutoringMode("socratic")}
+            className="h-7 px-2 text-xs"
+            title="Guided mode — asks questions to lead you to the answer"
+          >
+            <Lightbulb className="h-3.5 w-3.5 mr-1" />
+            Guided
+          </Button>
+          <Button
+            variant={tutoringMode === "direct" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTutoringMode("direct")}
+            className="h-7 px-2 text-xs"
+            title="Direct mode — gives answers and explanations directly"
+          >
+            <BookOpen className="h-3.5 w-3.5 mr-1" />
+            Direct
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNewChat}
+            className="h-8 px-2"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            New Chat
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}

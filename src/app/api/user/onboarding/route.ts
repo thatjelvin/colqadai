@@ -12,6 +12,12 @@ const onboardingSchema = z.object({
   age: z.number().min(1).max(120).optional(),
   source: z.string().optional(),
   challenge: z.string().optional(),
+  goal: z.string().optional(),
+  pace: z.string().optional(),
+  diagnosticScore: z.number().min(0).max(10).optional(),
+  recommendedTopic: z.string().optional(),
+  difficultyLevel: z.number().min(1).max(5).optional(),
+  diagnosticAnswers: z.array(z.string()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,7 +43,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid data", details: parsed.error.issues }, { status: 400 });
   }
 
-  const { name, grade, course, age, source, challenge } = parsed.data;
+  const {
+    name,
+    grade,
+    course,
+    age,
+    source,
+    challenge,
+    goal,
+    pace,
+    diagnosticScore,
+    recommendedTopic,
+    difficultyLevel,
+    diagnosticAnswers,
+  } = parsed.data;
+
   if (name !== undefined) {
     const { error: authUpdateError } = await supabase.auth.updateUser({
       data: { full_name: name },
@@ -77,6 +97,12 @@ export async function POST(req: NextRequest) {
         age: age ?? null,
         source: source ?? null,
         challenge: challenge ?? null,
+        goal: goal ?? null,
+        pace: pace ?? null,
+        diagnostic_score: diagnosticScore ?? null,
+        recommended_topic: recommendedTopic ?? null,
+        difficulty_level: difficultyLevel ?? null,
+        diagnostic_answers: diagnosticAnswers ?? null,
         onboarding_completed: true,
       },
       { onConflict: "id" }
@@ -118,6 +144,11 @@ export async function POST(req: NextRequest) {
       age: age ?? null,
       source: source ?? null,
       challenge: challenge ?? null,
+      goal: goal ?? null,
+      pace: pace ?? null,
+      diagnosticScore: diagnosticScore ?? null,
+      recommendedTopic: recommendedTopic ?? null,
+      difficultyLevel: difficultyLevel ?? null,
     },
   });
 }

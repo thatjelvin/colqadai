@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { StreakChip } from "@/components/StreakChip";
+import { ShareableProgressCard } from "@/components/shareable/ShareableProgressCard";
 import {
   Brain,
   Flame,
@@ -31,7 +32,10 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Trophy,
 } from "lucide-react";
+import { getStreakMilestoneInfo } from "@/lib/learning/growthMindset";
+import { ReviewDashboardSection } from "@/components/ReviewDashboardSection";
 
 type OverviewStats = {
   totalSeen: number;
@@ -42,6 +46,8 @@ type OverviewStats = {
   longestStreak?: number;
   reviewedToday?: boolean;
   lastReviewDate?: string | null;
+  reviewDayKeys?: string[];
+  forecast?: Array<{ nextReviewAt: string | Date; forecastLabel: string }>;
 };
 
 type Material = {
@@ -245,6 +251,8 @@ export default function DashboardPage() {
             reviewedToday={stats.reviewedToday ?? false}
             size="md"
             showLongest
+            showMilestone
+            showIdentity
           />
         )}
       </div>
@@ -268,6 +276,20 @@ export default function DashboardPage() {
                 <span>Best: {stats.longestStreak}</span>
               )}
             </div>
+            {stats && getStreakMilestoneInfo(stats.streak).identityMessage && (
+              <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 italic">
+                {getStreakMilestoneInfo(stats.streak).identityMessage}
+              </p>
+            )}
+            {stats && stats.streak > 0 && getStreakMilestoneInfo(stats.streak).next && (() => {
+              const info = getStreakMilestoneInfo(stats.streak);
+              if (!info.next) return null;
+              return (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {info.daysUntilNext} day{info.daysUntilNext !== 1 ? "s" : ""} until {info.next.badge}
+                </p>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -311,9 +333,17 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Review Dashboard */}
+      {stats && (
+        <ReviewDashboardSection
+          reviewDayKeys={stats.reviewDayKeys ?? []}
+          streak={stats.streak ?? 0}
+        />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upload Section */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -420,147 +450,137 @@ export default function DashboardPage() {
               </form>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Recent Materials */}
+        {/* Recent Materials */}
+        <div className="lg:col-span-1">
           {materials.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Recent Summaries</h2>
-              {materials.map((m) => {
-                const isExpanded = expandedId === m.id;
-                const typeEmoji =
-                  m.type === "youtube" ? "🎥"
-                  : m.type === "image" ? "🖼️"
-                  : m.type === "pdf" ? "📄"
-                  : "📝";
-                // Build one-line preview from summary
-                const previewText = m.summary
-                  ? m.summary.replace(/\*\*/g, "").replace(/\n/g, " ").trim().slice(0, 100)
-                  : null;
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Recent Materials
+                </CardTitle>
+                <CardDescription>
+                  Recently uploaded resources for quick access.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {materials.map((material) => (
+                  <div key={material.id} className="border-b pb-2 last:border-b-0 last:pb-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {() => {
+                          const iconMap: Record<string, typeof FileText> = {
+                            note: FileText,
+                            pdf: FileText,
+                            image: ImageIcon,
+                            youtube: Youtube,
+                          };
+                          const Icon = iconMap[material.type] || FileText;
+                          return (
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                          );
+                        }}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{material.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {material.type === "youtube"
+                              ? "YouTube video"
+                              : material.type === "pdf"
+                              ? "PDF document"
+                              : material.type === "image"
+                              ? "Image"
+                              : "Note"}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setExpandedId(material.id)}
+                        >
+                          {expandedId === material.id ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
 
-                return (
-                  <Card key={m.id} className="overflow-hidden">
-                    <button
-                      type="button"
-                      className="w-full text-left"
-                      onClick={() => setExpandedId(isExpanded ? null : m.id)}
-                    >
-                      <CardHeader className="py-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-base" role="img" aria-hidden>{typeEmoji}</span>
-                              <CardTitle className="text-sm font-medium truncate">{m.title}</CardTitle>
-                              <Badge variant="outline" className="text-xs shrink-0">{m.type}</Badge>
-                            </div>
-                            {previewText && !isExpanded && (
-                              <p className="text-xs text-muted-foreground mt-1 truncate pl-7">{previewText}…</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs text-muted-foreground hidden sm:block">
-                              {new Date(m.created_at).toLocaleDateString()}
-                            </span>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </button>
-                    {isExpanded && m.summary && (
-                      <CardContent className="pt-0 pb-4 border-t">
-                        <div className="mt-3 space-y-3 text-sm text-foreground/90">
-                          {parseSummarySections(m.summary).map((section, idx) => (
-                            <div key={idx}>
-                              {section.heading && (
-                                <p className="font-semibold text-foreground mb-1">{section.heading}</p>
-                              )}
-                              <div className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                                {section.body}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {m.storage_url && m.type === "youtube" && (
-                          <a
-                            href={m.storage_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-3 inline-block text-xs text-primary hover:underline"
-                          >
-                            Open video ↗
-                          </a>
+                    {expandedId === material.id && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        {material.summary ? (
+                          <p>{material.summary}</p>
+                        ) : (
+                          <p className="italic">Summary generating...</p>
                         )}
-                      </CardContent>
+                      </div>
                     )}
-                  </Card>
-                );
-              })}
-            </div>
+                  </div>
+                ))}
+                {materials.length === 0 && (
+                  <p className="text-center text-xs text-muted-foreground pt-4">
+                    No materials uploaded yet. Add your first resource above!
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        {/* Quick Links */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Quick Access</h2>
-          <div className="space-y-2">
-            {[
-              { href: "/study", icon: Brain, label: "Spaced Review", desc: "Review due problems" },
-              { href: "/topics", icon: Grid3x3, label: "Topics", desc: "Browse all math topics" },
-              { href: "/chat", icon: Bot, label: "AI Tutor", desc: "Ask a math question" },
-              { href: "/notebooks", icon: BookOpen, label: "Notebooks", desc: "Deep-dive source workspace", premium: true },
-              { href: "/analytics", icon: BarChart3, label: "Analytics", desc: "Track your performance", premium: true },
-            ].map((item) => (
-              <Link key={item.href} href={item.premium ? "/pricing" : item.href}>
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium">{item.label}</p>
-                          {item.premium && (
-                            <Badge className="text-[10px] py-0 bg-amber-500 hover:bg-amber-500 text-white">PRO</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{item.desc}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+        {/* Shareable Achievements */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader className="flex items-center justify-between pb-2">
+              <h3 className="text-lg font-semibold text-foreground">
+                Share Your Progress
+              </h3>
+              <div className="text-sm text-muted-foreground">
+                Click to copy share text
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Streak Card */}
+              {stats && (
+                <ShareableProgressCard
+                  type="streak"
+                  title="Learning Streak"
+                  subtitle="Consecutive days of practice"
+                  value={stats.streak}
+                  icon={<Flame className="h-4 w-4 text-orange-500" />}
+                  gradient="from-orange-400 to-yellow-400"
+                  shareText={`🔥 I'm on a ${stats.streak}-day learning streak on Colqad! Keeping my math skills sharp every day. #MathLearning #StudyStreak`}
+                />
+              )}
 
-          {stats && stats.dueCount > 0 ? (
-            <Card className="border-amber-300/50 bg-amber-50/50 dark:bg-amber-900/10">
-              <CardContent className="py-3 px-4">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  You have {stats.dueCount} problem{stats.dueCount !== 1 ? "s" : ""} due for review.
-                </p>
-                <Link href="/study">
-                  <Button size="sm" className="mt-2 w-full animate-pulse">
-                    Start Review →
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : stats !== null ? (
-            <Card className="border-muted">
-              <CardContent className="py-3 px-4">
-                <p className="text-sm text-muted-foreground">
-                  🎉 Nothing due today — great work keeping up!
-                </p>
-                <Link href="/topics">
-                  <Button size="sm" variant="outline" className="mt-2 w-full">
-                    Browse Topics
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : null}
+              {/* Problems Solved Card */}
+              {stats && (
+                <ShareableProgressCard
+                  type="problems-solved"
+                  title="Problems Solved"
+                  subtitle="Total practice problems completed"
+                  value={stats.totalSeen}
+                  icon={<Bot className="h-4 w-4 text-blue-500" />}
+                  gradient="from-blue-400 to-indigo-400"
+                  shareText={`📊 I've solved ${stats.totalSeen} math problems on Colqad! Consistent practice makes perfect. #MathPractice #ProblemSolving`}
+                />
+              )}
+
+              {/* Mastery Percentage Card */}
+              {stats && (
+                <ShareableProgressCard
+                  type="topic-mastery"
+                  title="Mastery Level"
+                  subtitle="Percentage of problems mastered"
+                  value={stats.masteryPercentage}
+                  icon={<Target className="h-4 w-4 text-green-500" />}
+                  gradient="from-green-400 to-emerald-400"
+                  shareText={`🎯 I've mastered ${stats.masteryPercentage}% of the math problems I've practiced on Colqad! Steady progress toward expertise. #MathMastery #LearningJourney`}
+                />
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 
 interface Problem {
   id: string;
@@ -41,6 +41,7 @@ export default function StudyPage() {
     attemptNumber: number;
     errorAnalysis?: { errorType: string; explanation: string } | null;
     elaborationPrompt?: string | null;
+    mindsetMessage?: string | null;
   } | null>(null);
   const [selfQuizMode, setSelfQuizMode] = useState(true);
   const [reflectionResponse, setReflectionResponse] = useState("");
@@ -53,6 +54,12 @@ export default function StudyPage() {
   const [workedGenerateAttempt, setWorkedGenerateAttempt] = useState("");
   const [workedMatch, setWorkedMatch] = useState<boolean | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
+
+  const [prereqInfo, setPrereqInfo] = useState<{
+    ready: boolean;
+    missing: string[];
+  } | null>(null);
+  const [prereqDismissed, setPrereqDismissed] = useState(false);
 
   useEffect(() => {
     // Fetch problem details
@@ -84,6 +91,26 @@ export default function StudyPage() {
     fetchProblem();
     startProblem();
   }, [problemId]);
+
+  // Check prerequisites once problem is loaded
+  useEffect(() => {
+    if (!problem) return;
+
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/prerequisites/${problem.topic.slug}`);
+        if (!res.ok) return;
+        const result = await res.json();
+        if (!result.ready) {
+          setPrereqInfo(result);
+        }
+      } catch {
+        // Non-blocking — silently ignore prerequisite check failures
+      }
+    };
+
+    check();
+  }, [problem]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -275,6 +302,43 @@ export default function StudyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
           {/* Problem Area */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Prerequisite Banner */}
+            {prereqInfo && !prereqDismissed && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800/40">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Some prerequisites may need review
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      You may want to review before continuing:
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {prereqInfo.missing.map((slug) => (
+                        <Link
+                          key={slug}
+                          href={`/topics/${slug}`}
+                          className="text-xs bg-amber-100 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full hover:bg-amber-200 dark:hover:bg-amber-700/40 transition-colors"
+                        >
+                          {slug.replace(/-/g, " ")}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrereqDismissed(true)}
+                      >
+                        Continue Anyway
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between mb-2">
@@ -404,6 +468,12 @@ export default function StudyPage() {
                           <div className="text-sm rounded-md bg-muted p-3">
                             <p className="font-medium">Error type: {attemptResult.errorAnalysis.errorType}</p>
                             <p className="text-muted-foreground">{attemptResult.errorAnalysis.explanation}</p>
+                          </div>
+                        )}
+
+                        {attemptResult.mindsetMessage && (
+                          <div className="text-sm rounded-md bg-green-50 border border-green-200 p-3 dark:bg-green-900/20 dark:border-green-800/40">
+                            <p className="text-green-800 dark:text-green-200">{attemptResult.mindsetMessage}</p>
                           </div>
                         )}
 

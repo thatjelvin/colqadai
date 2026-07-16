@@ -18,6 +18,7 @@ export const LEARNING_FEATURES = {
   ELABORATIVE_INTERROGATION: "elaborative_interrogation",
   WORKED_EXAMPLE_STUDY: "worked_example_study",
   ERROR_ANALYSIS: "error_analysis",
+  AI_PROBLEM_GENERATION: "ai_problem_generation",
 } as const;
 
 export type LearningFeatureName =
@@ -30,6 +31,7 @@ const defaultFeatureState: Record<LearningFeatureName, boolean> = {
   elaborative_interrogation: true,
   worked_example_study: true,
   error_analysis: true,
+  ai_problem_generation: true, // Enable by default
 };
 
 export async function isFeatureEnabled(featureName: LearningFeatureName): Promise<boolean> {

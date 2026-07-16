@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { TimePicker } from "@/components/time-picker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DEFAULT_THEME,
@@ -12,6 +14,7 @@ import {
   THEME_STORAGE_KEY,
   type ThemePreference,
 } from "@/lib/theme";
+import { NotificationPreferences, DEFAULT_PREFERENCES, buildDailyReminder } from "@/lib/notifications";
 
 interface SettingsFormProps {
   defaultValues: {
@@ -20,6 +23,7 @@ interface SettingsFormProps {
     course: string;
     age?: number;
     themePreference?: ThemePreference;
+    notificationPreferences?: NotificationPreferences;
   };
 }
 
@@ -32,6 +36,9 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
   });
   const [theme, setTheme] = useState<ThemePreference>(
     defaultValues.themePreference ?? DEFAULT_THEME
+  );
+  const [notifications, setNotifications] = useState<NotificationPreferences>(
+    defaultValues.notificationPreferences ?? DEFAULT_PREFERENCES
   );
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -69,6 +76,28 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
     }
   };
 
+  const handleNotificationChange = async (updates: Partial<NotificationPreferences>) => {
+    setNotifications((prev) => ({ ...prev, ...updates }));
+    setSuccess(false);
+    try {
+      const res = await fetch("/api/notifications/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notifications),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error ?? "Failed to save notification preferences.");
+      } else {
+        setError(null);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (err) {
+      setError("Could not save notification preferences.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -81,21 +110,21 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name || undefined,
-          grade: formData.grade,
-          course: formData.course,
-          age: formData.age ? parseInt(formData.age, 10) : undefined,
-          theme_preference: theme,
+          grade: formData.grade || "Not set",
+          course: formData.course || "Not set",
+          age: formData.age ? parseInt(formData.age) : undefined,
         }),
       });
-
-      if (res.ok) {
-        setSuccess(true);
-      } else {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error ?? "Failed to save settings. Please try again.");
+        setError(data?.error ?? "Failed to save profile.");
+      } else {
+        setError(null);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
       }
     } catch {
-      setError("Something went wrong. Please check your connection and try again.");
+      setError("Could not save profile.");
     } finally {
       setLoading(false);
     }
@@ -158,6 +187,112 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
           </p>
         </div>
         <ThemeToggle defaultValue={theme} onChange={handleThemeChange} />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="font-medium">Notification Preferences</Label>
+          <p className="text-xs text-muted-foreground">
+            Stay updated with reminders and progress summaries.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3">
+            <input
+              id="notif-daily"
+              type="checkbox"
+              checked={notifications.dailyReminder}
+              onChange={(e) =>
+                handleNotificationChange({ dailyReminder: e.target.checked })
+              }
+            />
+            <Label htmlWithfor="notif-daily" className="text-sm font-medium">
+              Daily review reminders
+            </Label>
+          </div>
+          {notifications.dailyReminder && (
+            <div className="ml-4 space-y-2 text-sm">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="notif-time" className="w-20">
+                  Time:
+                </Label>
+                <TimePicker
+                  value={notifications.dailyReminderTime}
+                  onChange={(time) =>
+                    handleNotificationChange({
+                      dailyReminderTime: time,
+                    })
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You'll receive a reminder at this time each day to review your
+                flashcards.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3">
+            <input
+              id="notif-streak"
+              type="checkbox"
+              checked={notifications.streakAtRisk}
+              onChange={(e) =>
+                handleNotificationChange({ streakAtRisk: e.target.checked })
+              }
+            />
+            <Label htmlWithfor="notif-streak" className="text-sm font-medium">
+              Streak at risk notifications
+            </Label>
+          </div>
+          <p className="ml-4 text-xs text-muted-foreground">
+            Get notified at 8 PM local time if you haven't reviewed today to
+            prevent losing your streak.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3">
+            <input
+              id="notif-milestone"
+              type="checkbox"
+              checked={notifications.milestoneCongrats}
+              onChange={(e) =>
+                handleNotificationChange({ milestoneCongrats: e.target.checked })
+              }
+            />
+            <Label htmlWithfor="notif-milestone" className="text-sm font-medium">
+              Milestone celebrations
+            </Label>
+          </div>
+          <p className="ml-4 text-xs text-muted-foreground">
+            Celebrate when you hit 7, 14, 30, 50, and 100 day streaks!
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3">
+            <input
+              id="notif-weekly"
+              type="checkbox"
+              checked={notifications.weeklySummary}
+              onChange={(e) =>
+                handleNotificationChange({ weeklySummary: e.target.checked })
+              }
+            />
+            <Label htmlWithfor="notif-weekly" className="text-sm font-medium">
+              Weekly progress summary
+            </Label>
+          </div>
+          <p className="ml-4 text-xs text-muted-foreground">
+            Receive a summary of your learning progress every Monday morning.
+          </p>
+        </div>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

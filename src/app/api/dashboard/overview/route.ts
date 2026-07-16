@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { computeOverallMasteryForUser } from "@/lib/learning/mastery";
-import { computeStreak } from "@/lib/learning/streak";
+import { computeStreak, uniqueDayKeys } from "@/lib/learning/streak";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
+import { getForecastLabel } from "@/lib/learning/priorityScoring";
 
 /** Generic record type for in-memory DB results — replaces bare `any`. */
 type DbRecord = Record<string, unknown>;
@@ -54,6 +55,28 @@ export async function GET() {
     const overallMastery = await computeOverallMasteryForUser(userId);
     const masteryPercentage = overallMastery.masteryPercentage;
 
+    // Build heatmap data: date keys for the last 16 weeks of review activity
+    const fullUserProblems = await dbClient.userProblem.findMany({
+      where: { userId },
+      select: { lastReviewedAt: true, nextReviewAt: true },
+    }) as unknown as UserProblemRecord[];
+
+    const reviewDayKeys = uniqueDayKeys(
+      fullUserProblems.map((up) => up.lastReviewedAt ? new Date(up.lastReviewedAt) : undefined)
+    );
+
+    // Forecast: compute next-review labels for the 10 most recent problems
+    const recentWithForecast = fullUserProblems
+      .filter((up) => up.nextReviewAt)
+      .sort((a, b) => new Date(b.lastReviewedAt ?? 0).getTime() - new Date(a.lastReviewedAt ?? 0).getTime())
+      .slice(0, 10)
+      .map((up) => ({
+        nextReviewAt: up.nextReviewAt,
+        forecastLabel: getForecastLabel(
+          up.nextReviewAt instanceof Date ? up.nextReviewAt : new Date(up.nextReviewAt)
+        ),
+      }));
+
     return NextResponse.json({
       totalSeen,
       masteryPercentage,
@@ -64,6 +87,8 @@ export async function GET() {
       lastReviewDate: streakInfo.lastReviewDate,
       attemptedCount: overallMastery.attemptedCount,
       totalProblems: overallMastery.totalProblems,
+      reviewDayKeys,
+      forecast: recentWithForecast,
     });
   } catch (error) {
     console.error("Error fetching dashboard overview:", error);
@@ -78,6 +103,8 @@ export async function GET() {
         lastReviewDate: null,
         attemptedCount: 0,
         totalProblems: 0,
+        reviewDayKeys: [],
+        forecast: [],
       },
       { status: 200 }
     );

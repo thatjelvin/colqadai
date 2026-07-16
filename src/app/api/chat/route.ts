@@ -7,6 +7,7 @@ import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@/lib/db-types";
+import { buildStudentContext } from "@/lib/learning/studentContext";
 
 /** Generic record type for in-memory DB results — replaces bare `any`. */
 type DbRecord = Record<string, unknown>;
@@ -62,6 +63,7 @@ const chatSchema = z.object({
   message: z.string().min(1),
   sessionId: z.string().nullable(),
   problemId: z.string().nullable(),
+  tutoringMode: z.enum(["socratic", "direct"]).optional().default("socratic"),
 });
 
 export async function POST(req: NextRequest) {
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, sessionId, problemId } = parsed.data;
+    const { message, sessionId, problemId, tutoringMode } = parsed.data;
 
     await consumeUsage(userId, UsageFeature.CHAT_MESSAGE, 1);
     const billingProfile = await getBillingProfile(userId);
@@ -136,6 +138,13 @@ export async function POST(req: NextRequest) {
     // Build system prompt
     let systemPrompt = "";
 
+    const socraticInstructions =
+      "\n\nTutoring mode: SOCRATIC\n"
+      + "- NEVER give the answer directly. Always ask guiding questions.\n"
+      + "- Lead the student to discover the answer through questions like: What do you think the first step should be? What patterns do you notice? Can you explain your reasoning?\n"
+      + "- If the student asks for the solution directly, offer a hint instead and ask them to try.\n"
+      + "- Praise their reasoning process, not just correct answers.\n";
+
     if (problemId) {
       // Problem-scoped chat
       const problem = await dbClient.problem.findUnique({
@@ -185,13 +194,29 @@ Your role:
 - Use LaTeX for all mathematical notation, wrapped in $...$ for inline and $$...$$ for display
 - Be concise - this is a chat interface, not an essay
 ${revealRule}`;
+
+        if (tutoringMode === "socratic") {
+          systemPrompt += socraticInstructions;
+        }
       }
     } else {
       // Freeform chat
-      systemPrompt = `You are a helpful mathematics assistant for university students.
+      if (tutoringMode === "socratic") {
+        systemPrompt = `You are a Socratic mathematics tutor. Your purpose is to help students discover mathematical truths through questioning.
+
+${socraticInstructions}
+
+Use LaTeX for all mathematical notation wrapped in $...$ for inline and $$...$$ for display math.`;
+      } else {
+        systemPrompt = `You are a helpful mathematics assistant for university students.
 Use LaTeX for all mathematical notation wrapped in $...$ for inline and $$...$$ for display math.
 Be clear, rigorous, and concise.`;
+      }
     }
+
+    // Inject student history context (Khan Academy 2026: +3.4% improvement)
+    const studentContext = await buildStudentContext(userId);
+    systemPrompt += `\n\n${studentContext}`;
 
     // Build message history in OpenAI format
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [

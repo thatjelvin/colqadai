@@ -16,24 +16,12 @@ type StepOption = {
 type Step = {
   id: number;
   question: string;
-  field: "course" | "grade" | "challenge" | "source" | "goal" | "pace" | "diagnostic";
+  field: "course" | "grade" | "challenge" | "source";
   options: StepOption[];
   variant?: "cards" | "logos";
-  questions?: DiagnosticQuestion[]; // For diagnostic step
 };
 
-type DiagnosticQuestion = {
-  id: number;
-  question: string;
-  options: {
-    id: string;
-    text: string;
-    correctness: number; // 0-2 points based on difficulty
-    topic: string;
-  }[];
-};
-
-// ─── Course list ─────────────────────────────────────────────────────────────
+// ─── Course list ──────────────────────────────────────────────────────────────
 
 type CourseGroup = { group: string; courses: string[] };
 
@@ -88,7 +76,7 @@ const COURSE_GROUPS: CourseGroup[] = [
   },
 ];
 
-// ─── Searchable course combobox ──────────────────────────────────────────────
+// ─── Searchable course combobox ───────────────────────────────────────────────
 
 function CourseCombobox({
   value,
@@ -313,112 +301,7 @@ const PLATFORM_OPTIONS: StepOption[] = [
   },
 ];
 
-// ─── Diagnostic Questions ────────────────────────────────────────────────────
-
-const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
-  {
-    id: 1,
-    question: "What is the value of x in the equation 2x + 5 = 15?",
-    options: [
-      { id: "a", text: "x = 3", correctness: 0, topic: "algebra" },
-      { id: "b", text: "x = 5", correctness: 2, topic: "algebra" },
-      { id: "c", text: "x = 7", correctness: 0, topic: "algebra" },
-      { id: "d", text: "x = 10", correctness: 0, topic: "algebra" },
-    ],
-  },
-  {
-    id: 2,
-    question: "What is the derivative of f(x) = x² + 3x + 2?",
-    options: [
-      { id: "a", text: "f'(x) = 2x", correctness: 0, topic: "calculus" },
-      { id: "b", text: "f'(x) = 2x + 3", correctness: 2, topic: "calculus" },
-      { id: "c", text: "f'(x) = x² + 3", correctness: 0, topic: "calculus" },
-      { id: "d", text: "f'(x) = 2x + 2", correctness: 0, topic: "calculus" },
-    ],
-  },
-  {
-    id: 3,
-    question: "What is the area of a triangle with base 8 cm and height 5 cm?",
-    options: [
-      { id: "a", text: "13 cm²", correctness: 0, topic: "geometry" },
-      { id: "b", text: "20 cm²", correctness: 0, topic: "geometry" },
-      { id: "c", text: "40 cm²", correctness: 0, topic: "geometry" },
-      { id: "d", text: "20 cm²", correctness: 2, topic: "geometry" },
-    ],
-  },
-  {
-    id: 4,
-    question: "What is the limit as x approaches 0 of sin(x)/x?",
-    options: [
-      { id: "a", text: "0", correctness: 0, topic: "calculus" },
-      { id: "b", text: "1", correctness: 2, topic: "calculus" },
-      { id: "c", text: "∞", correctness: 0, topic: "calculus" },
-      { id: "d", text: "Does not exist", correctness: 0, topic: "calculus" },
-    ],
-  },
-  {
-    id: 5,
-    question: "If P(A) = 0.4 and P(B) = 0.5, and A and B are independent, what is P(A ∩ B)?",
-    options: [
-      { id: "a", text: "0.1", correctness: 0, topic: "statistics" },
-      { id: "b", text: "0.2", correctness: 2, topic: "statistics" },
-      { id: "c", text: "0.6", correctness: 0, topic: "statistics" },
-      { id: "d", text: "0.9", correctness: 0, topic: "statistics" },
-    ],
-  },
-  {
-    id: 6,
-    question: "What is the integral of f(x) = 3x² dx?",
-    options: [
-      { id: "a", text: "x³ + C", correctness: 2, topic: "calculus" },
-      { id: "b", text: "3x + C", correctness: 0, topic: "calculus" },
-      { id: "c", text: "6x + C", correctness: 0, topic: "calculus" },
-      { id: "d", text: "x² + C", correctness: 0, topic: "calculus" },
-    ],
-  },
-  {
-    id: 7,
-    question: "What is the slope of the line passing through points (2, 3) and (5, 9)?",
-    options: [
-      { id: "a", text: "1", correctness: 0, topic: "algebra" },
-      { id: "b", text: "2", correctness: 2, topic: "algebra" },
-      { id: "c", text: "3", correctness: 0, topic: "algebra" },
-      { id: "d", text: "4", correctness: 0, topic: "algebra" },
-    ],
-  },
-  {
-    id: 8,
-    question: "What is the value of log₂(8)?",
-    options: [
-      { id: "a", text: "2", correctness: 0, topic: "algebra" },
-      { id: "b", text: "3", correctness: 2, topic: "algebra" },
-      { id: "c", text: "4", correctness: 0, topic: "algebra" },
-      { id: "d", text: "8", correctness: 0, topic: "algebra" },
-    ],
-  },
-  {
-    id: 9,
-    question: "What is the standard deviation of the data set: 2, 4, 4, 4, 5, 5, 7, 9?",
-    options: [
-      { id: "a", text: "1.5", correctness: 0, topic: "statistics" },
-      { id: "b", text: "2.0", correctness: 2, topic: "statistics" },
-      { id: "c", text: "2.5", correctness: 0, topic: "statistics" },
-      { id: "d", text: "3.0", correctness: 0, topic: "statistics" },
-    ],
-  },
-  {
-    id: 10,
-    question: "If f(x) = eˣ, what is f'(x)?",
-    options: [
-      { id: "a", text: "eˣ", correctness: 2, topic: "calculus" },
-      { id: "b", text: "xeˣ", correctness: 0, topic: "calculus" },
-      { id: "c", text: "eˣ⁺¹", correctness: 0, topic: "calculus" },
-      { id: "d", text: "1", correctness: 0, topic: "calculus" },
-    ],
-  },
-];
-
-// ─── Step definitions ────────────────────────────────────────────────────────
+// ─── Step definitions ─────────────────────────────────────────────────────────
 
 const STEPS: Step[] = [
   {
@@ -453,34 +336,6 @@ const STEPS: Step[] = [
   },
   {
     id: 4,
-    question: "What's your main goal for using Colqad?",
-    field: "goal",
-    options: [
-      { value: "Exam preparation", label: "Exam preparation", emoji: "📝", description: "Prepare for upcoming exams" },
-      { value: "Course support", label: "Course support", emoji: "📚", description: "Keep up with current coursework" },
-      { value: "Self-study", label: "Self-study", emoji: "🔍", description: "Learn topics independently" },
-      { value: "Skill improvement", label: "Skill improvement", emoji: "💪", description: "Get better at math overall" },
-    ],
-  },
-  {
-    id: 5,
-    question: "What's your preferred learning pace?",
-    field: "pace",
-    options: [
-      { value: "Relaxed", label: "Relaxed", emoji: "😌", description: "Take time to understand concepts deeply" },
-      { value: "Balanced", label: "Balanced", emoji: "⚖️", description: "Steady progress with regular practice" },
-      { value: "Intensive", label: "Intensive", emoji: "💥", description: "Fast-paced learning with lots of practice" },
-    ],
-  },
-  {
-    id: 6,
-    question: "Let's assess your math skills with a quick diagnostic quiz",
-    field: "diagnostic",
-    options: [],
-    questions: DIAGNOSTIC_QUESTIONS,
-  },
-  {
-    id: 7,
     question: "How did you hear about Colqad?",
     field: "source",
     options: PLATFORM_OPTIONS,
@@ -557,48 +412,7 @@ function LogoCard({
   );
 }
 
-// ─── Diagnostic question component ───────────────────────────────────────────
-
-function DiagnosticQuestionCard({
-  question,
-  selectedOption,
-  onOptionSelect,
-}: {
-  question: DiagnosticQuestion;
-  selectedOption: string | null;
-  onOptionSelect: (questionId: number, optionId: string) => void;
-}) {
-  return (
-    <div className="border rounded-xl border-border p-6 mb-4">
-      <h3 className="text-lg font-medium mb-4">{question.question}</h3>
-      <div className="space-y-3">
-        {question.options.map((option) => (
-          <label
-            key={option.id}
-            className={`flex items-start gap-3 p-3 rounded-lg border border-${selectedOption === option.id ? "primary" : "border"} ${
-              selectedOption === option.id ? "bg-primary/5" : "bg-card"
-            } cursor-pointer hover:border-primary/40 transition-colors`}
-            onClick={() => onOptionSelect(question.id, option.id)}
-          >
-            <div className="flex-shrink-0 flex h-5 w-5 items-center justify-center">
-              {selectedOption === option.id && (
-                <span className="text-primary text-sm">●</span>
-              )}
-            </div>
-            <div>
-              <p className="font-medium">{option.text}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Topic: {option.topic}
-              </p>
-            </div>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Progress bar ────────────────────────────────────────────────────────────
+// ─── Progress bar ─────────────────────────────────────────────────────────────
 
 function StepProgress({ current, total }: { current: number; total: number }) {
   return (
@@ -615,7 +429,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
   );
 }
 
-// ─── All-set screen ─────────────────────────────────────────────────────────
+// ─── All-set screen ───────────────────────────────────────────────────────────
 
 function AllSetScreen({
   name,
@@ -651,13 +465,12 @@ function AllSetScreen({
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0); // 0-indexed; STEPS.length = done screen
-  const [answers, setAnswers] = useState<Record<string, string | string[] | number | null>>({});
-  const [diagnosticAnswers, setDiagnosticAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -667,84 +480,19 @@ export default function OnboardingPage() {
 
   const selectOption = (value: string) => {
     if (!step) return;
-    setAnswers((prev) => ({ ...prev, [step.field, [step.field]: value }));
-  };
-
-  const selectDiagnosticOption = (questionId: number, optionId: string) => {
-    setDiagnosticAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    setAnswers((prev) => ({ ...prev, [step.field]: value }));
   };
 
   const goNext = () => {
     if (!step) return;
-
-    // Validate current step
-    if (step.field === "diagnostic") {
-      // Check if all diagnostic questions are answered
-      const answeredCount = Object.keys(diagnosticAnswers).length;
-      if (answeredCount < DIAGNOSTIC_QUESTIONS.length) {
-        setError("Please answer all questions before continuing");
-        return;
-      }
-    } else if (!step.field.match(/course|source/) && !selectedValue) {
-      // For non-course/source steps, check if a value is selected
-      setError("Please select an option before continuing");
-      return;
-    }
-
+    if (!answers[step.field]) return; // guard
     setCurrentStep((s) => s + 1);
-    setError(null);
-  };
-
-  const calculateDiagnosticScore = () => {
-    let totalScore = 0;
-    let maxScore = 0;
-
-    DIAGNOSTIC_QUESTIONS.forEach((question) => {
-      const selectedOptionId = diagnosticAnswers[question.id];
-      if (selectedOptionId) {
-        const selectedOption = question.options.find(opt => opt.id === selectedOptionId);
-        if (selectedOption) {
-          totalScore += selectedOption.correctness;
-        }
-      }
-      maxScore += 2; // Each question is worth up to 2 points
-    });
-
-    // Convert to 0-10 scale
-    return Math.round((totalScore / maxScore) * 10);
-  };
-
-  const determineRecommendations = (score: number) => {
-    let recommendedTopic = "limits-continuity"; // Default starting point
-    let difficultyLevel = 1; // Default beginner level
-
-    if (score >= 0 && score <= 3) {
-      // Struggling with basics - start with pre-calculus concepts
-      recommendedTopic = "algebra-basics"; // We'd need to add this to topics
-      difficultyLevel = 1;
-    } else if (score >= 4 && score <= 6) {
-      # TODO: I'll continue this function in the next part due to length
-      recommendedTopic = "limits-continuity";
-      difficultyLevel = 2;
-    } else {
-      // Good understanding - can start with calculus
-      recommendedTopic = "differential-calculus";
-      difficultyLevel = 3;
-    }
-
-    return { recommendedTopic, difficultyLevel };
   };
 
   const submit = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Calculate diagnostic score and recommendations
-      const diagnosticScore = step.field === "diagnostic" ? calculateDiagnosticScore() : null;
-      const { recommendedTopic, difficultyLevel } = diagnosticScore !== null
-        ? determineRecommendations(diagnosticScore)
-        : { recommendedTopic: null, difficultyLevel: null };
-
       const res = await fetch("/api/user/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -753,15 +501,8 @@ export default function OnboardingPage() {
           course: answers.course ?? "",
           source: answers.source,
           challenge: answers.challenge,
-          goal: answers.goal,
-          pace: answers.pace,
-          diagnosticScore,
-          recommendedTopic,
-          difficultyLevel,
-          diagnosticAnswers: Object.values(diagnosticAnswers),
         }),
       });
-
       if (res.ok) {
         // Advance to the done screen only after a confirmed save.
         setCurrentStep(STEPS.length);
@@ -783,11 +524,9 @@ export default function OnboardingPage() {
   const canProceed =
     step?.field === "course"
       ? !!answers.course
-      : step.field === "diagnostic"
-        ? Object.keys(diagnosticAnswers).length === DIAGNOSTIC_QUESTIONS.length
-        : step.field === "source"
-          ? true
-          : !!selectedValue;
+      : step?.field === "source"
+        ? true
+      : !!selectedValue;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center p-4">
@@ -833,26 +572,8 @@ export default function OnboardingPage() {
                     onChange={(val) => setAnswers((prev) => ({ ...prev, course: val }))}
                   />
                 </div>
-              ) : step.field === "diagnostic" ? (
-                /* Step 6: diagnostic quiz */
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Answer all 10 questions to help us place you at the right level.
-                  </p>
-                  {DIAGNOSTIC_QUESTIONS.map((question) => (
-                    <DiagnosticQuestionCard
-                      key={question.id}
-                      question={question}
-                      selectedOption={diagnosticAnswers[question.id]}
-                      onOptionSelect={selectDiagnosticOption}
-                    />
-                  ))}
-                  <div className="text-right text-sm text-muted-foreground">
-                    {Object.keys(diagnosticAnswers).length}/{DIAGNOSTIC_QUESTIONS.length} completed
-                  </div>
-                </div>
               ) : step.variant === "logos" ? (
-                /* Step 7: logo cards */
+                /* Step 4: logo cards */
                 <div className="grid grid-cols-4 gap-3 mb-8">
                   {step.options.map((opt) => (
                     <LogoCard

@@ -1,323 +1,39 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
+// datasource block removed; configuration provided via prisma.config.ts
 model User {
-  id            String    @id @default(cuid())
-  supabaseId    String?   @unique
-  email         String    @unique
-  name          String?
-  image         String?
-  emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  grade                        String?
-  course                       String?
-  age                          Int?
-  source                       String?
-  plan                         Plan               @default(FREE)
-  subscriptionStatus           SubscriptionStatus @default(INACTIVE)
-  subscriptionCurrentPeriodEnd DateTime?
-  paddleCustomerId             String?
-  paddleSubscriptionId         String?
-  paddlePriceId                String?
-  tier                         Tier               @default(FREE)
-  referralCode                 String?            @unique
-  referralPromptedAt           DateTime?
-  proUntil                     DateTime?
-  referredById                 String?
-  referredBy                   User?              @relation("Referral", fields: [referredById], references: [id])
-  referrals                    User[]             @relation("Referral")
-  userProblems          UserProblem[]
-  attempts              ProblemAttempt[]
-  reflections           Reflection[]
-  workedExampleSessions WorkedExampleSession[]
-  learningAnalytics     LearningAnalytics[]
-  chatSessions          ChatSession[]
-  usageEvents           UsageEvent[]
-  notebooks             Notebook[]
-  notebookDocuments     NotebookDocument[]
-  notebookChunks        NotebookChunk[]
-  notebookSummaries     NotebookSummary[]
-  notebookConcepts      NotebookConcept[]
+  id   String @id @default(cuid())
+  // Additional fields can be added if needed for typing, but not required for relations
 }
 
-model Topic {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  parentId    String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  parent   Topic?    @relation("TopicHierarchy", fields: [parentId], references: [id])
-  children Topic[]   @relation("TopicHierarchy")
-  problems Problem[]
-}
-
-model Problem {
-  id         String     @id @default(cuid())
-  topicId    String
-  title      String
-  body       String // LaTeX problem statement
-  solution   String // LaTeX solution
-  topicTag   String?    @map("topic_tag")
-  difficulty Difficulty
-  createdAt  DateTime   @default(now())
-
-  topic                 Topic                  @relation(fields: [topicId], references: [id])
-  userProblems          UserProblem[]
-  attempts              ProblemAttempt[]
-  reflections           Reflection[]
-  workedExampleSessions WorkedExampleSession[]
-  chatSessions          ChatSession[]
-}
-
-model UserProblem {
-  id                    String       @id @default(cuid())
-  userId                String
-  problemId             String
-  easeFactor            Float        @default(2.5)
-  interval              Int          @default(1) // days until next review
-  repetitions           Int          @default(0) // consecutive successful reviews
-  nextReviewAt          DateTime
-  lastReviewedAt        DateTime?
-  timeTaken             Int? // time taken in seconds
-  attemptsBeforeCorrect Int          @default(0) @map("attempts_before_correct")
-  status                ReviewStatus @default(NEW)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem               Problem                @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  attempts              ProblemAttempt[]
-  workedExampleSessions WorkedExampleSession[]
-
-  @@unique([userId, problemId])
-}
-
-model ProblemAttempt {
-  id                    String     @id @default(cuid())
-  userId                String
-  problemId             String
-  userProblemId         String?
-  userAnswer            String     @db.Text
-  isCorrect             Boolean    @default(false)
-  attemptNumber         Int        @default(1)
-  attemptsBeforeCorrect Int        @default(0) @map("attempts_before_correct")
-  selfQuizMode          Boolean    @default(false) @map("self_quiz_mode")
-  errorType             ErrorType? @map("error_type")
-  errorExplanation      String?    @map("error_explanation")
-  createdAt             DateTime   @default(now())
-
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem     Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  userProblem UserProblem? @relation(fields: [userProblemId], references: [id], onDelete: SetNull)
-  reflections Reflection[]
-
-  @@index([userId, createdAt])
-  @@index([problemId, createdAt])
-}
-
-model Reflection {
+model NotificationPreference {
   id        String   @id @default(cuid())
-  userId    String
-  problemId String
-  attemptId String?
-  prompt    String   @db.Text
-  response  String   @db.Text
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dailyReminder       Boolean   @default(true)
+  dailyReminderTime   String    @default("09:00") // HH:MM format
+  streakAtRisk        Boolean   @default(true)
+  milestoneCongrats   Boolean   @default(true)
+  weeklySummary       Boolean   @default(false)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem Problem         @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  attempt ProblemAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
+  @@index([userId])
 }
 
-model WorkedExampleSession {
-  id                   String   @id @default(cuid())
-  userId               String
-  problemId            String
-  userProblemId        String?
-  studyDurationSeconds Int      @default(0) @map("study_duration_seconds")
-  generateAttempt      String?  @map("generate_attempt") @db.Text
-  selfAssessedMatch    Boolean? @map("self_assessed_match")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem     Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  userProblem UserProblem? @relation(fields: [userProblemId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-}
-
-model FeatureFlag {
-  id          String   @id @default(cuid())
-  featureName String   @unique @map("feature_name")
-  enabled     Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("feature_flags")
-}
-
-model LearningAnalytics {
-  id         String         @id @default(cuid())
-  userId     String
-  sessionKey String         @map("session_key")
-  method     LearningMethod
-  aggregate  Json
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, sessionKey, method])
-  @@index([userId, createdAt])
-  @@map("learning_analytics")
-}
-
-model ChatSession {
+model PushSubscription {
   id        String   @id @default(cuid())
-  userId    String
-  problemId String? // nullable - chat can be about a problem or freeform
-  title     String?
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String
+  p256dh    String
+  auth      String
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem  Problem?      @relation(fields: [problemId], references: [id])
-  messages ChatMessage[]
-}
-
-model ChatMessage {
-  id        String      @id @default(cuid())
-  sessionId String
-  role      MessageRole
-  content   String      @db.Text
-  createdAt DateTime    @default(now())
-
-  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-}
-
-model UsageEvent {
-  id        String       @id @default(cuid())
-  userId    String
-  feature   UsageFeature
-  bucket    DateTime // UTC start-of-day bucket
-  count     Int          @default(0)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, feature, bucket])
-}
-
-model Notebook {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents NotebookDocument[]
-  chunks    NotebookChunk[]
-  summaries NotebookSummary[]
-  concepts  NotebookConcept[]
-
-  @@index([userId, updatedAt])
-}
-
-model NotebookDocument {
-  id              String                  @id @default(cuid())
-  notebookId      String
-  userId          String
-  title           String
-  sourceType      NotebookSourceType
-  mimeType        String?
-  byteSize        Int?
-  rawText         String                  @db.Text
-  contentHash     String
-  ingestionStatus NotebookIngestionStatus @default(PROCESSED)
-  chunkCount      Int                     @default(0)
-  charCount       Int                     @default(0)
-  storageMetadata Json?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-
-  notebook Notebook        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks   NotebookChunk[]
-
-  @@index([notebookId, createdAt])
-  @@index([userId, createdAt])
-}
-
-model NotebookChunk {
-  id          String   @id @default(cuid())
-  notebookId  String
-  documentId  String
-  userId      String
-  chunkIndex  Int
-  content     String   @db.Text
-  contentHash String
-  charCount   Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  notebook Notebook         @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  document NotebookDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, chunkIndex])
-  @@index([notebookId, chunkIndex])
-  @@index([userId, createdAt])
-}
-
-model NotebookSummary {
-  id             String   @id @default(cuid())
-  notebookId     String
-  userId         String
-  summary        String   @db.Text
-  keyPoints      Json?
-  sourceChunkIds Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([notebookId, createdAt])
-  @@index([userId, createdAt])
-}
-
-model NotebookConcept {
-  id               String   @id @default(cuid())
-  notebookId       String
-  userId           String
-  name             String
-  explanation      String   @db.Text
-  evidenceChunkIds Json?
-  confidence       Float?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([notebookId, createdAt])
-  @@index([userId, createdAt])
+  @@index([userId])
 }
 
 enum Difficulty {
@@ -326,76 +42,64 @@ enum Difficulty {
   HARD
 }
 
-enum ReviewStatus {
-  NEW
-  LEARNING
-  REVIEW
-  MASTERED
+enum Pace {
+  SLOW
+  MODERATE
+  FAST
 }
 
-enum MessageRole {
-  USER
-  ASSISTANT
+enum NodeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }
 
-enum Tier {
-  FREE
-  PRO
-  MAX
+model OnboardingQuestion {
+  id            String   @id @default(cuid())
+  topic         String
+  difficulty    Difficulty
+  question      String
+  options       Json
+  correctAnswer String
+  explanation   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-enum Plan {
-  FREE
-  PRO
-  MAX
+model UserOnboardingResult {
+  id                String   @id @default(cuid())
+  user              User     @relation(fields: [userId], references: [id])
+  userId            String   @unique
+  answers           Json
+  initialTopic      String?
+  initialDifficulty Difficulty?
+  goal              String?
+  pace              Pace?
+  completedAt       DateTime @default(now())
 }
 
-enum SubscriptionStatus {
-  INACTIVE
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  TRIALING
+model LearningPath {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  version       Int      @default(1)
+  generatedAt   DateTime @default(now())
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-enum UsageFeature {
-  CHAT_MESSAGE
-  NEW_CHAT_SESSION
-  PROBLEM_START
-}
-
-enum ErrorType {
-  CONCEPTUAL_GAP
-  ALGEBRAIC_SLIP
-  MISREAD_QUESTION
-  FORMULA_RECALL_FAILURE
-  WRONG_METHOD_CHOSEN
-}
-
-enum LearningMethod {
-  SPACED_REPETITION
-  RETRIEVAL_PRACTICE
-  INTERLEAVED_PRACTICE
-  ELABORATIVE_INTERROGATION
-  WORKED_EXAMPLE_STUDY
-  ERROR_ANALYSIS
-}
-
-enum NotebookSourceType {
-  TEXT
-  PDF
-}
-
-enum NotebookIngestionStatus {
-  PENDING
-  PROCESSED
-  FAILED
-}
-
-model Referral {
-  id             String   @id @default(cuid())
-  referrerId     String
-  referredUserId String   @unique
-  createdAt      DateTime @default(now())
-  rewarded       Boolean  @default(false)
+model LearningPathNode {
+  id               String   @id @default(cuid())
+  learningPath     LearningPath @relation(fields: [learningPathId], references: [id])
+  learningPathId   String
+  topicSlug        String
+  weekNumber       Int
+  orderInWeek      Int
+  status           NodeStatus @default(NOT_STARTED)
+  masteryTarget    Float @default(0.8)
+  estimatedMinutes Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
