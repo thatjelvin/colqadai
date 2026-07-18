@@ -20,8 +20,10 @@ export async function incrementConceptualGapError(
     return;
   }
 
-  const metadata = userRes.user.metadata || {};
-  const misconceptionCounts = metadata.misconception_counts || {};
+  const user = userRes.user;
+  if (!user) return;
+  const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const misconceptionCounts = (metadata.misconception_counts ?? {}) as Record<string, number>;
 
   // Increment the count for the topic
   const currentCount = misconceptionCounts[topicSlug] || 0;
@@ -30,7 +32,7 @@ export async function incrementConceptualGapError(
   // Update the user's metadata
   await supabase
     .auth.admin.updateUserById(userId, {
-      data: {
+      user_metadata: {
         misconception_counts: {
           ...misconceptionCounts,
           [topicSlug]: newCount,
@@ -61,8 +63,10 @@ export async function isMisconceptionDetected(
     return false;
   }
 
-  const metadata = userRes.user.metadata || {};
-  const misconceptionCounts = metadata.misconception_counts || {};
+  const user = userRes.user;
+  if (!user) return false;
+  const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const misconceptionCounts = (metadata.misconception_counts ?? {}) as Record<string, number>;
   const count = misconceptionCounts[topicSlug] || 0;
 
   return count >= 3;
@@ -88,13 +92,15 @@ export async function resetConceptualGapError(
     return;
   }
 
-  const metadata = userRes.user.metadata || {};
-  const misconceptionCounts = metadata.misconception_counts || {};
+  const user = userRes.user;
+  if (!user) return;
+  const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const misconceptionCounts = (metadata.misconception_counts ?? {}) as Record<string, number>;
 
   // Set the count for this topic to 0
   await supabase
     .auth.admin.updateUserById(userId, {
-      data: {
+      user_metadata: {
         misconception_counts: {
           ...misconceptionCounts,
           [topicSlug]: 0,

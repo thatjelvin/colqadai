@@ -209,7 +209,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ dailyReminder: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-daily" className="text-sm font-medium">
+            <Label htmlFor="notif-daily" className="text-sm font-medium">
               Daily review reminders
             </Label>
           </div>
@@ -246,7 +246,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ streakAtRisk: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-streak" className="text-sm font-medium">
+            <Label htmlFor="notif-streak" className="text-sm font-medium">
               Streak at risk notifications
             </Label>
           </div>
@@ -266,7 +266,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ milestoneCongrats: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-milestone" className="text-sm font-medium">
+            <Label htmlFor="notif-milestone" className="text-sm font-medium">
               Milestone celebrations
             </Label>
           </div>
@@ -285,7 +285,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ weeklySummary: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-weekly" className="text-sm font-medium">
+            <Label htmlFor="notif-weekly" className="text-sm font-medium">
               Weekly progress summary
             </Label>
           </div>

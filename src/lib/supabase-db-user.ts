@@ -11,6 +11,8 @@ grade: string | null;
 course: string | null;
 age: number | null;
 source: string | null;
+recommendedTopic: string | null;
+difficultyLevel: number | null;
 plan: Plan;
 subscriptionStatus: SubscriptionStatus;
 subscriptionCurrentPeriodEnd: Date | null;
@@ -48,7 +50,7 @@ let profile: ProfileRow | null = null;
 
 const { data, error } = await supabase
 .from("profiles")
-.select("id, full_name, avatar_url, grade, course, age, source, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at, onboarding_completed")
+.select("id, full_name, avatar_url, grade, course, age, source, recommended_topic, difficulty_level, plan, subscription_status, subscription_current_period_end, paddle_customer_id, paddle_subscription_id, paddle_price_id, created_at, onboarding_completed")
 .eq("id", supabaseId)
 .maybeSingle();
 
@@ -81,6 +83,8 @@ if (upsertError) {
     course: null,
     age: null,
     source: null,
+    recommended_topic: null,
+    difficulty_level: null,
     plan: Plan.FREE,
     subscription_status: SubscriptionStatus.INACTIVE,
     subscription_current_period_end: null,
@@ -114,6 +118,8 @@ grade: normalizedProfile?.grade ?? null,
 course: normalizedProfile?.course ?? null,
 age: normalizedProfile?.age ?? null,
 source: normalizedProfile?.source ?? null,
+recommendedTopic: normalizedProfile?.recommended_topic ?? null,
+difficultyLevel: normalizedProfile?.difficulty_level ?? null,
 plan: toPlan(normalizedProfile?.plan),
 subscriptionStatus: toSubscriptionStatus(normalizedProfile?.subscription_status),
 subscriptionCurrentPeriodEnd: normalizedProfile?.subscription_current_period_end

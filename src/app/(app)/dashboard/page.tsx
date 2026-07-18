@@ -470,7 +470,7 @@ export default function DashboardPage() {
                   <div key={material.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        {() => {
+                        {(() => {
                           const iconMap: Record<string, typeof FileText> = {
                             note: FileText,
                             pdf: FileText,
@@ -481,7 +481,7 @@ export default function DashboardPage() {
                           return (
                             <Icon className="h-4 w-4 text-muted-foreground" />
                           );
-                        }}
+                        })()}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{material.title}</p>
                           <p className="text-xs text-muted-foreground">
@@ -586,4 +586,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

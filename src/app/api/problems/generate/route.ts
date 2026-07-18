@@ -6,6 +6,13 @@ import { generateProblem } from "@/lib/learning/problemGenerator";
 
 export const dynamic = "force-dynamic";
 
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+const dbClient = db as unknown as { topic: DbModelDelegate; problem: DbModelDelegate };
+
 /**
  * Generate a new math problem using AI and save it to the database.
  * Expects a JSON body with optional fields:
@@ -36,28 +43,28 @@ export async function POST(request: NextRequest) {
     // Determine topic slug: from request, user profile, or default
     const finalTopicSlug = (topicSlug && topicSlug.trim())
       ? topicSlug.trim()
-      : (dbUser.recommended_topic as string) || "limits-continuity";
+      : dbUser.recommendedTopic || "limits-continuity";
 
     // Determine difficulty: from request, user profile, or default (3 = medium)
     const finalDifficulty = difficulty !== undefined && !isNaN(difficulty)
       ? Math.max(1, Math.min(5, Number(difficulty))) // Clamp to 1-5
-      : (dbUser.difficulty_level ?? 3);
+      : (dbUser.difficultyLevel ?? 3);
 
     // Look up the topic by slug to get its ID
     // We need to query the topic table; we assume it exists and has a slug field
-    const topicRecord = await db.topic.findFirst({
+    const topicRecord = await dbClient.topic.findFirst({
       where: { slug: finalTopicSlug },
       select: { id: true },
-    });
+    }) as { id: string } | null;
 
     if (!topicRecord) {
       // If the topic doesn't exist, we cannot create a problem without a topicId.
       // Fallback: create a problem without a topic? But the problem model requires a topicId.
       // Instead, we'll use a default topic (first topic in the database) or return an error.
       // Let's try to get any topic as a fallback.
-      const fallbackTopic = await db.topic.findFirst({
+      const fallbackTopic = await dbClient.topic.findFirst({
         select: { id: true },
-      });
+      }) as { id: string } | null;
 
       if (!fallbackTopic) {
         return NextResponse.json(
@@ -98,7 +105,7 @@ async function generateAndSaveProblem(
   );
 
   // Create a new problem record in the database
-  const newProblem = await db.problem.create({
+  const newProblem = await dbClient.problem.create({
     data: {
       // We need to know the exact field names in the problem model.
       // From usage, we see:
@@ -115,7 +122,7 @@ async function generateAndSaveProblem(
       },
       // Optional: we could track that this was AI-generated, but not required
     },
-  });
+  }) as { id: string };
 
   // Return the problem ID and the content so the client can use it immediately
   return NextResponse.json({

@@ -164,7 +164,7 @@ function TopicNodeItem({
     );
   }
 
-  const childIsMastered = child.progress?.percentage >= 100;
+  const childIsMastered = (topic.progress?.percentage ?? 0) >= 100;
   return (
     <div className="relative">
       {/* Connector line */}

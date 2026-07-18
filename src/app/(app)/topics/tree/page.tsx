@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { computeMasteryForAllTopics } from "@/lib/learning/mastery";
 import { findNextTopic, type TopicMasteryInfo } from "@/lib/learning/nextTopic";
 import { MasteryTree } from "@/components/MasteryTree";
-import { getPrerequisiteSlugs } from "@/data/prerequisites";
 
 type DbRecord = Record<string, unknown>;
 type DbModelDelegate = { findMany(args?: Record<string, unknown>): Promise<DbRecord[]> };
@@ -70,13 +69,10 @@ export default async function MasteryTreePage() {
 
   let nextTopicData = null;
   if (next) {
-    const prereqs = getPrerequisiteSlugs(next.slug);
-    const prereqNames = prereqs.map((s) => slugToName.get(s)).filter(Boolean) as string[];
     nextTopicData = {
       slug: next.slug,
       name: slugToName.get(next.slug) ?? next.slug,
       reason: next.reason,
-      prerequisites: prereqNames,
     };
   }
 

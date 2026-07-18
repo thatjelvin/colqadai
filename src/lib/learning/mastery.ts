@@ -218,7 +218,7 @@ export async function computeOverallMasteryForUser(
   const userProblems = await dbAny.userProblem.findMany({
     where: { userId },
     include: { problem: { include: { topic: true } } },
-  });
+  }) as UserProblemWithProblem[];
 
   const allTopics = new Set<string>();
   for (const up of userProblems) {
@@ -235,7 +235,7 @@ export async function computeOverallMasteryForUser(
   let totalScore = 0;
   let totalAttempted = 0;
   let totalProblems = 0;
-  for (const topic of allTopics) {
+  for (const topic of Array.from(allTopics)) {
     const mastery = await computeTopicMasteryForUser(userId, topic);
     totalScore += mastery.masteryPercentage;
     totalAttempted += mastery.attemptedProblems;
@@ -255,7 +255,7 @@ export async function computeMasteryForAllTopics(
   const userProblems = await dbAny.userProblem.findMany({
     where: { userId },
     include: { problem: { include: { topic: true } } },
-  });
+  }) as UserProblemWithProblem[];
 
   const topics = new Set<string>();
   for (const up of userProblems) {
@@ -266,7 +266,7 @@ export async function computeMasteryForAllTopics(
   }
 
   const result: Record<string, TopicMastery> = {};
-  for (const topic of topics) {
+  for (const topic of Array.from(topics)) {
     result[topic] = await computeTopicMasteryForUser(userId, topic);
   }
   return result;

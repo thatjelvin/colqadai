@@ -32,7 +32,7 @@ export function TimePicker({ value, onChange }: TimePickerProps) {
         value={time}
         onChange={handleChange}
         className="text-center"
-        inputMode="time"
+        inputMode="numeric"
       />
     </div>
   );

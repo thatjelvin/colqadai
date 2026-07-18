@@ -723,7 +723,6 @@ export default function OnboardingPage() {
       recommendedTopic = "algebra-basics"; // We'd need to add this to topics
       difficultyLevel = 1;
     } else if (score >= 4 && score <= 6) {
-      # TODO: I'll continue this function in the next part due to length
       recommendedTopic = "limits-continuity";
       difficultyLevel = 2;
     } else {
@@ -829,7 +828,7 @@ export default function OnboardingPage() {
               {step.field === "course" ? (
                 <div className="mb-8">
                   <CourseCombobox
-                    value={answers.course ?? ""}
+                    value={typeof answers.course === "string" ? answers.course : ""}
                     onChange={(val) => setAnswers((prev) => ({ ...prev, course: val }))}
                   />
                 </div>

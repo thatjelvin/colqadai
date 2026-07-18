@@ -106,7 +106,7 @@ function withIncludes(model: string, record: AnyRecord, include: AnyRecord | und
   if (model === "chatSession" && include.messages) {
     const messageRows = ensureModel("chatMessage").filter((row) => row.sessionId === record.id);
     const messagesCfg = include.messages && typeof include.messages === "object" && "orderBy" in include.messages ? include.messages as AnyRecord : undefined;
-    const msgOrderBy = messagesCfg?.orderBy;
+    const msgOrderBy = messagesCfg?.orderBy as AnyRecord | AnyRecord[] | undefined;
     out.messages = sortRecords(messageRows, msgOrderBy);
   }
 
@@ -114,7 +114,8 @@ function withIncludes(model: string, record: AnyRecord, include: AnyRecord | und
     if (include.children) {
       const children = ensureModel("topic").filter((row) => row.parentId === record.id);
       const childCfg = typeof include.children === "object" && "include" in include.children ? include.children as AnyRecord : undefined;
-      out.children = children.map((child) => withIncludes("topic", child, childCfg?.include));
+      const childInclude = childCfg?.include as AnyRecord | undefined;
+      out.children = children.map((child) => withIncludes("topic", child, childInclude));
     }
     if (include.problems) {
       out.problems = ensureModel("problem").filter((row) => row.topicId === record.id);
@@ -129,9 +130,13 @@ function modelDelegate(model: string) {
 
   return {
     findMany: async (args: AnyRecord = {}) => {
-      const filtered = rows.filter((row) => matchesWhere(row, args.where));
-      const sorted = sortRecords(filtered, args.orderBy);
-      return sorted.map((row) => applySelect(withIncludes(model, row, args.include), args.select));
+      const where = args.where as AnyRecord | undefined;
+      const orderBy = args.orderBy as AnyRecord | AnyRecord[] | undefined;
+      const include = args.include as AnyRecord | undefined;
+      const select = args.select as AnyRecord | undefined;
+      const filtered = rows.filter((row) => matchesWhere(row, where));
+      const sorted = sortRecords(filtered, orderBy);
+      return sorted.map((row) => applySelect(withIncludes(model, row, include), select));
     },
 
     findFirst: async (args: AnyRecord = {}) => {
@@ -140,12 +145,16 @@ function modelDelegate(model: string) {
     },
 
     findUnique: async (args: AnyRecord = {}) => {
-      const list = await modelDelegate(model).findMany({ where: args.where, include: args.include, select: args.select });
+      const list = await modelDelegate(model).findMany({
+        where: args.where as AnyRecord | undefined,
+        include: args.include as AnyRecord | undefined,
+        select: args.select as AnyRecord | undefined,
+      });
       return list[0] ?? null;
     },
 
     create: async (args: AnyRecord = {}) => {
-      const data = { ...args.data };
+      const data = { ...(args.data as AnyRecord | undefined) };
       const now = new Date();
       const created = {
         id: data.id ?? generateId(),
@@ -154,8 +163,8 @@ function modelDelegate(model: string) {
         ...data,
       };
       rows.push(created);
-      const withIncluded = withIncludes(model, created, args.include);
-      return applySelect(withIncluded, args.select);
+      const withIncluded = withIncludes(model, created, args.include as AnyRecord | undefined);
+      return applySelect(withIncluded, args.select as AnyRecord | undefined);
     },
 
     createMany: async (args: AnyRecord = {}) => {
@@ -167,14 +176,15 @@ function modelDelegate(model: string) {
     },
 
     update: async (args: AnyRecord = {}) => {
-      const idx = rows.findIndex((row) => matchesWhere(row, args.where));
+      const idx = rows.findIndex((row) => matchesWhere(row, args.where as AnyRecord | undefined));
       if (idx === -1) throw new Error(`${model}.update: record not found`);
       const current = rows[idx];
-      const updateData = { ...args.data };
+      const updateData = { ...(args.data as AnyRecord | undefined) };
 
       Object.entries(updateData).forEach(([key, value]) => {
         if (value && typeof value === "object" && "increment" in (value as AnyRecord)) {
-          current[key] = (current[key] ?? 0) + (value as AnyRecord).increment;
+          const incrementBy = Number((value as AnyRecord).increment ?? 0);
+          current[key] = Number(current[key] ?? 0) + incrementBy;
         } else {
           current[key] = value;
         }
@@ -182,7 +192,10 @@ function modelDelegate(model: string) {
 
       current.updatedAt = new Date();
       rows[idx] = current;
-      return applySelect(withIncludes(model, current, args.include), args.select);
+      return applySelect(
+        withIncludes(model, current, args.include as AnyRecord | undefined),
+        args.select as AnyRecord | undefined
+      );
     },
 
     upsert: async (args: AnyRecord = {}) => {
@@ -194,14 +207,14 @@ function modelDelegate(model: string) {
     },
 
     delete: async (args: AnyRecord = {}) => {
-      const idx = rows.findIndex((row) => matchesWhere(row, args.where));
+      const idx = rows.findIndex((row) => matchesWhere(row, args.where as AnyRecord | undefined));
       if (idx === -1) throw new Error(`${model}.delete: record not found`);
       const [deleted] = rows.splice(idx, 1);
       return deleted;
     },
 
     count: async (args: AnyRecord = {}) => {
-      return rows.filter((row) => matchesWhere(row, args.where)).length;
+      return rows.filter((row) => matchesWhere(row, args.where as AnyRecord | undefined)).length;
     },
 
     groupBy: async () => {
