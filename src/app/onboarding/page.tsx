@@ -667,7 +667,7 @@ export default function OnboardingPage() {
 
   const selectOption = (value: string) => {
     if (!step) return;
-    setAnswers((prev) => ({ ...prev, [step.field, [step.field]: value }));
+    setAnswers((prev) => ({ ...prev, [step.field]: value }));
   };
 
   const selectDiagnosticOption = (questionId: number, optionId: string) => {
