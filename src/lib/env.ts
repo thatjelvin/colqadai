@@ -2,20 +2,19 @@ import "server-only";
 import { z } from "zod";
 
 const envSchema = z.object({
-  // Database
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  DIRECT_URL: z.string().optional(),
+  // Database — required at runtime, optional at build for Vercel
+  DATABASE_URL: z.string().optional(),
 
-  // AI Provider (OpenCode Zen) — optional at build time, required at runtime
+  // AI Provider (OpenCode Zen)
   OPENCODE_API_KEY: z.string().optional(),
 
-  // Supabase Auth
-  NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+  // Supabase Auth — required at runtime, optional at build for Vercel
+  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
-  // Optional services — app works without these configured
+  // Optional services
   RESEND_API_KEY: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
