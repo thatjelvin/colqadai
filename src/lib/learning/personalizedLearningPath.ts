@@ -1,9 +1,7 @@
-import { db } from "@/lib/db";
-import { getPrerequisiteSlugs, PREREQUISITES } from "@/data/prerequisites";
+import { getPrerequisiteSlugs } from "@/data/prerequisites";
 import { LEARNING_FEATURES, isFeatureEnabled } from "@/lib/learning/featureFlags";
 import { computeTopicMasteryForUser } from "@/lib/learning/mastery";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-import type { TopicMastery } from "@/lib/learning/mastery-types";
 
 /**
  * Personalized Learning Path Service
@@ -41,8 +39,8 @@ async function getAllTopics(): Promise<string[]> {
 
   // Extract all subtopic slugs
   const allTopics: string[] = [];
-  topicsData.default.forEach((mainTopic: any) => {
-    mainTopic.subtopics.forEach((subtopic: any) => {
+  topicsData.default.forEach((mainTopic: Record<string, unknown>) => {
+    (mainTopic.subtopics as Array<Record<string, unknown>>).forEach((subtopic: Record<string, unknown>) => {
       allTopics.push(subtopic.slug);
     });
   });
@@ -53,11 +51,11 @@ async function getAllTopics(): Promise<string[]> {
 /**
  * Get topic display name from slug
  */
-function getTopicDisplayName(slug: string): string {
-  const topicsData = require("@/data/topics.json").default;
+async function getTopicDisplayName(slug: string): Promise<string> {
+  const topicsData = (await import("@/data/topics.json")).default;
 
   for (const mainTopic of topicsData) {
-    const subtopic = mainTopic.subtopics.find((st: any) => st.slug === slug);
+    const subtopic = mainTopic.subtopics.find((st: Record<string, unknown>) => st.slug === slug);
     if (subtopic) {
       return subtopic.displayName;
     }
@@ -194,7 +192,6 @@ export async function generatePersonalizedLearningPath(userId: string): Promise<
   const goal = dbUser.goal || 'Self-study';
 
   // Get diagnostic data if available
-  const diagnosticScore = dbUser.diagnostic_score ?? 5; // Default to middle
   const diagnosticDifficulty = dbUser.difficulty_level ?? 3; // Default to medium
   const recommendedTopic = dbUser.recommended_topic ?? "limits-continuity"; // Default starting point
 
@@ -275,7 +272,7 @@ export async function generatePersonalizedLearningPath(userId: string): Promise<
 
     nodes.push({
       id: topic,
-      title: getTopicDisplayName(topic),
+      title: await getTopicDisplayName(topic),
       description: getTopicDescription(topic),
       prerequisites: prereqs,
       estimatedTime: estimateTimeForTopic(difficulty, learningPace),
@@ -314,7 +311,7 @@ export async function generatePersonalizedLearningPath(userId: string): Promise<
 
     nodes.push({
       id: topic,
-      title: getTopicDisplayName(topic),
+      title: await getTopicDisplayName(topic),
       description: getTopicDescription(topic),
       prerequisites: prereqs,
       estimatedTime: estimateTimeForTopic(difficulty, learningPace),

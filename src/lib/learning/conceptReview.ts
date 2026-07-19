@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-import { computeNextReviewDate } from "@/lib/learning/mastery-pure";
+import { calculateSM2, type Rating } from "@/lib/sm2";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -41,15 +41,18 @@ export async function addConceptForReview(
 
     if (correct) {
       // Use the SM-2 algorithm to update the interval, repetition count, and EF
-      const { newInterval: interval, newRepetitionCount: repetition, newEfFactor: ef } = computeNextReviewDate(
-        existing.interval,
-        existing.repetitionCount,
-        existing.efFactor,
-        quality ?? (correct ? 5 : 1) // If quality not provided, use 5 for correct, 1 for incorrect
+      const rating = (quality ?? 5) as Rating;
+      const sm2Result = calculateSM2(
+        {
+          interval: existing.interval,
+          repetitions: existing.repetitionCount,
+          easeFactor: existing.efFactor,
+        },
+        rating
       );
-      newInterval = interval;
-      newRepetitionCount = repetition;
-      newEfFactor = ef;
+      newInterval = sm2Result.interval;
+      newRepetitionCount = sm2Result.repetitions;
+      newEfFactor = sm2Result.easeFactor;
       newNextReviewAt = new Date(now.getTime() + newInterval * 24 * 60 * 60 * 1000); // Convert days to milliseconds
     } else {
       // If incorrect, reset the repetition count and set interval to 0 (review again soon)
@@ -87,15 +90,18 @@ export async function addConceptForReview(
       initialRepetition = 1;
       // EF stays at 2.5 for now? Actually, after the first review, we update EF based on quality.
       // We'll set it as if they had a quality of 4 (good) on the first review.
-      const { newInterval: interval, newRepetitionCount: repetition, newEfFactor: ef } = computeNextReviewDate(
-        0, // starting interval
-        0, // starting repetition
-        2.5, // starting EF
-        4 // assuming good quality
+      const rating = 4 as Rating; // assuming good quality
+      const sm2Result = calculateSM2(
+        {
+          interval: 0, // starting interval
+          repetitions: 0, // starting repetition
+          easeFactor: 2.5, // starting EF
+        },
+        rating
       );
-      initialInterval = interval;
-      initialRepetition = repetition;
-      initialEf = ef;
+      initialInterval = sm2Result.interval;
+      initialRepetition = sm2Result.repetitions;
+      initialEf = sm2Result.easeFactor;
       initialNextReview = new Date(now.getTime() + initialInterval * 24 * 60 * 60 * 1000);
     }
 

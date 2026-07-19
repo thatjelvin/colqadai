@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -36,6 +36,7 @@ interface NextTopic {
   slug: string;
   name: string;
   reason: string;
+  prerequisites?: string[];
 }
 
 interface MasteryTreeProps {

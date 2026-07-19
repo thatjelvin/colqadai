@@ -19,6 +19,7 @@ export const LEARNING_FEATURES = {
   WORKED_EXAMPLE_STUDY: "worked_example_study",
   ERROR_ANALYSIS: "error_analysis",
   AI_PROBLEM_GENERATION: "ai_problem_generation",
+  PERSONALIZED_LEARNING_PATH: "personalized_learning_path",
 } as const;
 
 export type LearningFeatureName =
@@ -32,6 +33,7 @@ const defaultFeatureState: Record<LearningFeatureName, boolean> = {
   worked_example_study: true,
   error_analysis: true,
   ai_problem_generation: true, // Enable by default
+  personalized_learning_path: true, // Enable by default
 };
 
 export async function isFeatureEnabled(featureName: LearningFeatureName): Promise<boolean> {

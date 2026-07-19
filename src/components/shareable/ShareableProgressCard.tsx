@@ -13,7 +13,6 @@ interface ShareableProgressCardProps {
   subtitle: string;
   value: number | string;
   icon: React.ReactNode;
-  gradient: string;
   shareText: string;
 }
 
@@ -23,7 +22,6 @@ export function ShareableProgressCard({
   subtitle,
   value,
   icon,
-  gradient,
   shareText,
 }: ShareableProgressCardProps) {
   // Generate a shareable image URL

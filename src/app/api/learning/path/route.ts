@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { createServerClient } from "@/lib/supabase/server";
 import { generatePersonalizedLearningPath } from "@/lib/learning/personalizedLearningPath";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  request: NextRequest
-) {
+export async function GET() {
   try {
     const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();

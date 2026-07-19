@@ -35,28 +35,6 @@ function normalizeSlug(slug: string | null | undefined): string {
 }
 
 /**
- * Fetch mastery percentage for a topic (simplified inline computation).
- */
-async function getTopicMastery(userId: string, topicSlug: string): Promise<number> {
-  const userProblems = await dbClient.userProblem.findMany({
-    where: { userId },
-  });
-
-  const topicProblems = userProblems.filter((up) => {
-    const slug = normalizeSlug(up.topicTag as string | null);
-    return slug === normalizeSlug(topicSlug);
-  });
-
-  if (topicProblems.length === 0) return 0;
-
-  const mastered = topicProblems.filter(
-    (up) => (up.repetitions as number) >= 3 || (up.status as string) === "MASTERED"
-  ).length;
-
-  return Math.round((mastered / topicProblems.length) * 100);
-}
-
-/**
  * Build a plain-text context string about the student's recent performance.
  */
 export async function buildStudentContext(userId: string): Promise<string> {

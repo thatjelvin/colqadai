@@ -4,6 +4,17 @@ import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { db } from "@/lib/db";
 import { generateProblem } from "@/lib/learning/problemGenerator";
 
+type DbRecord = Record<string, unknown>;
+type DbModelDelegate = {
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+};
+type PrismaLikeClient = {
+  topic: DbModelDelegate;
+  problem: DbModelDelegate;
+};
+const dbClient = db as unknown as PrismaLikeClient;
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -34,18 +45,19 @@ export async function POST(request: NextRequest) {
     const { topicSlug, difficulty } = body;
 
     // Determine topic slug: from request, user profile, or default
+    const profileFields = dbUser as Record<string, unknown>;
     const finalTopicSlug = (topicSlug && topicSlug.trim())
       ? topicSlug.trim()
-      : (dbUser.recommended_topic as string) || "limits-continuity";
+      : (profileFields.recommended_topic as string) || "limits-continuity";
 
     // Determine difficulty: from request, user profile, or default (3 = medium)
     const finalDifficulty = difficulty !== undefined && !isNaN(difficulty)
       ? Math.max(1, Math.min(5, Number(difficulty))) // Clamp to 1-5
-      : (dbUser.difficulty_level ?? 3);
+      : ((profileFields.difficulty_level as number) ?? 3);
 
     // Look up the topic by slug to get its ID
     // We need to query the topic table; we assume it exists and has a slug field
-    const topicRecord = await db.topic.findFirst({
+    const topicRecord = await dbClient.topic.findFirst({
       where: { slug: finalTopicSlug },
       select: { id: true },
     });
@@ -55,7 +67,7 @@ export async function POST(request: NextRequest) {
       // Fallback: create a problem without a topic? But the problem model requires a topicId.
       // Instead, we'll use a default topic (first topic in the database) or return an error.
       // Let's try to get any topic as a fallback.
-      const fallbackTopic = await db.topic.findFirst({
+      const fallbackTopic = await dbClient.topic.findFirst({
         select: { id: true },
       });
 
@@ -68,11 +80,11 @@ export async function POST(request: NextRequest) {
 
       // Use the fallback topic's ID, but log a warning
       console.warn(`Topic "${finalTopicSlug}" not found, using fallback topic ID: ${fallbackTopic.id}`);
-      return await generateAndSaveProblem(fallbackTopic.id, finalTopicSlug, finalDifficulty, user.id);
+      return await generateAndSaveProblem(fallbackTopic.id as string, finalTopicSlug, finalDifficulty);
     }
 
     // If we found the topic, generate and save the problem
-    return await generateAndSaveProblem(topicRecord.id, finalTopicSlug, finalDifficulty, user.id);
+    return await generateAndSaveProblem(topicRecord.id as string, finalTopicSlug, finalDifficulty);
   } catch (error) {
     console.error("Error in problem generation endpoint:", error);
     return NextResponse.json(
@@ -88,8 +100,7 @@ export async function POST(request: NextRequest) {
 async function generateAndSaveProblem(
   topicId: string,
   topicSlug: string,
-  difficulty: number,
-  userId: string
+  difficulty: number
 ) {
   // Generate the problem using the LLM
   const { problem: problemStatement, solution } = await generateProblem(
@@ -98,7 +109,7 @@ async function generateAndSaveProblem(
   );
 
   // Create a new problem record in the database
-  const newProblem = await db.problem.create({
+  const newProblem = await dbClient.problem.create({
     data: {
       // We need to know the exact field names in the problem model.
       // From usage, we see:

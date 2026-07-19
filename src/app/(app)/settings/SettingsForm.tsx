@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { TimePicker } from "@/components/time-picker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -14,7 +13,7 @@ import {
   THEME_STORAGE_KEY,
   type ThemePreference,
 } from "@/lib/theme";
-import { NotificationPreferences, DEFAULT_PREFERENCES, buildDailyReminder } from "@/lib/notifications";
+import { NotificationPreferences, DEFAULT_PREFERENCES } from "@/lib/notifications";
 
 interface SettingsFormProps {
   defaultValues: {
@@ -77,25 +76,27 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
   };
 
   const handleNotificationChange = async (updates: Partial<NotificationPreferences>) => {
-    setNotifications((prev) => ({ ...prev, ...updates }));
-    setSuccess(false);
-    try {
-      const res = await fetch("/api/notifications/preferences", {
+    setNotifications((prev) => {
+      const merged = { ...prev, ...updates };
+      // Fire the API call with the merged value outside setState to avoid stale closure
+      fetch("/api/notifications/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(notifications),
+        body: JSON.stringify(merged),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data?.error ?? "Failed to save notification preferences.");
+        } else {
+          setError(null);
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        }
+      }).catch(() => {
+        setError("Could not save notification preferences.");
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error ?? "Failed to save notification preferences.");
-      } else {
-        setError(null);
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-      }
-    } catch (err) {
-      setError("Could not save notification preferences.");
-    }
+      return merged;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -209,7 +210,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ dailyReminder: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-daily" className="text-sm font-medium">
+            <Label htmlFor="notif-daily" className="text-sm font-medium">
               Daily review reminders
             </Label>
           </div>
@@ -229,7 +230,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                You'll receive a reminder at this time each day to review your
+                You&apos;ll receive a reminder at this time each day to review your
                 flashcards.
               </p>
             </div>
@@ -246,12 +247,12 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ streakAtRisk: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-streak" className="text-sm font-medium">
+            <Label htmlFor="notif-streak" className="text-sm font-medium">
               Streak at risk notifications
             </Label>
           </div>
           <p className="ml-4 text-xs text-muted-foreground">
-            Get notified at 8 PM local time if you haven't reviewed today to
+            Get notified at 8 PM local time if you haven&apos;t reviewed today to
             prevent losing your streak.
           </p>
         </div>
@@ -266,7 +267,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ milestoneCongrats: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-milestone" className="text-sm font-medium">
+            <Label htmlFor="notif-milestone" className="text-sm font-medium">
               Milestone celebrations
             </Label>
           </div>
@@ -285,7 +286,7 @@ export function SettingsForm({ defaultValues }: SettingsFormProps) {
                 handleNotificationChange({ weeklySummary: e.target.checked })
               }
             />
-            <Label htmlWithfor="notif-weekly" className="text-sm font-medium">
+            <Label htmlFor="notif-weekly" className="text-sm font-medium">
               Weekly progress summary
             </Label>
           </div>

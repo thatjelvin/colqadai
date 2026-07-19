@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
+  const { getOrCreateUserForSupabaseId } = await import("@/lib/supabase-db-user");
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email ?? "");
+
   const body = await req.json();
   const parsed = subscriptionSchema.safeParse(body);
   if (!parsed.success) {
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
   const adminSupabase = createAdminClient();
   const { error } = await adminSupabase.from("push_subscriptions").upsert(
     {
-      user_id: user.id,
+      user_id: dbUser.id,
       endpoint: parsed.data.endpoint,
       keys: parsed.data.keys,
       updated_at: new Date().toISOString(),
@@ -54,11 +57,14 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Missing endpoint" }, { status: 400 });
   }
 
+  const { getOrCreateUserForSupabaseId } = await import("@/lib/supabase-db-user");
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email ?? "");
+
   const adminSupabase = createAdminClient();
   await adminSupabase
     .from("push_subscriptions")
     .delete()
-    .eq("user_id", user.id)
+    .eq("user_id", dbUser.id)
     .eq("endpoint", endpoint);
 
   return NextResponse.json({ ok: true });

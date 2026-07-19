@@ -71,7 +71,7 @@ export function ReviewHeatmap({
   currentStreak,
   className,
 }: HeatmapProps) {
-  const reviewSet = useMemo(() => new Set(reviewDays), [reviewDays]);
+  // reviewDays used in weeks computation below
 
   const weeks = useMemo(() => getLastNWeeks(new Date(), 16), []);
 

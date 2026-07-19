@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
+  const { getOrCreateUserForSupabaseId } = await import("@/lib/supabase-db-user");
+  const dbUser = await getOrCreateUserForSupabaseId(user.id, user.email ?? "");
+
   const body = await req.json();
   const parsed = prefsSchema.safeParse(body);
   if (!parsed.success) {
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await adminSupabase.from("notification_preferences").upsert(
     {
-      user_id: user.id,
+      user_id: dbUser.id,
       daily_reminder: dailyReminder,
       daily_reminder_time: dailyReminderTime,
       streak_at_risk: streakAtRisk,

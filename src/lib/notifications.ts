@@ -2,6 +2,24 @@
  * Notification message builders for different types of reminders.
  */
 
+export type NotificationPreferences = {
+  dailyReminder: boolean;
+  dailyReminderTime: string;
+  streakAtRisk: boolean;
+  milestoneCongrats: boolean;
+  weeklySummary: boolean;
+};
+
+export const DEFAULT_PREFERENCES: NotificationPreferences = {
+  dailyReminder: true,
+  dailyReminderTime: "09:00",
+  streakAtRisk: true,
+  milestoneCongrats: true,
+  weeklySummary: true,
+};
+
+export const MILESTONE_DAYS = [7, 14, 30, 50, 100];
+
 /**
  * Build daily reminder message based on due count.
  */
@@ -19,7 +37,7 @@ export function buildDailyReminder(dueCount: number): string {
  * Build streak-at-risk warning message.
  */
 export function buildStreakAtRiskMessage(currentStreak: number): string {
-  if (currentShreak >= 30) {
+  if (currentStreak >= 30) {
     return `🔥 Your ${currentStreak}-day streak is incredible! Don't break it now - review today to keep it going.`;
   }
   if (currentStreak >= 14) {
@@ -55,7 +73,6 @@ export function getMilestoneInfo(streak: number): {
   milestone: number | null;
   message: string | null;
 } {
-  const MILESTONE_DAYS = [7, 14, 30, 50, 100];
   const MESSAGES: Record<number, string> = {
     7: "One week strong! You've built a solid foundation.",
     14: "Two weeks in - you're really getting into the groove!",

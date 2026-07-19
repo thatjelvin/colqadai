@@ -1,6 +1,4 @@
-import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getOrCreateUserForSupabaseId } from '@/lib/supabase-db-user';
+// Share image route — generates SVG progress cards
 
 // Define color schemes for different types
 const colorSchemes: Record<string, { bgGradient: string; textColor: string; accentColor: string }> = {

@@ -8,7 +8,6 @@ import { db } from "@/lib/db";
 import { computeMasteryForAllTopics } from "@/lib/learning/mastery";
 import { TopicGridClient } from "@/components/TopicGridClient";
 import { findNextTopic, type TopicMasteryInfo } from "@/lib/learning/nextTopic";
-import { getPrerequisiteSlugs } from "@/data/prerequisites";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Trophy } from "lucide-react";
 

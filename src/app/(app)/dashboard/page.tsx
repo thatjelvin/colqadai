@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -13,17 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { StreakChip } from "@/components/StreakChip";
 import { ShareableProgressCard } from "@/components/shareable/ShareableProgressCard";
 import {
   Brain,
   Flame,
   Target,
-  BookOpen,
   Bot,
-  Grid3x3,
-  BarChart3,
   Upload,
   FileText,
   Youtube,
@@ -32,7 +27,6 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  Trophy,
 } from "lucide-react";
 import { getStreakMilestoneInfo } from "@/lib/learning/growthMindset";
 import { ReviewDashboardSection } from "@/components/ReviewDashboardSection";
@@ -60,31 +54,6 @@ type Material = {
 };
 
 type UploadType = "note" | "pdf" | "image" | "youtube";
-
-/** Parse bold-section headings out of the AI summary for structured display. */
-function parseSummarySections(text: string): { heading: string | null; body: string }[] {
-  const lines = text.split("\n");
-  const sections: { heading: string | null; body: string }[] = [];
-  let currentHeading: string | null = null;
-  let currentLines: string[] = [];
-
-  for (const line of lines) {
-    const headingMatch = line.match(/^\*\*(.+?)\*\*\s*$/);
-    if (headingMatch) {
-      if (currentLines.length > 0 || currentHeading !== null) {
-        sections.push({ heading: currentHeading, body: currentLines.join("\n").trim() });
-      }
-      currentHeading = headingMatch[1];
-      currentLines = [];
-    } else {
-      currentLines.push(line);
-    }
-  }
-  if (currentLines.length > 0 || currentHeading !== null) {
-    sections.push({ heading: currentHeading, body: currentLines.join("\n").trim() });
-  }
-  return sections.filter((s) => s.heading || s.body);
-}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -470,7 +439,7 @@ export default function DashboardPage() {
                   <div key={material.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        {() => {
+                        {(() => {
                           const iconMap: Record<string, typeof FileText> = {
                             note: FileText,
                             pdf: FileText,
@@ -481,7 +450,7 @@ export default function DashboardPage() {
                           return (
                             <Icon className="h-4 w-4 text-muted-foreground" />
                           );
-                        }}
+                        })()}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{material.title}</p>
                           <p className="text-xs text-muted-foreground">
@@ -549,7 +518,6 @@ export default function DashboardPage() {
                   subtitle="Consecutive days of practice"
                   value={stats.streak}
                   icon={<Flame className="h-4 w-4 text-orange-500" />}
-                  gradient="from-orange-400 to-yellow-400"
                   shareText={`🔥 I'm on a ${stats.streak}-day learning streak on Colqad! Keeping my math skills sharp every day. #MathLearning #StudyStreak`}
                 />
               )}
@@ -562,7 +530,6 @@ export default function DashboardPage() {
                   subtitle="Total practice problems completed"
                   value={stats.totalSeen}
                   icon={<Bot className="h-4 w-4 text-blue-500" />}
-                  gradient="from-blue-400 to-indigo-400"
                   shareText={`📊 I've solved ${stats.totalSeen} math problems on Colqad! Consistent practice makes perfect. #MathPractice #ProblemSolving`}
                 />
               )}
@@ -575,7 +542,6 @@ export default function DashboardPage() {
                   subtitle="Percentage of problems mastered"
                   value={stats.masteryPercentage}
                   icon={<Target className="h-4 w-4 text-green-500" />}
-                  gradient="from-green-400 to-emerald-400"
                   shareText={`🎯 I've mastered ${stats.masteryPercentage}% of the math problems I've practiced on Colqad! Steady progress toward expertise. #MathMastery #LearningJourney`}
                 />
               )}

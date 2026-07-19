@@ -26,8 +26,8 @@ export async function generateProblem(
     "Example format:",
     '{',
     '  "problem": "Find the derivative of f(x) = x^2 + 3x + 2.",',
-    '  "solution": "Using the power rule, the derivative is f\\' (x) = 2x + 3."',
-    '}',
+    `  "solution": "Using the power rule, the derivative is f'(x) = 2x + 3."`,
+    `}`,
     "Do not include any additional text or explanation outside the JSON.",
   ].join("\n");
 
@@ -43,8 +43,8 @@ export async function generateProblem(
     const text = response.choices[0]?.message?.content ?? "";
     const parsed = JSON.parse(text);
 
-    if (!parsed.problem || !typeof parsed.problem === "string" ||
-        !parsed.solution || !typeof parsed.solution === "string") {
+    if (typeof parsed.problem !== "string" ||
+        typeof parsed.solution !== "string") {
       throw new Error("Invalid response format from LLM");
     }
 

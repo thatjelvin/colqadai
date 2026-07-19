@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
-import { computeStreak, uniqueDayKeys } from "@/lib/learning/streak";
-import { DEFAULT_PREFERENCES, type NotificationPreferences, buildDailyReminder, buildStreakAtRiskMessage, buildWeeklySummary, MILESTONE_DAYS, getMilestoneInfo } from "@/lib/notifications";
+import { computeStreak } from "@/lib/learning/streak";
+import { DEFAULT_PREFERENCES, type NotificationPreferences, buildDailyReminder, buildStreakAtRiskMessage, buildWeeklySummary, getMilestoneInfo } from "@/lib/notifications";
 
 type DbRecord = Record<string, unknown>;
 type DbModelDelegate = { findMany(args?: Record<string, unknown>): Promise<DbRecord[]>; count(args?: Record<string, unknown>): Promise<number> };
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
 
     // Get all users with notification preferences
     const { data: users } = await adminSupabase
-      .from("users")
-      .select("id, email, name")
+      .from("profiles")
+      .select("id, email, full_name")
       .not("email", "is", null);
 
     if (!users || users.length === 0) {
