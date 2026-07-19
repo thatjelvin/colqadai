@@ -9,11 +9,19 @@ function isPublicPath(pathname: string) {
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // If Supabase env vars aren't configured, use minimal routing
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return isPublicPath(pathname)
+      ? NextResponse.next()
+      : NextResponse.redirect(new URL('/login', request.url))
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
