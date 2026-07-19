@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { calculateSM2, type Rating } from "@/lib/sm2";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
+
+type DbRecord = Record<string, unknown>;
 
 /**
  * Add a concept for review or update its review state.
@@ -19,51 +21,49 @@ export async function addConceptForReview(
   correct: boolean,
   quality?: number
 ): Promise<void> {
-  // Get or create the user's profile to ensure they exist
   await getOrCreateUserForSupabaseId(userId, "", "", "");
 
   // Check if the concept already exists for the user
-  const existing = await db.conceptReview.findFirst({
+  const existing = await (db.conceptReview as DbModelDelegate).findFirst({
     where: {
       userId,
       concept,
     },
-  });
+  }) as DbRecord | null;
 
   const now = new Date();
 
   if (existing) {
     // Update existing concept review
-    let newInterval = existing.interval;
-    let newRepetitionCount = existing.repetitionCount;
-    let newEfFactor = existing.efFactor;
-    let newNextReviewAt = existing.nextReviewAt;
+    const ex = existing as unknown as ConceptReviewShape;
+    let newInterval = ex.interval;
+    let newRepetitionCount = ex.repetitionCount;
+    let newEfFactor = ex.efFactor;
+    let newNextReviewAt = ex.nextReviewAt;
 
     if (correct) {
-      // Use the SM-2 algorithm to update the interval, repetition count, and EF
       const rating = (quality ?? 5) as Rating;
       const sm2Result = calculateSM2(
         {
-          interval: existing.interval,
-          repetitions: existing.repetitionCount,
-          easeFactor: existing.efFactor,
+          interval: ex.interval,
+          repetitions: ex.repetitionCount,
+          easeFactor: ex.efFactor,
         },
         rating
       );
       newInterval = sm2Result.interval;
       newRepetitionCount = sm2Result.repetitions;
       newEfFactor = sm2Result.easeFactor;
-      newNextReviewAt = new Date(now.getTime() + newInterval * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+      newNextReviewAt = new Date(now.getTime() + newInterval * 24 * 60 * 60 * 1000);
     } else {
-      // If incorrect, reset the repetition count and set interval to 0 (review again soon)
       newRepetitionCount = 0;
       newInterval = 0;
-      newEfFactor = 1.3; // EF decreases when forgetting
-      newNextReviewAt = new Date(now.getTime()); // Review immediately (or we could set to a short interval)
+      newEfFactor = 1.3;
+      newNextReviewAt = new Date(now.getTime());
     }
 
-    await db.conceptReview.update({
-      where: { id: existing.id },
+    await (db.conceptReview as DbModelDelegate).update({
+      where: { id: ex.id },
       data: {
         interval: newInterval,
         repetitionCount: newRepetitionCount,
@@ -73,30 +73,17 @@ export async function addConceptForReview(
       },
     });
   } else {
-    // Create a new concept review entry
-    // Initial state: interval = 0, repetitionCount = 0, efFactor = 2.5
-    // If correct, we still start with interval 0? Or we can set to 1 day if correct.
-    // According to SM-2, the first review after learning is usually after 1 day if correct.
-    // But we'll let the first review be immediate (interval 0) and then update after the first review.
-    // Alternatively, we can set the initial state based on correctness.
     let initialInterval = 0;
     let initialRepetition = 0;
     let initialEf = 2.5;
     let initialNextReview = now;
 
     if (correct) {
-      // If the user knows it already, we can set the first interval to 1 day
       initialInterval = 1;
       initialRepetition = 1;
-      // EF stays at 2.5 for now? Actually, after the first review, we update EF based on quality.
-      // We'll set it as if they had a quality of 4 (good) on the first review.
-      const rating = 4 as Rating; // assuming good quality
+      const rating = 4 as Rating;
       const sm2Result = calculateSM2(
-        {
-          interval: 0, // starting interval
-          repetitions: 0, // starting repetition
-          easeFactor: 2.5, // starting EF
-        },
+        { interval: 0, repetitions: 0, easeFactor: 2.5 },
         rating
       );
       initialInterval = sm2Result.interval;
@@ -105,9 +92,9 @@ export async function addConceptForReview(
       initialNextReview = new Date(now.getTime() + initialInterval * 24 * 60 * 60 * 1000);
     }
 
-    await db.conceptReview.create({
+    await (db.conceptReview as DbModelDelegate).create({
       data: {
-        id: uuidv4(),
+        id: randomUUID(),
         userId,
         concept,
         interval: initialInterval,
@@ -128,7 +115,7 @@ export async function addConceptForReview(
  */
 export async function getDueConceptReviews(userId: string): Promise<Array<{ id: string; concept: string }>> {
   const now = new Date();
-  const due = await db.conceptReview.findMany({
+  const due = await (db.conceptReview as DbModelDelegate).findMany({
     where: {
       userId,
       nextReviewAt: {
@@ -142,11 +129,11 @@ export async function getDueConceptReviews(userId: string): Promise<Array<{ id: 
     orderBy: {
       nextReviewAt: "asc",
     },
-  });
+  }) as DbRecord[];
 
   return due.map(item => ({
-    id: item.id,
-    concept: item.concept,
+    id: item.id as string,
+    concept: item.concept as string,
   }));
 }
 
@@ -161,7 +148,7 @@ export async function getAllConceptReviews(userId: string): Promise<Array<{
   efFactor: number;
   nextReviewAt: Date;
 }>> {
-  return await db.conceptReview.findMany({
+  return await (db.conceptReview as DbModelDelegate).findMany({
     where: {
       userId,
     },
@@ -176,5 +163,34 @@ export async function getAllConceptReviews(userId: string): Promise<Array<{
     orderBy: {
       nextReviewAt: "asc",
     },
-  });
+  }) as Array<{
+    id: string;
+    concept: string;
+    interval: number;
+    repetitionCount: number;
+    efFactor: number;
+    nextReviewAt: Date;
+  }>;
+}
+
+// Internal helpers
+type DbModelDelegate = {
+  findMany(args?: Record<string, unknown>): Promise<DbRecord[]>;
+  findFirst(args?: Record<string, unknown>): Promise<DbRecord | null>;
+  create(args?: Record<string, unknown>): Promise<DbRecord>;
+  update(args?: Record<string, unknown>): Promise<DbRecord>;
+  delete(args?: Record<string, unknown>): Promise<DbRecord>;
+  count(args?: Record<string, unknown>): Promise<number>;
+};
+
+interface ConceptReviewShape {
+  id: string;
+  concept: string;
+  interval: number;
+  repetitionCount: number;
+  efFactor: number;
+  nextReviewAt: Date;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

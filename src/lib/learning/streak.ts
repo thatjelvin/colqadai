@@ -83,6 +83,22 @@ export function computeStreak(
   };
 }
 
+/**
+ * Apply a challenge completion streak boost.
+ * Boosts the streak by 2 days instead of 1 (the "2x streak day" effect).
+ */
+export function applyChallengeCompletion(
+  input: StreakUpdateInput,
+  now: Date = new Date()
+): StreakUpdateInput {
+  // First application: today
+  const afterFirst = applyStreakUpdate(input, now);
+  // Second application: pretend it's tomorrow (effectively +2 days)
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return applyStreakUpdate(afterFirst, tomorrow);
+}
+
 export function applyStreakUpdate(
   input: StreakUpdateInput,
   now: Date = new Date()

@@ -8,6 +8,8 @@ import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
 import { UsageFeature } from "@/lib/db-types";
 import { buildStudentContext } from "@/lib/learning/studentContext";
+import { extractConceptsFromChat } from "@/lib/learning/conceptExtractor";
+import { addConceptForReview } from "@/lib/learning/conceptReview";
 
 /** Generic record type for in-memory DB results — replaces bare `any`. */
 type DbRecord = Record<string, unknown>;
@@ -257,8 +259,35 @@ Be clear, rigorous, and concise.`;
             content: fullResponse,
           },
         });
-        
+
         controller.close();
+
+        // Fire-and-forget concept extraction
+        if (fullResponse.length > 80) {
+          const allMessages = [
+            ...chatSession.messages.map((m: ChatMessageRecord) => ({
+              role: (m.role === "USER" ? "user" : "assistant") as "user" | "assistant",
+              content: m.content,
+            })),
+            { role: "user" as const, content: message },
+            { role: "assistant" as const, content: fullResponse },
+          ];
+
+          const problemContext = problemId
+            ? `Problem ID: ${problemId}`
+            : undefined;
+
+          extractConceptsFromChat(allMessages, problemContext)
+            .then((concepts) => {
+              for (const c of concepts) {
+                addConceptForReview(userId, c.name, true, 4).catch(() => {});
+              }
+              if (concepts.length > 0) {
+                console.log(`Extracted ${concepts.length} concepts from chat session ${chatSession.id}`);
+              }
+            })
+            .catch((err: Error) => console.warn("Concept extraction failed:", err));
+        }
       },
     });
 

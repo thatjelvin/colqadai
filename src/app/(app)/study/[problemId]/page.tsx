@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { CommunitySolutionsPanel } from "@/components/solutions/CommunitySolutionsPanel";
 
 interface Problem {
   id: string;
@@ -547,6 +548,13 @@ export default function StudyPage() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Community Solutions */}
+                    {attemptResult?.isCorrect && (
+                      <div className="mt-8 pt-6 border-t">
+                        <CommunitySolutionsPanel problemId={problemId} />
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

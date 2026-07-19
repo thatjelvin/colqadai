@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { StreakChip } from "@/components/StreakChip";
 import { ShareableProgressCard } from "@/components/shareable/ShareableProgressCard";
 import {
@@ -27,9 +29,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Zap,
 } from "lucide-react";
 import { getStreakMilestoneInfo } from "@/lib/learning/growthMindset";
 import { ReviewDashboardSection } from "@/components/ReviewDashboardSection";
+import { ConceptReviewSection } from "@/components/concepts/ConceptReviewSection";
 
 type OverviewStats = {
   totalSeen: number;
@@ -56,9 +60,11 @@ type Material = {
 type UploadType = "note" | "pdf" | "image" | "youtube";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<{ problemId: string; alreadyCompleted: boolean } | null>(null);
   const [uploadType, setUploadType] = useState<UploadType>("note");
   const [title, setTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -118,11 +124,21 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchChallenge = useCallback(async () => {
+    try {
+      const res = await fetch("/api/challenge/today");
+      if (res.ok) setChallenge(await res.json());
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchMaterials();
     fetchUserName();
-  }, [fetchStats, fetchMaterials, fetchUserName]);
+    fetchChallenge();
+  }, [fetchStats, fetchMaterials, fetchUserName, fetchChallenge]);
 
   const resetForm = () => {
     setTitle("");
@@ -302,7 +318,40 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Challenge of the Day banner */}
+      {challenge !== null && challenge !== undefined && (
+        <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/20 dark:to-transparent">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <Flame className="h-6 w-6 text-orange-500" />
+                <div>
+                  <p className="font-semibold text-sm">Problem of the Day</p>
+                  <p className="text-xs text-muted-foreground">
+                    {challenge?.alreadyCompleted
+                      ? "Completed! Come back tomorrow."
+                      : "Solve today's challenge for a 2x streak boost."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {challenge?.alreadyCompleted ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <Zap className="h-3 w-3" /> Done
+                  </Badge>
+                ) : (
+                  <Button size="sm" onClick={() => router.push("/challenge")}>
+                    Start Challenge
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Review Dashboard */}
+      <ConceptReviewSection />
       {stats && (
         <ReviewDashboardSection
           reviewDayKeys={stats.reviewDayKeys ?? []}

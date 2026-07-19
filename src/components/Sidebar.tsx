@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   AlertTriangle,
+  Flame,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,9 +46,19 @@ const navItems = [
     icon: Brain,
   },
   {
+    title: "Challenge",
+    href: "/challenge",
+    icon: Flame,
+  },
+  {
     title: "Knowledge Gaps",
     href: "/gaps",
     icon: AlertTriangle,
+  },
+  {
+    title: "Study Groups",
+    href: "/groups",
+    icon: Users,
   },
   {
     title: "Settings",

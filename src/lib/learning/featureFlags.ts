@@ -20,6 +20,10 @@ export const LEARNING_FEATURES = {
   ERROR_ANALYSIS: "error_analysis",
   AI_PROBLEM_GENERATION: "ai_problem_generation",
   PERSONALIZED_LEARNING_PATH: "personalized_learning_path",
+  DAILY_CHALLENGE: "daily_challenge",
+  CONCEPT_SPACED_REPETITION: "concept_spaced_repetition",
+  STUDY_GROUPS: "study_groups",
+  COMMUNITY_SOLUTIONS: "community_solutions",
 } as const;
 
 export type LearningFeatureName =
@@ -34,6 +38,10 @@ const defaultFeatureState: Record<LearningFeatureName, boolean> = {
   error_analysis: true,
   ai_problem_generation: true, // Enable by default
   personalized_learning_path: true, // Enable by default
+  daily_challenge: true, // Enable by default
+  concept_spaced_repetition: true, // Enable by default
+  study_groups: true, // Enable by default
+  community_solutions: true, // Enable by default
 };
 
 export async function isFeatureEnabled(featureName: LearningFeatureName): Promise<boolean> {
@@ -42,7 +50,7 @@ export async function isFeatureEnabled(featureName: LearningFeatureName): Promis
     select: { enabled: true },
   });
 
-  return flag?.enabled ?? defaultFeatureState[featureName] ?? false;
+  return (flag?.enabled as boolean | undefined) ?? defaultFeatureState[featureName] ?? false;
 }
 
 export async function getLearningFeatureFlags(): Promise<Record<LearningFeatureName, boolean>> {
@@ -60,7 +68,7 @@ export async function getLearningFeatureFlags(): Promise<Record<LearningFeatureN
 
   const merged: Record<LearningFeatureName, boolean> = { ...defaultFeatureState };
   for (const row of rows) {
-    merged[row.featureName as LearningFeatureName] = row.enabled;
+    merged[row.featureName as LearningFeatureName] = row.enabled as boolean;
   }
 
   return merged;
