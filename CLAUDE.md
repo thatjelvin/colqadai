@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**COLQAD** is an AI-powered math learning web app for university STEM students. It implements spaced repetition (SM-2 algorithm), retrieval practice, interleaved practice, and AI-driven error analysis. Students solve LaTeX-rendered math problems, receive AI tutoring via Groq LLM, and progress through mastery levels.
+**COLQAD** is an AI-powered math learning web app for university STEM students. It implements spaced repetition (SM-2 algorithm), retrieval practice, interleaved practice, and AI-driven error analysis. Students solve LaTeX-rendered math problems, receive AI tutoring via OpenCode Zen LLM, and progress through mastery levels.
 
 ## Development Commands
 
@@ -82,7 +82,7 @@ This reads/creates a profile row and returns a typed `AppUser` object. **Always 
 1. Server page queries `db.userProblem.findMany({ where: { nextReviewAt <= now } })` for due problems.
 2. `buildInterleavedQueue()` mixes due + new problems across topics (round-robin).
 3. `ReviewSessionClient` renders problems; user submits answer → `POST /api/problems/[id]/attempt`.
-4. `gradeAnswer()` via Groq LLM determines correctness; `classifyError()` if wrong; `generateElaborationPrompt()` if correct.
+4. `gradeAnswer()` via AI LLM determines correctness; `classifyError()` if wrong; `generateElaborationPrompt()` if correct.
 5. `ProblemAttempt` record created; `UserProblem` SM-2 state updated (ease factor, interval, next review date).
 6. User self-rates confidence (0-5) → session completes → mastery and streak recomputed.
 
@@ -92,7 +92,7 @@ Three tiers: FREE, PRO ($6.99/mo), MAX ($16.99/mo). Usage is tracked in daily bu
 
 ### AI Integration
 
-Groq SDK (`src/lib/groq.ts`) powers the AI tutor chat and error classification. The shared client should be used for all Groq API calls — not raw `fetch()`.
+OpenAI SDK (`src/lib/ai.ts`) pointed at OpenCode Zen (`https://opencode.ai/zen/v1`) powers the AI tutor chat and error classification. The shared client should be used for all AI API calls — not raw `fetch()`.
 
 ### Key Tech Choices
 
@@ -108,11 +108,11 @@ Groq SDK (`src/lib/groq.ts`) powers the AI tutor chat and error classification. 
 2. **Never remove middleware auth checks** without a replacement. The middleware is the first line of defense for route protection.
 3. **Never introduce a new auth provider.** Only email/password and Google OAuth are supported.
 4. **API routes must check auth** via `supabase.auth.getUser()` and return 401 if null.
-5. **Use the shared Groq client** (`import { groq } from "@/lib/groq"`) — not raw fetch to the Groq API.
+5. **Use the shared AI client** (`import { ai } from "@/lib/ai"`) — not raw fetch to the AI API.
 
 ## Known Issues (see FIXES_TODO.md for full list)
 
-- `GROQ_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` must be set in `.env.local` or AI features and profile writes crash.
-- `gradeAnswer()` in `aiClassifiers.ts` silently catches all errors — a Groq outage marks all answers incorrect.
+- `OPENCODE_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` must be set in `.env.local` or AI features and profile writes crash.
+- `gradeAnswer()` in `aiClassifiers.ts` silently catches all errors — an AI provider outage marks all answers incorrect.
 - Some `console.log` statements in auth pages should be gated behind `NODE_ENV === "development"`.
 - `next.config.mjs` currently has `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true` — these should be re-enabled after fixing outstanding errors.

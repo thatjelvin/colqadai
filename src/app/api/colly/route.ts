@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import topicsData from "@/data/topics.json";
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 import { createServerClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({
@@ -85,8 +85,8 @@ function normalizeIntent(raw: string): CollyIntent {
 }
 
 async function classifyIntent(message: string): Promise<CollyIntent> {
-  const response = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+  const response = await ai.chat.completions.create({
+    model: "mimo-v2.5-free",
     temperature: 0,
     max_tokens: 24,
     messages: [
@@ -202,8 +202,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await ai.chat.completions.create({
+      model: "deepseek-v4-flash-free",
       temperature: 0.3,
       max_tokens: 700,
       messages: [

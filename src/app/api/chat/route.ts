@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 import { getOrCreateUserForSupabaseId } from "@/lib/supabase-db-user";
 import { z } from "zod";
 import { BillingLimitError, buildUpgradeErrorPayload, consumeUsage, getBillingProfile } from "@/lib/billing/usage";
@@ -230,9 +230,9 @@ Be clear, rigorous, and concise.`;
 
     const maxTokens = billingProfile.plan === "max" ? 4096 : 3000;
 
-    // Create streaming response via Groq
-    const groqStream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    // Create streaming response via AI provider
+    const aiStream = await ai.chat.completions.create({
+      model: "deepseek-v4-flash-free",
       messages,
       max_tokens: maxTokens,
       stream: true,
@@ -243,7 +243,7 @@ Be clear, rigorous, and concise.`;
       async start(controller) {
         let fullResponse = "";
 
-        for await (const chunk of groqStream) {
+        for await (const chunk of aiStream) {
           const text = chunk.choices[0]?.delta?.content ?? "";
           fullResponse += text;
           controller.enqueue(new TextEncoder().encode(text));
@@ -283,8 +283,8 @@ Be clear, rigorous, and concise.`;
 
 async function generateTitle(message: string): Promise<string> {
   try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await ai.chat.completions.create({
+      model: "mimo-v2.5-free",
       messages: [
         {
           role: "system",

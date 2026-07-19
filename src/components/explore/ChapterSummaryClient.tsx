@@ -218,7 +218,7 @@ export function ChapterSummaryClient({
             </form>
             <p className="text-xs text-muted-foreground">
               We use the LaTeX rendering you see on this page; if any formula looks off, that&apos;s
-              what Groq returned and we&apos;ll re-render on the next refresh.
+              what the AI returned and we&apos;ll re-render on the next refresh.
             </p>
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">Math rendering note</summary>

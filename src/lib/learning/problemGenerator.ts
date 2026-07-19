@@ -1,6 +1,6 @@
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "deepseek-v4-flash-free";
 
 /**
  * Generate a math problem on a given topic and difficulty level using the LLM.
@@ -32,7 +32,7 @@ export async function generateProblem(
   ].join("\n");
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await ai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7, // Some creativity but not too random

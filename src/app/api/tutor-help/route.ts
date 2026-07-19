@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 import { createServerClient } from "@/lib/supabase/server";
 
 const requestSchema = z.object({
@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await ai.chat.completions.create({
+      model: "deepseek-v4-flash-free",
       temperature: 0.2,
       max_tokens: 700,
       messages: [

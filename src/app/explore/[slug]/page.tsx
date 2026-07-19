@@ -12,7 +12,7 @@ import {
   type ChapterSummary,
 } from "@/lib/learning/summary-schema";
 import { ChapterSummaryClient } from "@/components/explore/ChapterSummaryClient";
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 
 /** Typed database client cast for the in-memory DB proxy. */
 type DbRecord = Record<string, unknown>;
@@ -40,13 +40,13 @@ type TopicSummaryRow = {
   summary_data: unknown;
 };
 
-async function generateSummaryWithGroq(
+async function generateSummary(
   subtopicName: string,
   parentTopicName: string
 ): Promise<ChapterSummary> {
   try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await ai.chat.completions.create({
+      model: "deepseek-v4-flash-free",
       temperature: 0.3,
       messages: [
         {
@@ -63,7 +63,7 @@ async function generateSummaryWithGroq(
 
     const rawContent = response.choices[0]?.message?.content;
     if (typeof rawContent !== "string") {
-      throw new Error("Groq did not return message content");
+      throw new Error("AI provider did not return message content");
     }
 
     const cleaned = rawContent
@@ -78,7 +78,7 @@ async function generateSummaryWithGroq(
       throw new Error("Generated summary did not match expected schema");
     })();
   } catch (error) {
-    console.error("Failed to generate summary with Groq:", error);
+    console.error("Failed to generate summary with AI provider:", error);
     return {
       overview: "Summary unavailable. Please try again later.",
       prerequisites: [],
@@ -117,7 +117,7 @@ async function getOrBuildSummaryForSlug(
     }
   }
 
-  const generatedSummary = await generateSummaryWithGroq(subtopicName, parentTopicName);
+  const generatedSummary = await generateSummary(subtopicName, parentTopicName);
 
   const { error: cacheError } = await supabase.from("topic_summaries").upsert(
     {

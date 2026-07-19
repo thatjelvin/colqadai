@@ -1,7 +1,7 @@
 import { ErrorType } from "@/lib/db-types";
-import { groq } from "@/lib/groq";
+import { ai } from "@/lib/ai";
 
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "deepseek-v4-flash-free";
 
 type GradeResult = {
   isCorrect: boolean;
@@ -45,7 +45,7 @@ export async function gradeAnswer(
   ].join("\n");
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await ai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 200,
@@ -83,7 +83,7 @@ export async function classifyError(
   ].join("\n");
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await ai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 180,
@@ -125,7 +125,7 @@ export async function generateElaborationPrompt(
   ].join("\n");
 
   try {
-    const response = await groq.chat.completions.create({
+    const response = await ai.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 80,

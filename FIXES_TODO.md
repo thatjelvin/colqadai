@@ -8,9 +8,9 @@
 ## 🔴 Broken (App-breaking)
 
 ### 1. Add missing env vars to `.env.local`
-- **Add** `GROQ_API_KEY` (required — all AI features crash without it)
+- **Add** `OPENCODE_API_KEY` (required — all AI features crash without it)
 - **Add** `SUPABASE_SERVICE_ROLE_KEY` (required — profile writes/onboarding/billing fail without it)
-- Get both from their respective dashboards (Groq console, Supabase Settings > API)
+- Get OPENCODE_API_KEY from opencode.ai/auth, SUPABASE_SERVICE_ROLE_KEY from Supabase Settings > API
 
 ### 2. Fix Paddle env key mismatch in `.env.local`
 - `.env.local` has `PADDLE_ENVIRONMENT="sandbox"` but `PADDLE_API_KEY="pdl_live_apikey_..."` (a live key)
@@ -22,24 +22,22 @@
 ## 🟡 Needs Attention
 
 ### 3. Fix `gradeAnswer()` silent failure in `src/lib/learning/aiClassifiers.ts`
-- Lines 58-63: bare `catch {}` returns `{ isCorrect: false }` on any Groq error
-- A Groq outage marks ALL student answers incorrect with a misleading message
+- Lines 58-63: bare `catch {}` returns `{ isCorrect: false }` on any AI provider error
+- An AI provider outage marks ALL student answers incorrect with a misleading message
 - **Fix**: Either throw and surface the error to the caller, or return a `GRADING_UNAVAILABLE` state that the UI can display as "grading temporarily unavailable, try again"
 
 ### 4. Add try/catch to chapter summary generation in `src/app/explore/[slug]/page.tsx`
-- `generateSummaryWithGroq()` throws on HTTP errors with no catch at the call site
-- A Groq failure crashes the entire topic summary page
+- `generateSummary()` throws on HTTP errors with no catch at the call site
+- An AI provider failure crashes the entire topic summary page
 - **Fix**: Wrap the call in try/catch, return a user-friendly error state ("Summary unavailable, try again later")
 
-### 5. Switch chapter summary from raw `fetch()` to shared Groq client
-- `generateSummaryWithGroq()` calls `https://api.groq.com/openai/v1/chat/completions` via raw `fetch()`
-- All other consumers use `src/lib/groq.ts` shared client
-- **Fix**: Refactor to use `import { groq } from "@/lib/groq"` for consistency
+### 5. ~~Switch chapter summary from raw `fetch()` to shared Groq client~~ ✅ RESOLVED
+- Already migrated to shared AI client (`src/lib/ai.ts`) during Groq → OpenCode Zen migration
 
 ### 6. Clean up dead env vars in `.env.local`
 - Remove `GOOGLE_CLIENT_ID` — no code references
 - Remove `GOOGLE_CLIENT_SECRET` — no code references
-- Remove `GEMINI_API_KEY` — no code references (app uses Groq, not Gemini)
+- Remove `GEMINI_API_KEY` — no code references (app uses OpenCode Zen, not Gemini)
 
 ### 7. Delete legacy `src/lib/supabaseClient.ts`
 - Dead code — uses `createBrowserClient` without proper SSR cookie adapter
@@ -90,7 +88,7 @@
 - **Build output** — `npm install` was running at time of report; `next build` not yet run
 - **Dev server runtime** — start `next dev` and check for console errors, hydration warnings, broken routes
 - **Supabase post-resume connectivity** — verify pooler accepts connections (run `SELECT 1` in SQL Editor)
-- **Live Groq API key validation** — test with a simple API call once key is added
+- **Live OpenCode API key validation** — test with a simple API call once key is added
 - **End-to-end auth flow test** — sign up → email confirm → onboarding → dashboard
 
 ---
