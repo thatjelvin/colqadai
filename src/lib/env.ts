@@ -6,8 +6,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DIRECT_URL: z.string().optional(),
 
-  // AI Provider (OpenCode Zen)
-  OPENCODE_API_KEY: z.string().min(1, "OPENCODE_API_KEY is required"),
+  // AI Provider (OpenCode Zen) — optional at build time, required at runtime
+  OPENCODE_API_KEY: z.string().optional(),
 
   // Supabase Auth
   NEXT_PUBLIC_SUPABASE_URL: z.string().min(1, "NEXT_PUBLIC_SUPABASE_URL is required"),
